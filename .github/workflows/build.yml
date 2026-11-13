@@ -1,0 +1,52 @@
+name: Build plugin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Audit frontend dependencies
+        run: npm audit
+
+      - name: Check PHP syntax
+        run: find activity-log-for-admins -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Build installable archive
+        run: npm run package
+
+      - name: Upload installable archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: activity-log-for-admins-1.0.0
+          path: release/activity-log-for-admins.1.0.0.zip
+          if-no-files-found: error
