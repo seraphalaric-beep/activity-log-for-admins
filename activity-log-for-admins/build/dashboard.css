@@ -1,0 +1,185 @@
+.alfa-dashboard-widget,
+.alfa-dashboard-widget * {
+  box-sizing: border-box;
+}
+
+.alfa-dashboard-widget {
+  color: #182538;
+  font: 14px/1.5 system-ui, sans-serif;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin: 2px 0 18px;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-eyebrow {
+  margin: 0;
+  color: #2456ad;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-intro {
+  margin: 3px 0 0;
+  color: #4c5f76;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-action {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 7px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-action:focus-visible {
+  outline: 3px solid #2456ad55;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-metric {
+  min-width: 0;
+  padding: 14px 16px;
+  background: #f5f8fc;
+  border: 1px solid #d9e2ee;
+  border-radius: 9px;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-metric dt {
+  color: #4c5f76;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-metric dd {
+  margin: 4px 0 0;
+  color: #182538;
+  font-size: 25px;
+  line-height: 1.15;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-metric.is-warning {
+  background: #fff8ec;
+  border-color: #edd3ab;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-metric.is-warning dd {
+  color: #794000;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-recent {
+  margin-top: 21px;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-recent h3 {
+  margin: 0 0 8px;
+  color: #182538;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-recent ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-recent li + li {
+  border-top: 1px solid #e5ebf2;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-event {
+  display: grid;
+  gap: 3px;
+  padding: 11px 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-event:hover .alfa-dashboard-event-summary {
+  color: #2456ad;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-event:focus-visible {
+  outline: 3px solid #2456ad55;
+  outline-offset: 2px;
+  border-radius: 5px;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-event-summary {
+  color: #182538;
+  font-weight: 650;
+}
+
+.alfa-dashboard-widget .alfa-dashboard-event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  color: #4c5f76;
+  font-size: 12px;
+}
+
+.alfa-dashboard-widget :is(.alfa-dashboard-empty, .alfa-dashboard-error) {
+  margin: 0;
+  padding: 14px 16px;
+  background: #f5f8fc;
+  border-radius: 8px;
+  color: #4c5f76;
+}
+
+@media (max-width: 700px) {
+  .alfa-dashboard-widget .alfa-dashboard-header {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 380px) {
+  .alfa-dashboard-widget .alfa-dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .alfa-dashboard-widget .alfa-dashboard-action {
+    width: 100%;
+  }
+
+  .alfa-dashboard-widget .alfa-dashboard-metrics {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .alfa-dashboard-widget .alfa-dashboard-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 13px;
+  }
+
+  .alfa-dashboard-widget .alfa-dashboard-metric dd {
+    margin: 0;
+  }
+}

@@ -10,6 +10,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $project = Split-Path $PSScriptRoot -Parent
 $site = (Resolve-Path -LiteralPath $WordPress).Path
+$manifest = Get-Content -Raw -LiteralPath (Join-Path $project 'package.json') | ConvertFrom-Json
+$archive = Join-Path $project ("release/activity-log-for-admins.{0}.zip" -f $manifest.version)
+if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) { throw "Build the installable archive first: $archive" }
 if ($Database -notmatch '^alfa_[a-z0-9_]+$') { throw 'Use a disposable alfa_ database.' }
 $config = Join-Path $site 'wp-config.php'
 if (Test-Path $config) { throw 'Use a clean copy of WordPress with no existing wp-config.php.' }
@@ -39,7 +42,6 @@ $contents = @(
 [IO.File]::WriteAllLines($config, [string[]] $contents, [Text.UTF8Encoding]::new($false))
 $phpDirectory = Split-Path (Resolve-Path -LiteralPath $Php).Path -Parent
 $options = @('-n', '-d', "extension_dir=$phpDirectory/ext", '-d', 'extension=mysqli', '-d', 'extension=mbstring', '-d', 'extension=zip', '-d', 'extension=openssl', '-d', 'extension=curl', '-d', 'extension=fileinfo')
-$archive = Join-Path $project 'release/activity-log-for-admins.1.0.0.zip'
 & $Php @options (Join-Path $PSScriptRoot 'site.php') $site $archive $url $Password
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'alfa-fixture.php') -Destination $site

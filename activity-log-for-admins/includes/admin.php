@@ -15,6 +15,8 @@ final class Admin {
         self::$plugin_file = $plugin_file;
         add_action( 'admin_menu', [ self::class, 'menu' ] );
         add_action( 'admin_enqueue_scripts', [ self::class, 'assets' ] );
+        add_action( 'admin_enqueue_scripts', [ self::class, 'dashboard_assets' ] );
+        add_action( 'wp_dashboard_setup', [ self::class, 'dashboard_widget' ], 1 );
         add_action( 'rest_api_init', [ self::class, 'routes' ] );
         add_filter( 'rest_pre_serve_request', [ self::class, 'serve_csv' ], 10, 4 );
     }
@@ -23,8 +25,90 @@ final class Admin {
         self::$screen = add_menu_page(
             __( 'Activity Log', 'activity-log-for-admins' ),
             __( 'Activity Log', 'activity-log-for-admins' ),
-            self::CAPABILITY, self::SLUG, [ self::class, 'render' ], 'dashicons-list-view', 81
+            self::CAPABILITY, self::SLUG, [ self::class, 'render' ], 'dashicons-list-view', 3
         );
+    }
+
+    public static function dashboard_widget(): void {
+        if ( ! self::allowed() ) {
+            return;
+        }
+
+        wp_add_dashboard_widget(
+            'alfa_activity_summary',
+            __( 'Activity summary', 'activity-log-for-admins' ),
+            [ self::class, 'render_dashboard_widget' ],
+            null,
+            null,
+            'normal',
+            'high'
+        );
+    }
+
+    public static function dashboard_assets( string $screen ): void {
+        if ( 'index.php' !== $screen || ! self::allowed() ) {
+            return;
+        }
+
+        $metadata = get_file_data( self::$plugin_file, [ 'version' => 'Version' ] );
+        wp_enqueue_style( 'alfa-dashboard', plugins_url( 'build/dashboard.css', self::$plugin_file ), [], $metadata['version'] );
+    }
+
+    public static function render_dashboard_widget(): void {
+        if ( ! self::allowed() ) {
+            return;
+        }
+
+        $summary = Store::dashboard_summary();
+        if ( is_wp_error( $summary ) ) {
+            echo '<div class="alfa-dashboard-widget"><p class="alfa-dashboard-error">' . esc_html__( 'Activity data is unavailable. Check Activity Log settings for diagnostics.', 'activity-log-for-admins' ) . '</p></div>';
+            return;
+        }
+
+        $activity_url = add_query_arg( 'page', self::SLUG, admin_url( 'admin.php' ) );
+        echo '<div class="alfa-dashboard-widget">';
+        echo '<div class="alfa-dashboard-header"><div><p class="alfa-dashboard-eyebrow">' . esc_html__( 'At a glance', 'activity-log-for-admins' ) . '</p><p class="alfa-dashboard-intro">' . esc_html__( 'Changes recorded across this site.', 'activity-log-for-admins' ) . '</p></div>';
+        echo '<a class="button button-primary alfa-dashboard-action" href="' . esc_url( $activity_url ) . '">' . esc_html__( 'View activity', 'activity-log-for-admins' ) . '</a></div>';
+        echo '<dl class="alfa-dashboard-metrics">';
+        self::dashboard_metric( __( 'Last 24 hours', 'activity-log-for-admins' ), $summary['last_day'] );
+        self::dashboard_metric( __( 'Last 7 days', 'activity-log-for-admins' ), $summary['last_week'] );
+        self::dashboard_metric( __( 'Warnings in 7 days', 'activity-log-for-admins' ), $summary['warnings'], ! empty( $summary['warnings'] ) );
+        echo '</dl>';
+
+        echo '<div class="alfa-dashboard-recent"><h3>' . esc_html__( 'Recent changes', 'activity-log-for-admins' ) . '</h3>';
+        if ( empty( $summary['events'] ) ) {
+            echo '<p class="alfa-dashboard-empty">' . esc_html__( 'No activity has been recorded yet. New changes will appear here.', 'activity-log-for-admins' ) . '</p>';
+        } else {
+            echo '<ul>';
+            foreach ( $summary['events'] as $event ) {
+                $event_url = add_query_arg(
+                    [ 'page' => self::SLUG, 'item' => $event['item_kind'] . ':' . $event['item_key'] ],
+                    admin_url( 'admin.php' )
+                );
+                $actor = $event['actor_name'];
+                if ( '' === $actor ) {
+                    $actor = match ( $event['actor_kind'] ) {
+                        'anonymous' => __( 'Unauthenticated', 'activity-log-for-admins' ),
+                        'system' => __( 'WordPress background task', 'activity-log-for-admins' ),
+                        default => __( 'Unknown actor', 'activity-log-for-admins' ),
+                    };
+                }
+                $timestamp = strtotime( $event['occurred_at'] . ' UTC' );
+                $time = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp );
+                echo '<li><a class="alfa-dashboard-event" href="' . esc_url( $event_url ) . '">';
+                echo '<span class="alfa-dashboard-event-summary">' . esc_html( $event['summary'] ) . '</span>';
+                echo '<span class="alfa-dashboard-event-meta">' . esc_html( $event['item_name'] ) . ' <span aria-hidden="true">·</span> ' . esc_html( $actor ) . ' <span aria-hidden="true">·</span> <time datetime="' . esc_attr( gmdate( DATE_ATOM, $timestamp ) ) . '">' . esc_html( $time ) . '</time></span>';
+                echo '</a></li>';
+            }
+            echo '</ul>';
+        }
+        echo '</div></div>';
+    }
+
+    private static function dashboard_metric( string $label, int $value, bool $warning = false ): void {
+        echo '<div class="alfa-dashboard-metric' . ( $warning ? ' is-warning' : '' ) . '">';
+        echo '<dt>' . esc_html( $label ) . '</dt><dd>' . esc_html( number_format_i18n( $value ) ) . '</dd>';
+        echo '</div>';
     }
 
     public static function assets( string $screen ): void {

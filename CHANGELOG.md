@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+* Added an activity summary widget near the top of the WordPress Dashboard, with recent changes and event counts.
+* Placed Activity Log near the top of the admin menu.
+* Improved spacing and button sizing across the plugin interface.
+
 ## 1.0.0
 
 * Added Activity and Settings to the WordPress admin for single sites.

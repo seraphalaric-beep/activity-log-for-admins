@@ -32,6 +32,12 @@ jobs:
         with:
           php-version: "8.3"
 
+      - name: Read plugin version
+        id: plugin_version
+        run: |
+          PLUGIN_VERSION=$(node -p "require('./package.json').version")
+          echo "version=${PLUGIN_VERSION}" >> "$GITHUB_OUTPUT"
+
       - name: Install frontend dependencies
         run: npm ci
 
@@ -47,6 +53,6 @@ jobs:
       - name: Upload installable archive
         uses: actions/upload-artifact@v4
         with:
-          name: activity-log-for-admins-1.0.0
-          path: release/activity-log-for-admins.1.0.0.zip
+          name: activity-log-for-admins-${{ steps.plugin_version.outputs.version }}
+          path: release/activity-log-for-admins.${{ steps.plugin_version.outputs.version }}.zip
           if-no-files-found: error

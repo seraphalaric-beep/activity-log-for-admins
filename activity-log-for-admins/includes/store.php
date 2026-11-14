@@ -198,6 +198,36 @@ final class Store {
         return $wpdb->last_error ? self::unavailable() : $rows;
     }
 
+    public static function dashboard_summary(): array|\WP_Error {
+        global $wpdb;
+
+        $table = self::table();
+        $since_day = gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
+        $since_week = gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS );
+        $query = 'SELECT COUNT(*) AS week_count,
+                COALESCE(SUM(occurred_at >= %s), 0) AS day_count,
+                COALESCE(SUM(severity = %s), 0) AS warning_count
+            FROM %i WHERE occurred_at >= %s';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Summarize the indexed custom event table for the administrator dashboard.
+        $counts = $wpdb->get_row( $wpdb->prepare( $query, $since_day, 'warning', $table, $since_week ), ARRAY_A );
+        if ( $wpdb->last_error ) {
+            return self::unavailable();
+        }
+
+        $events = self::query( [], 5 );
+        if ( is_wp_error( $events ) ) {
+            return $events;
+        }
+
+        return [
+            'last_day' => (int) ( $counts['day_count'] ?? 0 ),
+            'last_week' => (int) ( $counts['week_count'] ?? 0 ),
+            'warnings' => (int) ( $counts['warning_count'] ?? 0 ),
+            'events' => $events,
+        ];
+    }
+
     public static function event( int $id ): array|\WP_Error {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read one event from the plugin owned table by primary key.

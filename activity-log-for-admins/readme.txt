@@ -3,11 +3,11 @@ Tags: activity log, audit log, history
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Search your WordPress activity, inspect changes, and export matching events.
+Search your WordPress activity, inspect changes, and export matching events. Administrators can also see an activity summary on the main WordPress Dashboard.
 
 == Description ==
 
@@ -35,6 +35,10 @@ On a staging or disposable single WordPress site, go to Plugins, then Add New Pl
 The source, package lock, and build configuration are included in the source directory. In that directory, run npm ci and npm run build. Third party license notices are included in the archive.
 
 == Changelog ==
+
+= 1.0.1 =
+* Added an activity summary to the WordPress Dashboard and placed Activity Log near the top of the admin menu.
+* Improved spacing, button sizing, and narrow screen layouts.
 
 = 1.0.0 =
 * Initial pilot release with search, filters, event details, revision links, CSV export, retention, and log health.

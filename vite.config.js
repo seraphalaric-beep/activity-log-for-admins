@@ -7,6 +7,7 @@ const sourceArchive = new URL(".", import.meta.url).pathname.endsWith("/source/"
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  publicDir: fileURLToPath(new URL("./ui/public", import.meta.url)),
   define: { "process.env.NODE_ENV": JSON.stringify("production") },
   build: {
     outDir: fileURLToPath(new URL(sourceArchive ? "../build" : "./activity-log-for-admins/build", import.meta.url)),
