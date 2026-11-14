@@ -43,5 +43,6 @@ The browser and database pilot uses a disposable WordPress installation, MariaDB
 * [Changelog](CHANGELOG.md)
 * [Security reporting](SECURITY.md)
 * [Contributing](CONTRIBUTING.md)
+* [WordPress.org assets and listing copy](docs/wordpress-org-assets.md)
 * [Security and interface check report for 1.0.0](docs/verification/security-ui-report.json)
 

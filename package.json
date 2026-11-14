@@ -6,6 +6,7 @@
   "scripts": {
     "build": "vite build",
     "package": "npm run build && python tools/package.py",
+    "assets:wordpress": "vite build --config vite.assets-preview.config.js && node tools/build-wordpress-screenshots.mjs",
     "test:pilot": "node tools/pilot.mjs",
     "test:quality": "node tools/quality.mjs"
   },

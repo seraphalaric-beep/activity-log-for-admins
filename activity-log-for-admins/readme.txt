@@ -7,38 +7,71 @@ Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Search your WordPress activity, inspect changes, and export matching events. Administrators can also see an activity summary on the main WordPress Dashboard.
+Search WordPress activity, see who changed what, compare recorded values, and export filtered history as CSV.
 
 == Description ==
 
-Activity Log for Admins records changes locally on single WordPress sites. Administrators can search and combine filters, inspect previous and new values, and download matching events as CSV. Recording begins when the plugin is activated.
+Activity Log for Admins keeps a searchable history of supported changes on a single WordPress site.
+
+Start with a quick summary on the Dashboard, or open Activity to search by page or post, actor, and change. Combine filters for date, actor, action, affected item, and severity.
+
+Open an event to see who acted, what changed, and when. Review previous and new values when they were captured. Follow a WordPress revision comparison when both revisions remain available.
+
+Export every event matching the current filters to CSV, including records beyond the visible page.
+
+Activity begins when the plugin is activated. Records stay in your WordPress database. The plugin sends no telemetry and uses no external service.
 
 == Supported events ==
 
-* Pages and posts: creation, title and core field edits, content and excerpt changes, status changes, trash, and restoration. WordPress revision comparisons depend on available revisions.
+* Pages and posts: creation, title and core field edits, content and excerpt changes, status changes, trash, and restoration. Revision comparisons depend on the revisions retained by WordPress.
 * Accounts: creation, deletion, and role changes.
-* WordPress sign ins: successful and failed authentication through standard WordPress hooks.
-* Plugins: installation, activation, deactivation, update, and deletion through WordPress.
-* Themes: installation, switch, update, and deletion through WordPress.
-* Settings: site visibility, default role, permalink structure, site address, and WordPress address.
+* Sign ins: successful and failed authentication through standard WordPress hooks.
+* Plugins: installation, activation, deactivation, updates, and deletion.
+* Themes: installation, switching, updates, and deletion.
+* Site settings: site visibility, default role, permalink structure, site address, and WordPress address.
 
 == Privacy and retention ==
 
-Events can contain usernames, content titles, and selected setting values. Data is stored in the site's database and stays there unless an authorised admin exports it. The plugin uses no telemetry or external service. IP addresses, credentials, and raw request bodies are excluded. Retention defaults to 90 days. Deactivation preserves history. Settings offers an explicit option to erase all plugin data on deletion.
+Events may contain usernames, content titles, and selected setting values. The plugin stores records in the site's database. It does not record passwords, tokens, IP addresses, or full request bodies. Retention defaults to 90 days and can be changed in Settings. Cleanup uses the WordPress schedule, so it may run later on quiet sites. Deactivation preserves history. Erasing all plugin data on deletion is an explicit option and is off by default.
 
 == Installation ==
 
-On a staging or disposable single WordPress site, go to Plugins, then Add New Plugin, then Upload Plugin. Select the ZIP, install it, and activate. Open Activity Log in the WordPress admin menu.
+1. Use a single WordPress site running WordPress 6.9 or later and PHP 8.3 or later.
+2. In the WordPress admin, open Plugins, then Add New Plugin, then Upload Plugin.
+3. Select the plugin ZIP, install it, and activate it.
+4. Open the Dashboard for the activity summary, or choose Activity Log from the admin menu.
 
-== Frontend source ==
+== Frequently Asked Questions ==
 
-The source, package lock, and build configuration are included in the source directory. In that directory, run npm ci and npm run build. Third party license notices are included in the archive.
+= Does the plugin show changes from before activation? =
+
+No. Recording starts when the plugin is activated. The plugin does not import history from other activity log tools.
+
+= Which users can view and export activity? =
+
+Users with the WordPress `manage_options` capability can view, export, and change plugin settings.
+
+= Does it support multisite or WooCommerce? =
+
+Not in version 1.0.1. This release is for a single WordPress site and does not include WooCommerce events.
+
+= Why might an event not include a previous value or revision comparison? =
+
+The plugin records a defined set of fields. A previous value appears when that field is available to the event capture hook. A revision comparison requires WordPress to retain both revisions.
+
+= What happens when I deactivate or delete the plugin? =
+
+Deactivation preserves history. To erase activity and settings when deleting the plugin, turn on the erase option in Settings and save it before deletion.
+
+== Screenshots ==
+
+1. Search and filter recent activity, then export matching results as CSV.
+2. Open an event to review its actor, timestamp, and captured previous and new values.
+3. See activity counts and recent changes from the WordPress Dashboard.
+4. Set retention and review database space, cleanup status, and the plugin version.
 
 == Changelog ==
 
 = 1.0.1 =
 * Added an activity summary to the WordPress Dashboard and placed Activity Log near the top of the admin menu.
 * Improved spacing, button sizing, and narrow screen layouts.
-
-= 1.0.0 =
-* Initial pilot release with search, filters, event details, revision links, CSV export, retention, and log health.
