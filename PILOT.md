@@ -40,3 +40,11 @@ The security and interface suite also passed on 1.0.3. Anonymous reads and expor
 On the local WordPress 7.1.4 and MariaDB 11.4.9 reference environment, the 100,000 event run measured REST first page latency at 43 ms and filtered request latency at 217 ms at the 95th percentile. These timings describe this local environment.
 
 The earlier full browser and database suite also passed on WordPress 6.9 with PHP 8.3.36 and WordPress 7.0 with PHP 8.4.26. Desktop and narrow layouts were checked in Chrome on those earlier builds.
+
+## 1.0.4 verification results
+
+The [GitHub Actions run](https://github.com/seraphalaric-beep/activity-log-for-admins/actions/runs/43610394795) passed on WordPress 7.1.4, PHP 8.3, and MariaDB 11.4.9. It built and installed the 1.0.4 ZIP, then passed the dependency audit, PHP syntax checks, security and interface checks, and full browser and database pilot.
+
+The regression check confirmed that the newest Dashboard event also appeared in the full event response and the visible Activity table. Activity list, event details, Settings, and CSV responses used private cache headers and could not be stored. The full pilot covered event capture, filters, event details, permissions, export, cleanup failures, retention, uninstall, and a database seeded with 100,000 events.
+
+Anonymous reads and exports returned 401. Editor reads, exports, and settings changes returned 403. Twelve axe scans reported no findings across Activity, filters, event details, and Settings at widths from 320 to 1440 pixels. The browser reported no JavaScript errors. REST request latency at the 95th percentile was 52 ms for the first page and 178 ms for a filtered request in the hosted runner. These timings describe that runner. The current report is `docs/verification/security-ui-report.json`.

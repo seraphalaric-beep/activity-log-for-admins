@@ -1,8 +1,12 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "security": {
     "anonymousRead": 401,
     "anonymousExport": 401,
+    "activityCacheControl": "private, no-store, no-cache, must-revalidate, max-age=0",
+    "eventDetailsCacheControl": "private, no-store, no-cache, must-revalidate, max-age=0",
+    "settingsCacheControl": "private, no-store, no-cache, must-revalidate, max-age=0",
+    "exportCacheControl": "no-cache, must-revalidate, max-age=0, no-store, private",
     "adminReadWithoutNonce": 401,
     "adminSettingsWithoutNonce": 401,
     "editorRead": 403,
