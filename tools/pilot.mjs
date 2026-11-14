@@ -5,14 +5,28 @@ import { chromium } from "playwright";
 const [base, password, level = "full", output = "test-results"] = process.argv.slice(2);
 const { version } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 if (!base || !password || new URL(base).hostname !== "127.0.0.1") throw new Error("Pass a disposable loopback URL and its pilot password.");
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const launchOptions = { headless: true };
+if (process.env.PLAYWRIGHT_CHANNEL !== "chromium") launchOptions.channel = process.env.PLAYWRIGHT_CHANNEL ?? "chrome";
+const browser = await chromium.launch(launchOptions);
 const page = await browser.newPage({ viewport: { width: 1440, height: 950 } });
 page.setDefaultTimeout(12000);
 const pageErrors = [];
+const activityRequests = [];
 page.on("pageerror", error => pageErrors.push(error.message));
+page.on("request", request => {
+  const url = new URL(request.url());
+  const route = url.searchParams.get("rest_route") ?? url.pathname;
+  if (route.endsWith("/activity-log-for-admins/v1/events")) activityRequests.push(url);
+});
 const plugin = "activity-log-for-admins/activity-log-for-admins.php";
 const screen = "/wp-admin/admin.php?page=activity-log-for-admins";
 const navigation = page.getByRole("navigation", { name: "Activity Log", exact: true });
+
+function assertPrivateNoStore(response, label) {
+  assert.match(response.cacheControl ?? "", /\bprivate\b/i, `${label} response must be private`);
+  assert.match(response.cacheControl ?? "", /\bno-store\b/i, `${label} response must not be stored`);
+  assert.doesNotMatch(response.cacheControl ?? "", /\bpublic\b/i, `${label} response must not be public`);
+}
 
 async function signIn(tab, user, value) {
   await tab.goto(base + "/wp-login.php");
@@ -29,12 +43,15 @@ async function api(path, options = {}) {
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
     for (const [key, value] of Object.entries(options.query ?? {})) url.searchParams.set(key, value);
+    url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const response = await fetch(url, {
       method: options.data ? "POST" : "GET",
       headers: { "X-WP-Nonce": config.nonce, "Content-Type": "application/json" },
       body: options.data && JSON.stringify(options.data),
     });
-    return { status: response.status, data: await response.json() };
+    const contentType = response.headers.get("content-type") ?? "";
+    const data = contentType.includes("application/json") ? await response.json() : await response.text();
+    return { status: response.status, data, cacheControl: response.headers.get("cache-control"), url: url.toString() };
   }, { path, options });
 }
 
@@ -53,7 +70,11 @@ try {
   if (await activate.count()) await activate.click();
   await page.goto(base + screen);
   await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
-  assert.equal((await api("settings")).data.settings.retention, 90);
+  await page.getByText(/\d+ events? on this page/).waitFor();
+  assert.ok(activityRequests.some(url => url.searchParams.has("_alfa_request")), "Activity list requests must bypass shared caches");
+  const settingsResponse = await api("settings");
+  assert.equal(settingsResponse.data.settings.retention, 90);
+  assertPrivateNoStore(settingsResponse, "Settings");
   await navigation.getByRole("link", { name: "Settings", exact: true }).click();
   await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
   assert.deepEqual(pageErrors, []);
@@ -71,7 +92,10 @@ try {
     await badLogin.locator("#login_error").waitFor();
     await badLogin.close();
     await page.reload();
-    const { data: all } = await api("events");
+    const allResponse = await api("events");
+    assertPrivateNoStore(allResponse, "Activity list");
+    assert.ok(new URL(allResponse.url).searchParams.has("_alfa_request"));
+    const all = allResponse.data;
     assert.ok(all.events.some(event => event.action_key === "sign_in_failed" && event.actor_kind === "anonymous"));
     assert.ok(all.events.some(event => event.action_key === "user_deleted"));
     assert.ok(all.events.some(event => event.action_key === "signed_in" && event.actor_name === "pilotadmin"));
@@ -90,6 +114,18 @@ try {
     assert.ok(all.events.some(event => event.action_key === "theme_switched"));
     assert.ok(all.events.some(event => event.action_key === "theme_updated"));
     assert.ok(all.events.some(event => event.action_key === "theme_deleted"));
+    assertPrivateNoStore(await api(`events/${all.events[0].id}`), "Event details");
+    assertPrivateNoStore(await api("export"), "CSV export");
+
+    await page.goto(base + "/wp-admin/index.php");
+    const dashboardSummary = page.locator(".alfa-dashboard-event-summary").first();
+    await dashboardSummary.waitFor();
+    const dashboardEvent = await dashboardSummary.innerText();
+    assert.ok(all.events.some(event => event.summary === dashboardEvent), "Dashboard event must exist in the full list response");
+    await page.getByRole("link", { name: "View activity", exact: true }).click();
+    const activityTable = page.getByRole("table", { name: "Activity events" });
+    await activityTable.waitFor();
+    await activityTable.getByText(dashboardEvent, { exact: true }).waitFor();
     assert.equal((await api("events", { query: { q: "Housing Guide", action: "content_edited" } })).data.events.length, 1);
 
     await page.evaluate(async id => {

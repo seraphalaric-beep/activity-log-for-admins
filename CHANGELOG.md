@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4
+
+* Prevented shared caches from storing private Activity Log REST responses.
+* Added a unique request value to Activity Log API calls to bypass stale cached responses.
+* Added regression coverage for Dashboard and full list parity, and REST cache headers.
+
 ## 1.0.3
 
 * Added Bryan Mc Namara as the plugin author in WordPress plugin metadata.

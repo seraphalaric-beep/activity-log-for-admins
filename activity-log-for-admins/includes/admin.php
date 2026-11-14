@@ -18,7 +18,9 @@ final class Admin {
         add_action( 'admin_enqueue_scripts', [ self::class, 'dashboard_assets' ] );
         add_action( 'wp_dashboard_setup', [ self::class, 'dashboard_widget' ], 1 );
         add_action( 'rest_api_init', [ self::class, 'routes' ] );
+        add_filter( 'rest_post_dispatch', [ self::class, 'private_rest_response' ], PHP_INT_MAX, 3 );
         add_filter( 'rest_pre_serve_request', [ self::class, 'serve_csv' ], 10, 4 );
+        add_filter( 'rest_pre_serve_request', [ self::class, 'private_rest_headers' ], PHP_INT_MAX, 4 );
     }
 
     public static function menu(): void {
@@ -294,6 +296,42 @@ final class Admin {
         $response->header( 'Cache-Control', 'no-store, private' );
         $response->header( 'X-Content-Type-Options', 'nosniff' );
         return $response;
+    }
+
+    private static function is_private_route( \WP_REST_Request $request ): bool {
+        return str_starts_with( $request->get_route(), '/' . self::ROUTE . '/' );
+    }
+
+    public static function private_rest_response( \WP_HTTP_Response $response, \WP_REST_Server $server, \WP_REST_Request $request ): \WP_HTTP_Response {
+        if ( ! self::is_private_route( $request ) ) {
+            return $response;
+        }
+
+        $response->header( 'Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0' );
+        $response->header( 'Pragma', 'no-cache' );
+        $response->header( 'Expires', 'Wed, 11 Jan 1984 05:00:00 GMT' );
+        $headers = $response->get_headers();
+        foreach ( array_keys( $headers ) as $header ) {
+            if ( 'last-modified' === strtolower( $header ) ) {
+                unset( $headers[ $header ] );
+            }
+        }
+        $response->set_headers( $headers );
+
+        return $response;
+    }
+
+    public static function private_rest_headers( bool $served, \WP_HTTP_Response $response, \WP_REST_Request $request, \WP_REST_Server $server ): bool {
+        if ( ! self::is_private_route( $request ) || headers_sent() ) {
+            return $served;
+        }
+
+        header( 'Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0', true );
+        header( 'Pragma: no-cache', true );
+        header( 'Expires: Wed, 11 Jan 1984 05:00:00 GMT', true );
+        header_remove( 'Last-Modified' );
+
+        return $served;
     }
 
     public static function serve_csv( bool $served, \WP_HTTP_Response $response, \WP_REST_Request $request, \WP_REST_Server $server ): bool {

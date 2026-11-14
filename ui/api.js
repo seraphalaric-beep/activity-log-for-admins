@@ -32,6 +32,7 @@ export function apiUrl(path, query = {}) {
   for (const [key, value] of Object.entries(query)) {
     if (value) url.searchParams.set(key, value);
   }
+  url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
   return url;
 }
 

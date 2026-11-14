@@ -12,6 +12,19 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4.9
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: alfa_pilot
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -31,6 +44,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
+          extensions: curl, fileinfo, mbstring, mysqli, zip
 
       - name: Read plugin version
         id: plugin_version
@@ -49,6 +63,51 @@ jobs:
 
       - name: Build installable archive
         run: npm run package
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Prepare disposable WordPress
+        run: |
+          WORDPRESS_VERSION=7.1.4
+          WP_ROOT="$RUNNER_TEMP/wordpress"
+          curl -fsSL "https://wordpress.org/wordpress-${WORDPRESS_VERSION}.zip" -o "$RUNNER_TEMP/wordpress.zip"
+          unzip -q "$RUNNER_TEMP/wordpress.zip" -d "$RUNNER_TEMP"
+          cp "$WP_ROOT/wp-config-sample.php" "$WP_ROOT/wp-config.php"
+          sed -i 's/database_name_here/alfa_pilot/; s/username_here/root/; s/password_here/root/; s/localhost/127.0.0.1:3306/' "$WP_ROOT/wp-config.php"
+          PILOT_PASSWORD="$(node -e "process.stdout.write(require('node:crypto').randomBytes(24).toString('base64url'))")"
+          PLUGIN_VERSION="$(node -p "require('./package.json').version")"
+          php tools/site.php "$WP_ROOT" "release/activity-log-for-admins.${PLUGIN_VERSION}.zip" "http://127.0.0.1:8080" "$PILOT_PASSWORD"
+          cp tools/alfa-fixture.php "$WP_ROOT/alfa-fixture.php"
+          echo "::add-mask::$PILOT_PASSWORD"
+          echo "PILOT_PASSWORD=$PILOT_PASSWORD" >> "$GITHUB_ENV"
+          php -S 127.0.0.1:8080 -t "$WP_ROOT" > "$RUNNER_TEMP/wordpress-server.log" 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://127.0.0.1:8080/wp-login.php; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/wordpress-server.log"
+          exit 1
+
+      - name: Run security and interface checks
+        env:
+          PLAYWRIGHT_CHANNEL: chromium
+        run: npm run test:quality -- http://127.0.0.1:8080 "$PILOT_PASSWORD" "$RUNNER_TEMP/test-results"
+
+      - name: Run full activity and dashboard regression
+        env:
+          PLAYWRIGHT_CHANNEL: chromium
+        run: npm run test:pilot -- http://127.0.0.1:8080 "$PILOT_PASSWORD" full "$RUNNER_TEMP/test-results"
+
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: activity-log-for-admins-test-evidence
+          path: ${{ runner.temp }}/test-results
+          if-no-files-found: warn
 
       - name: Upload installable archive
         uses: actions/upload-artifact@v4

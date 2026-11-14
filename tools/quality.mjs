@@ -6,7 +6,9 @@ const [base, password, output = "test-results"] = process.argv.slice(2);
 const { version } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 if (!base || !password || new URL(base).hostname !== "127.0.0.1") throw new Error("Pass a disposable loopback URL and its pilot password.");
 
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const launchOptions = { headless: true };
+if (process.env.PLAYWRIGHT_CHANNEL !== "chromium") launchOptions.channel = process.env.PLAYWRIGHT_CHANNEL ?? "chrome";
+const browser = await chromium.launch(launchOptions);
 const context = await browser.newContext({ viewport: { width: 1440, height: 950 } });
 const page = await context.newPage();
 page.setDefaultTimeout(12000);
@@ -54,7 +56,15 @@ function endpoint(apiBase, path) {
   const url = new URL(apiBase);
   if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
   else url.pathname += path;
+  url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
   return url;
+}
+
+function assertPrivateNoStore(headers, label) {
+  const cacheControl = headers["cache-control"] ?? "";
+  assert.match(cacheControl, /\bprivate\b/i, `${label} response must be private`);
+  assert.match(cacheControl, /\bno-store\b/i, `${label} response must not be stored`);
+  assert.doesNotMatch(cacheControl, /\bpublic\b/i, `${label} response must not be public`);
 }
 
 try {
@@ -62,6 +72,10 @@ try {
   await context.addInitScript({ path: "node_modules/axe-core/axe.min.js" });
   await signIn(page, "pilotadmin", password);
   const adminScreen = base + "/wp-admin/admin.php?page=activity-log-for-admins";
+  await page.goto(base + "/wp-admin/plugins.php");
+  const pluginRow = page.locator('tr[data-plugin="activity-log-for-admins/activity-log-for-admins.php"]');
+  const activate = pluginRow.locator(".activate a");
+  if (await activate.count()) await activate.click();
   await page.goto(adminScreen);
   await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
 
@@ -85,6 +99,18 @@ try {
   });
   assert.equal(adminSettingsWithoutNonce.status(), 401, "Settings changes require a REST nonce.");
 
+  const activityResponse = await context.request.get(endpoint(apiBase, "events").href, { headers: { "X-WP-Nonce": nonce } });
+  assert.equal(activityResponse.status(), 200);
+  assertPrivateNoStore(activityResponse.headers(), "Activity list");
+  const activityPayload = await activityResponse.json();
+  assert.ok(activityPayload.events.length > 0, "The Activity list must return the seeded events.");
+  const eventDetailsResponse = await context.request.get(endpoint(apiBase, `events/${activityPayload.events[0].id}`).href, { headers: { "X-WP-Nonce": nonce } });
+  assert.equal(eventDetailsResponse.status(), 200);
+  assertPrivateNoStore(eventDetailsResponse.headers(), "Event details");
+  const settingsResponse = await context.request.get(endpoint(apiBase, "settings").href, { headers: { "X-WP-Nonce": nonce } });
+  assert.equal(settingsResponse.status(), 200);
+  assertPrivateNoStore(settingsResponse.headers(), "Settings");
+
   const exportUrl = endpoint(apiBase, "export");
   exportUrl.searchParams.set("_wpnonce", nonce);
   const exportResponse = await context.request.get(exportUrl.href);
@@ -93,7 +119,7 @@ try {
   assert.match(headers["content-type"], /text\/csv; charset=UTF-8/i);
   assert.match(headers["content-disposition"], /attachment; filename="activity-log-/i);
   assert.equal(headers["x-content-type-options"], "nosniff");
-  assert.match(headers["cache-control"], /no-store, private/i);
+  assertPrivateNoStore(headers, "CSV export");
   const exportedCsv = (await exportResponse.body()).toString("utf8");
   assert.ok(exportedCsv.includes("Event ID"));
   assert.ok(exportedCsv.includes("'=1+1"), "CSV cells that begin with formulas must be neutralized.");
@@ -165,6 +191,10 @@ try {
     security: {
       anonymousRead: anonymousEvents.status(),
       anonymousExport: anonymousExport.status(),
+      activityCacheControl: activityResponse.headers()["cache-control"],
+      eventDetailsCacheControl: eventDetailsResponse.headers()["cache-control"],
+      settingsCacheControl: settingsResponse.headers()["cache-control"],
+      exportCacheControl: headers["cache-control"],
       adminReadWithoutNonce: adminWithoutNonce.status(),
       adminSettingsWithoutNonce: adminSettingsWithoutNonce.status(),
       editorRead: editorRead.status(),

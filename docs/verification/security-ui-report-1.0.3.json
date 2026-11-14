@@ -1,0 +1,75 @@
+{
+  "version": "1.0.3",
+  "security": {
+    "anonymousRead": 401,
+    "anonymousExport": 401,
+    "adminReadWithoutNonce": 401,
+    "adminSettingsWithoutNonce": 401,
+    "editorRead": 403,
+    "editorExport": 403,
+    "editorSettings": 403,
+    "adminExport": 200,
+    "formulaProtection": true,
+    "injectionStatus": 200,
+    "invalidDateStatus": 400,
+    "storedXssRenderedAsText": true
+  },
+  "accessibility": [
+    {
+      "label": "Activity at 320px",
+      "result": []
+    },
+    {
+      "label": "Filters at 320px",
+      "result": []
+    },
+    {
+      "label": "Activity at 390px",
+      "result": []
+    },
+    {
+      "label": "Activity at 768px",
+      "result": []
+    },
+    {
+      "label": "Activity at 1024px",
+      "result": []
+    },
+    {
+      "label": "Activity at 1440px",
+      "result": []
+    },
+    {
+      "label": "Filters at 1440px",
+      "result": []
+    },
+    {
+      "label": "Event details at 320px",
+      "result": []
+    },
+    {
+      "label": "Settings at 320px",
+      "result": []
+    },
+    {
+      "label": "Settings at 390px",
+      "result": []
+    },
+    {
+      "label": "Settings at 768px",
+      "result": []
+    },
+    {
+      "label": "Settings at 1440px",
+      "result": []
+    }
+  ],
+  "responsiveWidths": [
+    320,
+    390,
+    768,
+    1024,
+    1440
+  ],
+  "browserErrors": []
+}

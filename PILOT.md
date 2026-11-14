@@ -1,9 +1,9 @@
-# Activity Log for Admins 1.0.3 pilot
+# Activity Log for Admins 1.0.4 release
 
 ## Install and investigate
 
 1. On a disposable or staging site running WordPress 6.9 or later and PHP 8.3 or later, open **Plugins**, then **Add New Plugin**, then **Upload Plugin**.
-2. Upload the 1.0.3 ZIP, install it, and activate it. The main Dashboard shows activity counts and recent changes. Open **Activity Log** near the top of the admin menu to investigate.
+2. Upload the 1.0.4 ZIP, install it, and activate it. The main Dashboard shows activity counts and recent changes. Open **Activity Log** near the top of the admin menu to investigate.
 3. Create a test page named **Housing Guide**, publish it, and move it back to Draft. Add a few unrelated edits to make the list realistic.
 4. Ask another administrator to start on the Activity screen with only the page name. Time how long it takes to identify the actor and verify the previous status. The pilot goal is under 30 seconds.
 5. Open an event, check the previous and new values, and try the actor and affected item links. Combine search with the Action and Severity filters, reload the URL, and verify that CSV export contains the filtered results.
@@ -17,7 +17,7 @@ Deactivation preserves history. To remove the stored history and settings when d
 
 From the workspace, run `npm ci` and `npm run package`. This builds the admin interface and writes the installable ZIP under `release`. The archive contains the frontend source, dependency lock, and third party license notices.
 
-The automated pilot uses a disposable WordPress installation, local MariaDB, and Chrome. The setup script needs an extracted copy of WordPress, a native PHP executable, and an empty database whose name starts with `alfa_`. Start the disposable site with `tools/start-pilot.ps1`, then run `npm run test:pilot -- <loopback URL> <test password> full`. The fixture is used only in the disposable test environment. Screenshots are written to `test-results`.
+The automated pilot uses a disposable WordPress installation, MariaDB, PHP, and Chromium. The setup script needs an extracted copy of WordPress, a native PHP executable, and an empty database whose name starts with `alfa_`. Start the disposable site with `tools/start-pilot.ps1`, then run `npm run test:pilot -- <loopback URL> <test password> full`. The fixture is used only in the disposable test environment. Screenshots are written to `test-results`.
 
 The timed browser run checks the workflow with scripted input. Use step 4 to verify the time with a person during the staging pilot.
 
@@ -27,15 +27,15 @@ The 1.0.0 archive passed WordPress Plugin Check 2.2.0 on WordPress 7.1.4 and PHP
 
 The 1.0.0 archive also passed the browser security and interface checks on that environment. Anonymous reads and exports returned 401, editor reads, exports, and settings changes returned 403, missing nonces were rejected, formula cells were neutralized, and injected markup appeared as text. Twelve axe core scans reported no violations at 320, 390, 768, 1024, and 1440 pixels. The browser reported no JavaScript errors. The report from that release is in `docs/verification/security-ui-report-1.0.0.json`.
 
-Version 1.0.3 adds plugin author metadata. It carries forward the approved visual style across Activity, Settings, event details, and the Dashboard summary. The current release verification results are recorded below. The earlier 1.0.0 report and measurements describe that release only.
+Version 1.0.4 prevents shared caches from storing the plugin's private REST responses and adds a unique request value to each Activity Log API call. The regression suite compares the newest Dashboard event with the full list response and visible row. The 1.0.3 release added plugin author metadata and carried forward the approved visual style across Activity, Settings, event details, and the Dashboard summary. The earlier 1.0.0 report and measurements describe that release only.
 
 The earlier full WordPress and PHP version matrix was run on the prior pilot build. The 1.0.2 release has been rerun on WordPress 7.1.4 and PHP 8.5.12. Treat the earlier 6.9 and 7.0 matrix results as evidence from that build.
 
-## Verification results
+## Previous 1.0.3 verification results
 
 The full browser and database suite passed on 1.0.3 with WordPress 7.1.4, PHP 8.5.12, and MariaDB 11.4.9. It covered event capture, combined filters, revision links, permissions, export across batches, recording and cleanup failures, and data retention on uninstall. The database run seeded 100,000 events. It also confirmed that the Plugins page displays `By Bryan Mc Namara`.
 
-The security and interface suite also passed on 1.0.3. Anonymous reads and exports returned 401. Editor reads, exports, and settings changes returned 403. Twelve axe core scans reported no violations at 320, 390, 768, 1024, and 1440 pixels. The browser reported no JavaScript errors. The current report is `docs/verification/security-ui-report.json`.
+The security and interface suite also passed on 1.0.3. Anonymous reads and exports returned 401. Editor reads, exports, and settings changes returned 403. Twelve axe core scans reported no violations at 320, 390, 768, 1024, and 1440 pixels. The browser reported no JavaScript errors. The report is `docs/verification/security-ui-report-1.0.3.json`.
 
 On the local WordPress 7.1.4 and MariaDB 11.4.9 reference environment, the 100,000 event run measured REST first page latency at 43 ms and filtered request latency at 217 ms at the 95th percentile. These timings describe this local environment.
 
