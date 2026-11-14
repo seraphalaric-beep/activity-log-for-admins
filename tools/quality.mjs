@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const [base, password, output = "test-results"] = process.argv.slice(2);
+const { version } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 if (!base || !password || new URL(base).hostname !== "127.0.0.1") throw new Error("Pass a disposable loopback URL and its pilot password.");
 
 const browser = await chromium.launch({ channel: "chrome", headless: true });
@@ -153,13 +154,14 @@ try {
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 950 });
     await page.goto(adminScreen + "&view=settings");
-    await page.getByText("Activity Log for Admins · Version 1.0.0").waitFor();
+    await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Settings view overflows at ${width}px.`);
     await audit(`Settings at ${width}px`);
   }
 
   assert.deepEqual(errors, [], `Browser errors: ${JSON.stringify(errors)}`);
   const report = {
+    version,
     security: {
       anonymousRead: anonymousEvents.status(),
       anonymousExport: anonymousExport.status(),

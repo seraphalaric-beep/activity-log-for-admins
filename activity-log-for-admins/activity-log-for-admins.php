@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Activity Log for Admins
  * Description: Investigate WordPress changes, with searchable history and CSV export.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Requires at least: 6.9
  * Requires PHP: 8.3
  * License: GPL-2.0-or-later

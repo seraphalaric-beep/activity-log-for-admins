@@ -34,7 +34,10 @@ while pending:
         if p.is_file() and p.name.lower().startswith(("license", "notice", "copying")):
             entries[f"{SLUG}/licenses/{name}/{p.name}"] = p
     pending.extend(lock[f"node_modules/{name}"].get("dependencies", {}))
-for asset in ("admin.js", "admin.css", "dashboard.css"):
+for asset in (
+    "admin.js", "admin.css", "dashboard.css", "theme.css",
+    "fonts/manrope-latin.woff2", "fonts/manrope-latin-ext.woff2", "fonts/Manrope-OFL.txt",
+):
     assert f"{SLUG}/build/{asset}" in entries, f"Run the frontend build to create {asset}."
 
 archive = release / f"{SLUG}.{version}.zip"

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+* Refined Activity, Settings, event details, and the Dashboard summary with a shared visual style.
+* Added the bundled Manrope font, consistent spacing, clearer information hierarchy, and a severity legend with traffic light colors.
+* Improved event row spacing and aligned the user disclosure control with its label.
+
 ## 1.0.1
 
 * Added an activity summary widget near the top of the WordPress Dashboard, with recent changes and event counts.

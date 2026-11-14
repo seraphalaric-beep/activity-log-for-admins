@@ -3,6 +3,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const [base, password, level = "full", output = "test-results"] = process.argv.slice(2);
+const { version } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 if (!base || !password || new URL(base).hostname !== "127.0.0.1") throw new Error("Pass a disposable loopback URL and its pilot password.");
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 950 } });
@@ -52,7 +53,7 @@ try {
   await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
   assert.equal((await api("settings")).data.settings.retention, 90);
   await navigation.getByRole("link", { name: "Settings", exact: true }).click();
-  await page.getByText("Activity Log for Admins · Version 1.0.0").waitFor();
+  await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
   assert.deepEqual(pageErrors, []);
   if (level !== "full") {
     console.log("ZIP activation, REST, UI and Settings footer passed");
@@ -123,7 +124,7 @@ try {
     await page.reload();
     await event.waitFor();
     assert.equal(new URL(page.url()).searchParams.get("q"), "Housing Guide");
-    await page.getByRole("button", { name: "Edited “Housing Guide”", exact: true }).click();
+    await page.getByRole("button", { name: "Edited “Housing Guide”" }).click();
     await details.getByRole("link", { name: "Compare WordPress revisions" }).waitFor();
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Filters", exact: true }).click();

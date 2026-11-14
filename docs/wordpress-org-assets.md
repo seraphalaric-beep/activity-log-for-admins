@@ -1,6 +1,6 @@
 # WordPress.org listing assets
 
-This folder records the listing copy and graphics prepared for Activity Log for Admins 1.0.1.
+This folder records the listing copy and graphics prepared for Activity Log for Admins 1.0.2.
 
 ## Files
 
@@ -27,12 +27,12 @@ The asset command builds a temporary preview bundle from the current interface a
 
 ## Screenshot provenance
 
-The activity and event detail images use the current 1.0.1 React bundle and styles, with illustrative event records. The Dashboard image uses the current widget styles and matching widget markup, with illustrative counts and events inside a simple dashboard card. These are interface previews, not captures from a live or staging WordPress site. No site data is included.
+The activity, event detail, Dashboard, and Settings images use the 1.0.2 React bundle and shared styles, with illustrative event records. These are interface previews, not captures from a live or staging WordPress site. No site data is included.
 
 ## Confirm before a directory release
 
 * The project does not yet specify the WordPress.org contributor username. Add a `Contributors` field to the plugin readme only after confirming that username. A GitHub account name is not a substitute.
-* The current `Tested up to: 7.1` value was retained from the existing readme. The detailed full suite documented in the project notes covers version 1.0.0, while the Dashboard addition in 1.0.1 has not been retested. Confirm this field before uploading the current version.
+* The current `Tested up to: 7.1` value was retained from the existing readme. The full 1.0.2 suite passed on WordPress 7.1.4 and PHP 8.5.12. The earlier WordPress 6.9 and 7.0 results are from a previous build. Confirm this field before uploading the current version.
 * Run the [official readme validator](https://wordpress.org/plugins/developers/readme-validator/) on the final readme.
 * WordPress.org image files have strict names and dimensions. The banner and icon names in this folder use the documented sizes. Screenshots need one numbered readme caption for each image.
 

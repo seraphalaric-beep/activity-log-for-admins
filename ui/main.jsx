@@ -59,6 +59,15 @@ function Severity({ value }) {
   </Badge>;
 }
 
+function SeverityLegend() {
+  return <div className="alfa-severity-legend" role="group" aria-label="Severity legend">
+    <span className="alfa-severity-legend-title">Severity legend</span>
+    <span className="alfa-severity-legend-item"><Severity value="info" /><span>Routine activity</span></span>
+    <span className="alfa-severity-legend-item"><Severity value="notice" /><span>Noteworthy change</span></span>
+    <span className="alfa-severity-legend-item"><Severity value="warning" /><span>Needs attention</span></span>
+  </div>;
+}
+
 function FilterField({ label, children }) {
   const id = useId();
   return <div className="alfa-field"><label htmlFor={id}>{label}</label>{cloneElement(children, { id })}</div>;
@@ -79,7 +88,7 @@ function Filters({ filters, apply, exportUrl }) {
     <div className="alfa-toolbar">
       <div className="alfa-search">
         <Search size={18} aria-hidden="true" />
-        <Input aria-label="Search activity" placeholder="Search by item, actor, or change" maxLength={255} {...field("q")} />
+        <Input aria-label="Search activity" placeholder="Search by item, user, or change" maxLength={255} {...field("q")} />
       </div>
       <Button type="submit">Search</Button>
       <Button type="button" variant="outline" aria-expanded={open} aria-controls="alfa-filter-fields" onClick={() => setOpen(!open)}>
@@ -93,7 +102,7 @@ function Filters({ filters, apply, exportUrl }) {
       <div className="alfa-filter-grid">
         <FilterField label="From"><Input type="date" {...field("from")} /></FilterField>
         <FilterField label="Through"><Input type="date" {...field("to")} /></FilterField>
-        <FilterField label="Actor"><Input placeholder="Username or user ID" maxLength={255} {...field("actor")} /></FilterField>
+        <FilterField label="User"><Input placeholder="Username or user ID" maxLength={255} {...field("actor")} /></FilterField>
         <FilterField label="Affected item"><Input placeholder="Title or name" maxLength={255} {...field("item")} /></FilterField>
         <FilterField label="Action"><select {...field("action")}><option value="">All actions</option>{config.actions.map(key => <option key={key} value={key}>{actions[key]}</option>)}</select></FilterField>
         <FilterField label="Severity"><select {...field("severity")}><option value="">All severities</option>{config.severities.map(key => <option key={key} value={key}>{severities[key]}</option>)}</select></FilterField>
@@ -103,7 +112,7 @@ function Filters({ filters, apply, exportUrl }) {
     {active && <div className="alfa-applied">
       <span>Filtered activity</span>
       {Object.entries(filters).filter(([, value]) => value).map(([key, value]) =>
-        <span className="alfa-chip" key={key}>{({ from: "From ", to: "Through ", actor: "Actor: ", item: "Item: " })[key] ?? ""}{actions[value] ?? severities[value] ?? value}</span>
+        <span className="alfa-chip" key={key}>{({ from: "From ", to: "Through ", actor: "User: ", item: "Item: " })[key] ?? ""}{actions[value] ?? severities[value] ?? value}</span>
       )}
       <button className="alfa-text-button" type="button" onClick={clear}><X size={14} aria-hidden="true" /> Clear all</button>
     </div>}
@@ -113,7 +122,7 @@ function Filters({ filters, apply, exportUrl }) {
 function EventTable({ events, select }) {
   return <Table aria-label="Activity events">
     <TableHeader><TableRow>
-      <TableHead>Change</TableHead><TableHead className="alfa-actor-col">Actor</TableHead>
+      <TableHead>Change</TableHead><TableHead className="alfa-actor-col">User</TableHead>
       <TableHead className="alfa-time-col" aria-sort="descending">When <ArrowDown size={13} aria-hidden="true" /></TableHead>
       <TableHead className="alfa-severity-col">Severity</TableHead>
     </TableRow></TableHeader>
@@ -125,8 +134,11 @@ function EventTable({ events, select }) {
             <div className="alfa-event">
               <span className={`alfa-event-icon alfa-kind-${row.item_kind}`}><Icon size={18} aria-hidden="true" /></span>
               <div className="alfa-event-copy">
-                <button className="alfa-event-link" type="button" onClick={event => select(row, event.currentTarget)}>{row.summary}<ChevronRight size={15} aria-hidden="true" /></button>
-                <span className="alfa-event-meta">{kindLabels[row.item_kind]} <span aria-hidden="true">·</span> {actions[row.action_key]}</span>
+                <button className="alfa-event-link" type="button" onClick={event => select(row, event.currentTarget)}>
+                  <span>{row.summary}</span>
+                  <span className="alfa-event-meta">{kindLabels[row.item_kind]} <span aria-hidden="true">·</span> {actions[row.action_key]}</span>
+                  <ChevronRight size={15} aria-hidden="true" />
+                </button>
                 <div className="alfa-mobile-meta">{actorName(row)} <span aria-hidden="true">·</span> <time dateTime={row.time_iso}>{row.time_short}</time> <Severity value={row.severity} /></div>
               </div>
             </div>
@@ -157,7 +169,7 @@ function EventDetails({ row, close, related, trigger, fallback }) {
       </SheetHeader>
       <div className="alfa-sheet-body">
         <dl className="alfa-details">
-          <div><dt>Actor</dt><dd><button type="button" className="alfa-text-button" onClick={() => related("actor", label.actor_kind === "user" ? label.actor_id : label.actor_kind)}>{actorName(label)} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
+          <div><dt>User</dt><dd><button type="button" className="alfa-text-button" onClick={() => related("actor", label.actor_kind === "user" ? label.actor_id : label.actor_kind)}>{actorName(label)} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
           <div><dt>Affected item</dt><dd><button type="button" className="alfa-text-button" onClick={() => related("item", `${label.item_kind}:${label.item_key}`)}>{label.item_name} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
           <div><dt>Time</dt><dd><time dateTime={label.time_iso}>{label.time_exact}</time></dd></div>
           {data?.details?.version && <div><dt>Component version</dt><dd>{data.details.version}</dd></div>}
@@ -203,8 +215,8 @@ function Settings() {
   return <div className="alfa-settings">
     {(error || state.error) && <Alert>{error || state.error}</Alert>}
     {!current && !error && <p role="status">Loading settings…</p>}
-    {current && <>
-      <section className="alfa-panel alfa-settings-panel">
+    {current && <div className="alfa-panel alfa-settings-content">
+      <section className="alfa-settings-panel">
         <h2>Log health</h2>
         {!health.available && <Alert>The activity log table is unavailable. Check the database connection.</Alert>}
         {health.write_error && <Alert>Last event recording failure: {health.write_error}. Some activity may be missing.</Alert>}
@@ -217,7 +229,7 @@ function Settings() {
           <div><dt>Next scheduled cleanup</dt><dd>{health.next_cleanup ?? "Unscheduled"}</dd></div>
         </dl>
       </section>
-      <form className="alfa-panel alfa-settings-panel" onSubmit={save}>
+      <form className="alfa-settings-panel" onSubmit={save}>
         <h2>Retention</h2>
         <label className="alfa-field alfa-retention"><span>Keep events for (days)</span>
           <Input type="number" required min="1" max="3650" value={values.retention} onChange={event => setDraft({ ...values, retention: event.target.value })} />
@@ -229,7 +241,7 @@ function Settings() {
         <div className="alfa-save"><Button disabled={state.busy}>{state.busy ? "Saving…" : "Save settings"}</Button>
           <span role="status">{state.message}</span></div>
       </form>
-    </>}
+    </div>}
     <div className="alfa-version">Activity Log for Admins · Version {config.version}</div>
   </div>;
 }
@@ -259,6 +271,7 @@ function ActivityView({ filters, apply, heading }) {
           {data && <p>{active ? "Try a different search or clear the filters." : "New events will appear here as changes happen in WordPress."}</p>}
           {data && active && <Button variant="outline" onClick={() => apply({})}>Clear filters</Button>}
         </div>}
+      {data && <SeverityLegend />}
       {data && (cursors.length > 1 || data.next) && <div className="alfa-pagination" aria-label="Activity pages">
         <span>Page {cursors.length}</span>
         <Button variant="outline" disabled={cursors.length === 1} onClick={() => setCursors(previous => previous.slice(0, -1))}><ArrowLeft aria-hidden="true" /> Newer</Button>

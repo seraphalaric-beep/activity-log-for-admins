@@ -51,7 +51,8 @@ final class Admin {
         }
 
         $metadata = get_file_data( self::$plugin_file, [ 'version' => 'Version' ] );
-        wp_enqueue_style( 'alfa-dashboard', plugins_url( 'build/dashboard.css', self::$plugin_file ), [], $metadata['version'] );
+        self::theme_assets( $metadata['version'] );
+        wp_enqueue_style( 'alfa-dashboard', plugins_url( 'build/dashboard.css', self::$plugin_file ), [ 'alfa-theme' ], self::asset_version( 'dashboard.css', $metadata['version'] ) );
     }
 
     public static function render_dashboard_widget(): void {
@@ -67,7 +68,7 @@ final class Admin {
 
         $activity_url = add_query_arg( 'page', self::SLUG, admin_url( 'admin.php' ) );
         echo '<div class="alfa-dashboard-widget">';
-        echo '<div class="alfa-dashboard-header"><div><p class="alfa-dashboard-eyebrow">' . esc_html__( 'At a glance', 'activity-log-for-admins' ) . '</p><p class="alfa-dashboard-intro">' . esc_html__( 'Changes recorded across this site.', 'activity-log-for-admins' ) . '</p></div>';
+        echo '<div class="alfa-dashboard-header"><div><h3 class="alfa-dashboard-overview">' . esc_html__( 'At a glance', 'activity-log-for-admins' ) . '</h3><p class="alfa-dashboard-intro">' . esc_html__( 'Changes recorded across this site.', 'activity-log-for-admins' ) . '</p></div>';
         echo '<a class="button button-primary alfa-dashboard-action" href="' . esc_url( $activity_url ) . '">' . esc_html__( 'View activity', 'activity-log-for-admins' ) . '</a></div>';
         echo '<dl class="alfa-dashboard-metrics">';
         self::dashboard_metric( __( 'Last 24 hours', 'activity-log-for-admins' ), $summary['last_day'] );
@@ -117,8 +118,9 @@ final class Admin {
         }
         $metadata = get_file_data( self::$plugin_file, [ 'version' => 'Version' ] );
         $version = $metadata['version'];
-        wp_enqueue_style( 'alfa-admin', plugins_url( 'build/admin.css', self::$plugin_file ), [], $version );
-        wp_enqueue_script( 'alfa-admin', plugins_url( 'build/admin.js', self::$plugin_file ), [ 'react', 'react-dom', 'react-jsx-runtime' ], $version, true );
+        self::theme_assets( $version );
+        wp_enqueue_style( 'alfa-admin', plugins_url( 'build/admin.css', self::$plugin_file ), [ 'alfa-theme' ], self::asset_version( 'admin.css', $version ) );
+        wp_enqueue_script( 'alfa-admin', plugins_url( 'build/admin.js', self::$plugin_file ), [ 'react', 'react-dom', 'react-jsx-runtime' ], self::asset_version( 'admin.js', $version ), true );
         $config = [
             'base' => rest_url( self::ROUTE . '/' ),
             'nonce' => wp_create_nonce( 'wp_rest' ),
@@ -129,6 +131,15 @@ final class Admin {
             'severities' => Capture::SEVERITIES,
         ];
         wp_add_inline_script( 'alfa-admin', 'window.alfaSettings = ' . wp_json_encode( $config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . ';', 'before' );
+    }
+
+    private static function theme_assets( string $version ): void {
+        wp_enqueue_style( 'alfa-theme', plugins_url( 'build/theme.css', self::$plugin_file ), [], self::asset_version( 'theme.css', $version ) );
+    }
+
+    private static function asset_version( string $file, string $version ): string {
+        $path = plugin_dir_path( self::$plugin_file ) . 'build/' . $file;
+        return is_file( $path ) ? $version . '.' . filemtime( $path ) : $version;
     }
 
     public static function render(): void {

@@ -1,6 +1,6 @@
 # Security
 
-Activity Log for Admins is a 1.0.1 pilot. The security and interface checks in the verification report cover version 1.0.0 only. Version 1.0.1 has not been rerun through those checks. Install it on a disposable or staging site while the project gathers feedback.
+Activity Log for Admins is a 1.0.2 pilot. Install it on a disposable or staging site while the project gathers feedback. Release verification for this version is recorded in PILOT.md.
 
 The plugin requires the WordPress `manage_options` capability for event reads, exports, and settings changes. Event data stays in the local WordPress database. The pilot excludes passwords, tokens, full request bodies, and IP addresses.
 

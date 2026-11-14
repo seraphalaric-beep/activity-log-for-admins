@@ -3,7 +3,7 @@ Tags: activity log, audit log, history
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,7 +53,7 @@ Users with the WordPress `manage_options` capability can view, export, and chang
 
 = Does it support multisite or WooCommerce? =
 
-Not in version 1.0.1. This release is for a single WordPress site and does not include WooCommerce events.
+Not in version 1.0.2. This release is for a single WordPress site and does not include WooCommerce events.
 
 = Why might an event not include a previous value or revision comparison? =
 
@@ -71,6 +71,11 @@ Deactivation preserves history. To erase activity and settings when deleting the
 4. Set retention and review database space, cleanup status, and the plugin version.
 
 == Changelog ==
+
+= 1.0.2 =
+* Refined the Activity, Settings, event details, and Dashboard summary interfaces with a shared visual style.
+* Added the bundled Manrope font, consistent spacing, clearer information hierarchy, and a severity legend with traffic light colors.
+* Improved event row spacing and aligned the user disclosure control with its label.
 
 = 1.0.1 =
 * Added an activity summary to the WordPress Dashboard and placed Activity Log near the top of the admin menu.
