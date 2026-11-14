@@ -4,7 +4,7 @@ A free activity history plugin for administrators of single WordPress sites. Sea
 
 The Activity Log menu sits near the top of the WordPress admin menu. The main Dashboard includes recent changes and activity counts.
 
-The 1.0.2 pilot is intended for disposable and staging sites while the project gathers feedback. It is licensed under GPL 2.0 or later.
+The 1.0.3 pilot is intended for disposable and staging sites while the project gathers feedback. It is licensed under GPL 2.0 or later.
 
 ## What it records
 
@@ -16,7 +16,7 @@ See [the plugin readme](activity-log-for-admins/readme.txt) for the complete eve
 
 1. Use a disposable or staging WordPress site running WordPress 6.9 or later and PHP 8.3 or later.
 2. In the WordPress admin, open **Plugins**, then **Add New Plugin**, then **Upload Plugin**.
-3. Choose the [installable 1.0.2 pilot ZIP](release/activity-log-for-admins.1.0.2.zip), install it, and activate it.
+3. Choose the [installable 1.0.3 pilot ZIP](release/activity-log-for-admins.1.0.3.zip), install it, and activate it.
 4. Find the activity summary on the main Dashboard, or open **Activity Log** near the top of the admin menu.
 
 The plugin has not completed WordPress.org review. Do not use the pilot as the only record keeping system for a production site.
@@ -30,7 +30,7 @@ npm ci
 npm run package
 ```
 
-The build updates the bundled admin files and creates `release/activity-log-for-admins.1.0.2.zip`. The archive includes the plugin, frontend source, package lock, and third party license notices.
+The build updates the bundled admin files and creates `release/activity-log-for-admins.1.0.3.zip`. The archive includes the plugin, frontend source, package lock, and third party license notices.
 
 ## Run the local pilot
 
@@ -44,6 +44,6 @@ The browser and database pilot uses a disposable WordPress installation, MariaDB
 * [Security reporting](SECURITY.md)
 * [Contributing](CONTRIBUTING.md)
 * [WordPress.org assets and listing copy](docs/wordpress-org-assets.md)
-* [Security and interface check report for 1.0.2](docs/verification/security-ui-report.json)
+* [Security and interface check report for 1.0.3](docs/verification/security-ui-report.json)
 * [WordPress design standard](docs/WordPress%20Design%20Standard.md)
 

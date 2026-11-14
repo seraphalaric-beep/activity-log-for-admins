@@ -47,7 +47,9 @@ async function fixture(operation) {
 try {
   await signIn(page, "pilotadmin", password);
   await page.goto(base + "/wp-admin/plugins.php");
-  const activate = page.locator(`tr[data-plugin="${plugin}"] .activate a`);
+  const pluginRow = page.locator(`tr[data-plugin="${plugin}"]`);
+  assert.match(await pluginRow.innerText(), /By Bryan Mc Namara/);
+  const activate = pluginRow.locator(".activate a");
   if (await activate.count()) await activate.click();
   await page.goto(base + screen);
   await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();

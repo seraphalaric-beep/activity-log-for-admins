@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3
+
+* Added Bryan Mc Namara as the plugin author in WordPress plugin metadata.
+
 ## 1.0.2
 
 * Refined Activity, Settings, event details, and the Dashboard summary with a shared visual style.
