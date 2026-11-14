@@ -103,14 +103,14 @@ jobs:
 
       - name: Upload test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: activity-log-for-admins-test-evidence
           path: ${{ runner.temp }}/test-results
           if-no-files-found: warn
 
       - name: Upload installable archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: activity-log-for-admins-${{ steps.plugin_version.outputs.version }}
           path: release/activity-log-for-admins.${{ steps.plugin_version.outputs.version }}.zip
