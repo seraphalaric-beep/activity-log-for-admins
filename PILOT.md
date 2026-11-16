@@ -1,23 +1,43 @@
-# Activity Log for Admins 1.0.4 release
+# Activity Log for Admins pilot guide
 
 ## Install and investigate
 
 1. On a disposable or staging site running WordPress 6.9 or later and PHP 8.3 or later, open **Plugins**, then **Add New Plugin**, then **Upload Plugin**.
-2. Upload the 1.0.4 ZIP, install it, and activate it. The main Dashboard shows activity counts and recent changes. Open **Activity Log** near the top of the admin menu to investigate.
+2. Upload the installable ZIP built from the current workspace, install it, and activate it. Confirm the version in Settings matches the candidate you built. The main Dashboard shows activity counts and recent changes. Open **Activity Log** near the top of the admin menu to investigate.
 3. Create a test page named **Housing Guide**, publish it, and move it back to Draft. Add a few unrelated edits to make the list realistic.
-4. Ask another administrator to start on the Activity screen with only the page name. Time how long it takes to identify the actor and verify the previous status. The pilot goal is under 30 seconds.
-5. Open an event, check the previous and new values, and try the actor and affected item links. Combine search with the Action and Severity filters, reload the URL, and verify that CSV export contains the filtered results.
+4. Ask another administrator to start on the Activity screen with only the page name, without a date, user, or event hint. Record the elapsed time and whether they correctly find the unexpected change, identify the user, and verify the previous status without help. Pass if all are correct in under 30 seconds.
+5. Open an event, check the previous and new values, and try the actor and affected item links. Combine search with the Action and Severity filters, reload the URL, and verify that CSV export contains every matching row and any captured previous and new values.
 6. Open **Settings** to check the retention window, database estimate, cleanup status, and version. When reporting an issue, include the plugin version, WordPress and PHP versions, and what you expected to see.
+
+During failure handling checks, reject a cleanup schedule once and simulate a cleanup database error separately. Confirm Settings reports each failure with its timestamp, then confirm a successful schedule clears the scheduling failure.
+
+Record the tester role, elapsed seconds, whether they found the correct event, user, and previous value, whether they received any hints, and the WordPress, PHP, and plugin versions. A pass requires all three answers to be correct, no hints, and completion in under 30 seconds.
+
+On the disposable site, update a plugin or theme individually, then use the bulk updater for another component. Confirm each event shows the previous and new version when both are available.
+
+With a theme that offers a named page template, switch a page from Default to that template and back. Set, replace, and remove its featured image. Repeat the image sequence on a post. Confirm each event shows the correct previous and new values, and that unrelated custom metadata is not included.
+
+Create a scheduled post, then change only its publish date and time while leaving its status as Scheduled. Confirm the event is easy to spot and its previous and new values show the exact time in the site timezone.
+
+On a hierarchical page, change its parent page and content author. Confirm the activity row names the change and the event details show the previous and new names with their IDs.
+
+Create or use an editor with a numeric username, make a page edit as that account, then confirm an administrator can find the event with the Actor filter using the exact username. Select each nonuser Actor type and confirm it filters to the intended category. Open an event with a background or unknown actor, follow its actor link, and confirm the shared URL restores that actor category separately from a similarly named account.
+
+Run a supported setting change through WP CLI without a selected user. Confirm the actor is shown as WP CLI and its Actor type filter is separate from the WordPress background task filter.
 
 The plugin records activity from activation onward. The full event list is in the plugin readme. Revision comparison depends on WordPress retaining both revisions. Cleanup runs through the WordPress scheduler, so quiet sites can run it later than the displayed schedule. Database allocation may remain the same after expired events are deleted, since the database can reuse the freed space.
 
-Deactivation preserves history. To remove the stored history and settings when deleting the plugin, select **Erase all activity when deleting the plugin** in Settings and save it first.
+Deactivation and deletion preserve history by default. To remove the stored history and settings when deleting the plugin, select **Erase all activity when deleting the plugin** in Settings and save it first.
 
 ## Build and repeat verification
 
 From the workspace, run `npm ci` and `npm run package`. This builds the admin interface and writes the installable ZIP under `release`. The archive contains the frontend source, dependency lock, and third party license notices.
 
-The automated pilot uses a disposable WordPress installation, MariaDB, PHP, and Chromium. The setup script needs an extracted copy of WordPress, a native PHP executable, and an empty database whose name starts with `alfa_`. Start the disposable site with `tools/start-pilot.ps1`, then run `npm run test:pilot -- <loopback URL> <test password> full`. The fixture is used only in the disposable test environment. Screenshots are written to `test-results`.
+To build a candidate without replacing a checked in release ZIP, run `npm run build` and `python tools/package.py --output-dir .tmp/pilot-release`, then pass `-Archive .tmp/pilot-release/activity-log-for-admins.<version>.zip` to `tools/start-pilot.ps1`.
+
+The automated pilot uses a disposable WordPress installation, MariaDB, PHP, and Chrome. The setup script needs an extracted copy of WordPress, a native PHP executable, and an empty database whose name starts with `alfa_`. Start the disposable site with `tools/start-pilot.ps1`, then run `npm run test:pilot -- <loopback URL> <test password> full`. The fixture is used only in the disposable test environment. Screenshots are written to `test-results`.
+
+Set `ALFA_SKIP_REGRESSION=1` before the full pilot to skip only the Dashboard against Activity list comparison. Capture, investigation, CSV, access, cleanup, uninstall, and the 100,000 event performance checks still run.
 
 The timed browser run checks the workflow with scripted input. Use step 4 to verify the time with a person during the staging pilot.
 
@@ -40,6 +60,10 @@ The security and interface suite also passed on 1.0.3. Anonymous reads and expor
 On the local WordPress 7.1.4 and MariaDB 11.4.9 reference environment, the 100,000 event run measured REST first page latency at 43 ms and filtered request latency at 217 ms at the 95th percentile. These timings describe this local environment.
 
 The earlier full browser and database suite also passed on WordPress 6.9 with PHP 8.3.36 and WordPress 7.0 with PHP 8.4.26. Desktop and narrow layouts were checked in Chrome on those earlier builds.
+
+## Compatibility workflow
+
+GitHub Actions is configured to run the full pilot on WordPress 7.1.4 with PHP 8.3, then run the ZIP install, REST, interface, and Settings smoke checks on WordPress 6.9 with PHP 8.3, WordPress 7.0.8 with PHP 8.4, and WordPress 7.1.4 with PHP 8.5. These compatibility jobs disable mbstring to exercise the fallback text handling. Treat this as workflow configuration only until the GitHub Actions run passes.
 
 ## 1.0.4 verification results
 

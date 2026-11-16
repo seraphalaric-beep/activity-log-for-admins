@@ -1,6 +1,6 @@
 # Activity Log for Admins
 
-A free activity history plugin for administrators of single WordPress sites. Search changes, identify the actor, compare captured values, and export the results.
+A free activity history plugin for administrators of single WordPress sites. Search changes, identify who or what made them, compare captured values, and export filtered events with their recorded changes. It does not manage redirects.
 
 The Activity Log menu sits near the top of the WordPress admin menu. The main Dashboard includes recent changes and activity counts.
 

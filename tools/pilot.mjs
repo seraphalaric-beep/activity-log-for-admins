@@ -4,6 +4,7 @@ import { chromium } from "playwright";
 
 const [base, password, level = "full", output = "test-results"] = process.argv.slice(2);
 const { version } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+const skipRegression = process.env.ALFA_SKIP_REGRESSION === "1";
 if (!base || !password || new URL(base).hostname !== "127.0.0.1") throw new Error("Pass a disposable loopback URL and its pilot password.");
 const launchOptions = { headless: true };
 if (process.env.PLAYWRIGHT_CHANNEL !== "chromium") launchOptions.channel = process.env.PLAYWRIGHT_CHANNEL ?? "chrome";
@@ -117,15 +118,22 @@ try {
     assertPrivateNoStore(await api(`events/${all.events[0].id}`), "Event details");
     assertPrivateNoStore(await api("export"), "CSV export");
 
-    await page.goto(base + "/wp-admin/index.php");
-    const dashboardSummary = page.locator(".alfa-dashboard-event-summary").first();
-    await dashboardSummary.waitFor();
-    const dashboardEvent = await dashboardSummary.innerText();
-    assert.ok(all.events.some(event => event.summary === dashboardEvent), "Dashboard event must exist in the full list response");
-    await page.getByRole("link", { name: "View activity", exact: true }).click();
+    let dashboardEvent = "";
+    if (skipRegression) {
+      await page.goto(base + screen);
+    } else {
+      await page.goto(base + "/wp-admin/index.php");
+      const dashboardSummary = page.locator(".alfa-dashboard-event-summary").first();
+      await dashboardSummary.waitFor();
+      dashboardEvent = await dashboardSummary.innerText();
+      assert.ok(all.events.some(event => event.summary === dashboardEvent), "Dashboard event must exist in the full list response");
+      await page.getByRole("link", { name: "View activity", exact: true }).click();
+    }
     const activityTable = page.getByRole("table", { name: "Activity events" });
     await activityTable.waitFor();
-    await activityTable.getByText(dashboardEvent, { exact: true }).waitFor();
+    if (!skipRegression) {
+      await activityTable.getByText(dashboardEvent, { exact: true }).waitFor();
+    }
     assert.equal((await api("events", { query: { q: "Housing Guide", action: "content_edited" } })).data.events.length, 1);
 
     await page.evaluate(async id => {
@@ -206,12 +214,21 @@ try {
     assert.deepEqual(before.editor, [403, 403, 403, 403, 403]);
     assert.equal((await api("settings", { data: { retention: 0, erase: false } })).status, 400);
     const cleanup = await fixture("health");
-    assert.ok(cleanup.batch && cleanup.deleted && cleanup.cleanupFailure && cleanup.writeFailure && cleanup.primaryWrite && cleanup.reactivated);
+    assert.ok(cleanup.batch && cleanup.deleted && cleanup.cleanupFailure && cleanup.writeFailure && cleanup.primaryWrite && cleanup.reactivated && cleanup.scheduleFailure);
     await navigation.getByRole("link", { name: "Settings", exact: true }).click();
+    const scheduleFailure = await api("settings");
+    assert.ok(scheduleFailure.data.health.schedule_error);
+    assert.equal(scheduleFailure.data.health.next_cleanup, null);
+    await page.getByText(/Last cleanup scheduling failure:/).waitFor();
+    await page.getByText(/Automatic cleanup is unscheduled\./).waitFor();
     await page.getByRole("spinbutton", { name: "Keep events for (days)" }).fill("60");
     await page.getByRole("button", { name: "Save settings" }).click();
     await page.getByText("Settings saved.").waitFor();
-    assert.equal((await api("settings")).data.settings.retention, 60);
+    const recoveredSettings = await api("settings");
+    assert.equal(recoveredSettings.data.settings.retention, 60);
+    assert.equal(recoveredSettings.data.health.schedule_error, null);
+    assert.ok(recoveredSettings.data.health.next_cleanup);
+    await page.getByText(/Last cleanup scheduling failure:/).waitFor({ state: "hidden" });
     await page.screenshot({ path: output + "/settings.png" });
     assert.deepEqual(pageErrors, []);
     const benchmark = await fixture("benchmark");
@@ -247,7 +264,7 @@ try {
     }
     const uninstall = await fixture("uninstall");
     assert.deepEqual(uninstall, { preserved: true, erased: true });
-    console.log(JSON.stringify({ investigationAutomationMs: Math.round(elapsed), benchmark, checks: "Passed" }, null, 2));
+    console.log(JSON.stringify({ investigationAutomationMs: Math.round(elapsed), regression: skipRegression ? "Skipped" : "Passed", benchmark, checks: "Passed" }, null, 2));
   }
 } finally {
   await browser.close();

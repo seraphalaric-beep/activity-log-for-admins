@@ -202,13 +202,27 @@ try {
             deactivate_plugins( ALFA_PLUGIN );
             $unscheduled = ! wp_next_scheduled( Store::CLEANUP );
             fixture_check( activate_plugin( ALFA_PLUGIN ) );
+            $latest_after_reactivation = Store::latest_id();
+            $scheduled_after_reactivation = wp_next_scheduled( Store::CLEANUP );
+            $reactivated = $unscheduled && $latest_after_reactivation >= $before && (bool) $scheduled_after_reactivation;
+            fixture_check( wp_clear_scheduled_hook( Store::CLEANUP ) );
+            $reject_cleanup_schedule = static function ( mixed $pre, object $event ): mixed {
+                return Store::CLEANUP === $event->hook
+                    ? new WP_Error( 'alfa_fixture_schedule_failure', 'Intentional pilot schedule failure.' )
+                    : $pre;
+            };
+            add_filter( 'pre_schedule_event', $reject_cleanup_schedule, 10, 2 );
+            Store::schedule();
+            remove_filter( 'pre_schedule_event', $reject_cleanup_schedule, 10 );
+            $schedule_health = Store::health();
             wp_send_json( [
                 'batch' => $batch,
                 'deleted' => $deleted,
                 'cleanupFailure' => (bool) $health['cleanup_error'],
                 'writeFailure' => (bool) $health['write_error'],
                 'primaryWrite' => is_int( $primary ) && $primary > 0,
-                'reactivated' => $unscheduled && Store::latest_id() >= $before && (bool) wp_next_scheduled( Store::CLEANUP ),
+                'reactivated' => $reactivated,
+                'scheduleFailure' => (bool) $schedule_health['schedule_error'] && ! wp_next_scheduled( Store::CLEANUP ),
             ] );
 
         case 'benchmark':

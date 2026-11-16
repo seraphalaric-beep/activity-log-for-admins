@@ -19,9 +19,9 @@ const manropeLatinExtended = await readFile(join(publicDir, "fonts", "manrope-la
 const events = [
   {
     id: 42,
-    time_iso: "2026-11-14T10:35:00+00:00",
-    time_short: "14 Nov 2026, 10:35",
-    time_exact: "14 Nov 2026, 10:35:00 GMT",
+    time_iso: "2026-11-16T10:35:00+00:00",
+    time_short: "16 Nov 2026, 10:35",
+    time_exact: "16 Nov 2026, 10:35:00 GMT",
     actor_kind: "user",
     actor_id: 2,
     actor_name: "morgan.admin",
@@ -34,9 +34,9 @@ const events = [
   },
   {
     id: 41,
-    time_iso: "2026-11-14T10:28:00+00:00",
-    time_short: "14 Nov 2026, 10:28",
-    time_exact: "14 Nov 2026, 10:28:00 GMT",
+    time_iso: "2026-11-16T10:28:00+00:00",
+    time_short: "16 Nov 2026, 10:28",
+    time_exact: "16 Nov 2026, 10:28:00 GMT",
     actor_kind: "user",
     actor_id: 2,
     actor_name: "morgan.admin",
@@ -49,9 +49,9 @@ const events = [
   },
   {
     id: 40,
-    time_iso: "2026-11-14T09:52:00+00:00",
-    time_short: "14 Nov 2026, 09:52",
-    time_exact: "14 Nov 2026, 09:52:00 GMT",
+    time_iso: "2026-11-16T09:52:00+00:00",
+    time_short: "16 Nov 2026, 09:52",
+    time_exact: "16 Nov 2026, 09:52:00 GMT",
     actor_kind: "user",
     actor_id: 5,
     actor_name: "alex.editor",
@@ -99,9 +99,9 @@ const html = `<!doctype html>
         <div class="alfa-dashboard-metric is-warning"><dt>Warnings in 7 days</dt><dd>2</dd></div>
       </dl>
       <div class="alfa-dashboard-recent"><h3>Recent changes</h3><ul>
-        <li><a class="alfa-dashboard-event" href="#activity"><span class="alfa-dashboard-event-summary">Changed “Housing Guide” from Published to Draft</span><span class="alfa-dashboard-event-meta"><span>Housing Guide</span> <span aria-hidden="true">·</span> <span>morgan.admin</span> <span aria-hidden="true">·</span> <time datetime="2026-11-14T10:35:00+00:00">14 Nov 2026, 10:35</time></span></a></li>
-        <li><a class="alfa-dashboard-event" href="#activity"><span class="alfa-dashboard-event-summary">Updated the Permalink structure</span><span class="alfa-dashboard-event-meta"><span>Permalink structure</span> <span aria-hidden="true">·</span> <span>siteadmin</span> <span aria-hidden="true">·</span> <time datetime="2026-11-14T09:18:00+00:00">14 Nov 2026, 09:18</time></span></a></li>
-        <li><a class="alfa-dashboard-event" href="#activity"><span class="alfa-dashboard-event-summary">Changed the role for jordan.editor</span><span class="alfa-dashboard-event-meta"><span>jordan.editor</span> <span aria-hidden="true">·</span> <span>siteadmin</span> <span aria-hidden="true">·</span> <time datetime="2026-11-14T08:42:00+00:00">14 Nov 2026, 08:42</time></span></a></li>
+        <li><a class="alfa-dashboard-event" href="#activity"><span class="alfa-dashboard-event-summary">Changed “Housing Guide” from Published to Draft</span><span class="alfa-dashboard-event-meta"><span>Housing Guide</span> <span aria-hidden="true">·</span> <span>morgan.admin</span> <span aria-hidden="true">·</span> <time datetime="2026-11-16T10:35:00+00:00">16 Nov 2026, 10:35</time></span></a></li>
+        <li><a class="alfa-dashboard-event" href="#activity"><span class="alfa-dashboard-event-summary">Updated the Permalink structure</span><span class="alfa-dashboard-event-meta"><span>Permalink structure</span> <span aria-hidden="true">·</span> <span>siteadmin</span> <span aria-hidden="true">·</span> <time datetime="2026-11-16T09:18:00+00:00">16 Nov 2026, 09:18</time></span></a></li>
+        <li><a class="alfa-dashboard-event" href="#activity"><span class="alfa-dashboard-event-summary">Changed the role for jordan.editor</span><span class="alfa-dashboard-event-meta"><span>jordan.editor</span> <span aria-hidden="true">·</span> <span>siteadmin</span> <span aria-hidden="true">·</span> <time datetime="2026-11-16T08:42:00+00:00">16 Nov 2026, 08:42</time></span></a></li>
       </ul></div>
     </div>
   </section>
@@ -122,7 +122,7 @@ const server = createServer((request, response) => {
       window.alfaSettings={base:location.origin+'/wp-json/activity-log-for-admins/v1/',nonce:'preview',actions:${JSON.stringify(actions)},severities:['info','notice','warning'],version:'${version}'};
       const activityEvents=${JSON.stringify(events)};
       const activityDetail=${JSON.stringify(detail)};
-      window.fetch=async input=>{const raw=typeof input==='string'?input:(input instanceof URL?input.href:input.url);const url=new URL(raw,location.href);const path=url.pathname.replace(/\\/+$/,'');let value;if(path.endsWith('/events/42'))value=activityDetail;else if(path.endsWith('/events'))value={events:activityEvents,next:null};else if(path.endsWith('/settings'))value={settings:{retention:90,erase:false},health:{available:true,write_error:null,cleanup_error:null,next_cleanup:'14 Nov 2026, 11:30',oldest:'14 Nov 2026, 08:42',space:'1.24 MB',last_cleanup:'14 Nov 2026, 10:30'}};else value={};return new Response(JSON.stringify(value),{status:200,headers:{'Content-Type':'application/json'}})};
+      window.fetch=async input=>{const raw=typeof input==='string'?input:(input instanceof URL?input.href:input.url);const url=new URL(raw,location.href);const path=url.pathname.replace(/\\/+$/,'');let value;if(path.endsWith('/events/42'))value=activityDetail;else if(path.endsWith('/events'))value={events:activityEvents,next:null};else if(path.endsWith('/settings'))value={settings:{retention:90,erase:false},health:{available:true,write_error:null,cleanup_error:null,next_cleanup:'16 Nov 2026, 11:30',oldest:'16 Nov 2026, 08:42',space:'1.24 MB',last_cleanup:'16 Nov 2026, 10:30'}};else value={};return new Response(JSON.stringify(value),{status:200,headers:{'Content-Type':'application/json'}})};
     </script><script src="/admin.js"></script></body></html>`],
     "/admin.css": ["text/css; charset=utf-8", adminCss],
     "/admin.js": ["text/javascript; charset=utf-8", adminJs],

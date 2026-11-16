@@ -26,7 +26,7 @@ function activate(): void {
         wp_die( esc_html__( 'Activity Log for Admins supports single WordPress sites in this release.', 'activity-log-for-admins' ), '', [ 'back_link' => true ] );
     }
     if ( ! Store::install() ) {
-        wp_die( esc_html__( 'The activity log table could not be created. Check the database permissions and try again.', 'activity-log-for-admins' ), '', [ 'back_link' => true ] );
+        wp_die( esc_html__( 'The activity log table could not be installed or verified. Check the database permissions and try again.', 'activity-log-for-admins' ), '', [ 'back_link' => true ] );
     }
     Store::schedule();
 }

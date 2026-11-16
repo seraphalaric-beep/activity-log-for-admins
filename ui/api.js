@@ -1,21 +1,35 @@
 const config = window.alfaSettings;
 export { config };
 
-const keys = ["q", "from", "to", "actor", "action", "item", "severity"];
+const keys = ["q", "from", "to", "actor", "actor_id", "actor_kind", "action", "item", "severity"];
 
 export function readView() {
   const params = new URLSearchParams(location.search);
+  const filters = Object.fromEntries(keys.map(key => [key, params.get(key) ?? ""]));
+  if (filters.actor_id) {
+    filters.actor = "";
+    filters.actor_kind = "user";
+  } else if (filters.actor_kind && filters.actor_kind !== "user") {
+    filters.actor = "";
+  }
   return {
     settings: params.get("view") === "settings",
-    filters: Object.fromEntries(keys.map(key => [key, params.get(key) ?? ""])),
+    filters,
   };
 }
 
 export function viewUrl(filters, settings = false) {
   const url = new URL(location.href);
+  const normalized = { ...filters };
+  if (normalized.actor_id?.trim()) {
+    normalized.actor = "";
+    normalized.actor_kind = "user";
+  } else if (normalized.actor_kind && normalized.actor_kind !== "user") {
+    normalized.actor = "";
+  }
   for (const key of keys) {
     url.searchParams.delete(key);
-    if (filters[key]?.trim()) url.searchParams.set(key, filters[key].trim());
+    if (normalized[key]?.trim()) url.searchParams.set(key, normalized[key].trim());
   }
   if (settings) url.searchParams.set("view", "settings");
   else url.searchParams.delete("view");

@@ -11,7 +11,7 @@ final class Store {
     public const CLEANUP = 'alfa_cleanup';
     public const CONTINUE_CLEANUP = 'alfa_continue_cleanup';
     public const PAGE_SIZE = 50;
-    private const SCHEMA_VERSION = 1;
+    private const SCHEMA_VERSION = 2;
     private const CLEANUP_SIZE = 1000;
 
     public static function table(): string {
@@ -41,7 +41,7 @@ final class Store {
             PRIMARY KEY  (id),
             KEY occurred (occurred_at,id),
             KEY actor (actor_kind,actor_id,id),
-            KEY item (item_kind,item_key,id),
+            KEY item (item_kind,item_key(120),id),
             KEY action_key (action_key,id),
             KEY severity (severity,id)
         ) $collation;" );
@@ -50,13 +50,56 @@ final class Store {
         if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) !== $table ) {
             return false;
         }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Confirm dbDelta applied the required event columns.
+        $columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
+        $required_columns = [ 'id', 'occurred_at', 'actor_kind', 'actor_id', 'actor_name', 'item_kind', 'item_key', 'item_name', 'action_key', 'severity', 'summary', 'details' ];
+        if ( $wpdb->last_error || array_diff( $required_columns, (array) $columns ) ) {
+            return false;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Confirm dbDelta applied the indexes required for event queries.
+        $index_rows = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i', $table ) );
+        if ( $wpdb->last_error || ! is_array( $index_rows ) ) {
+            return false;
+        }
+        $actual_indexes = [];
+        foreach ( $index_rows as $index_row ) {
+            $actual_indexes[ (string) $index_row->Key_name ][ (int) $index_row->Seq_in_index ] = (string) $index_row->Column_name;
+        }
+        $required_indexes = [
+            'PRIMARY'   => [ 'id' ],
+            'occurred'  => [ 'occurred_at', 'id' ],
+            'actor'     => [ 'actor_kind', 'actor_id', 'id' ],
+            'item'      => [ 'item_kind', 'item_key', 'id' ],
+            'action_key' => [ 'action_key', 'id' ],
+            'severity'  => [ 'severity', 'id' ],
+        ];
+        foreach ( $required_indexes as $name => $columns ) {
+            if ( ! isset( $actual_indexes[ $name ] ) ) {
+                return false;
+            }
+            ksort( $actual_indexes[ $name ] );
+            if ( array_values( $actual_indexes[ $name ] ) !== $columns ) {
+                return false;
+            }
+        }
+
         update_option( self::SCHEMA, self::SCHEMA_VERSION, true );
+        if ( (int) get_option( self::SCHEMA ) !== self::SCHEMA_VERSION ) {
+            return false;
+        }
+        self::clear_failure( 'schema_error' );
         return true;
     }
 
     public static function upgrade(): void {
-        if ( (int) get_option( self::SCHEMA ) !== self::SCHEMA_VERSION && ! self::install() ) {
-            self::record_failure( 'write_error' );
+        if ( (int) get_option( self::SCHEMA ) === self::SCHEMA_VERSION ) {
+            self::clear_failure( 'schema_error' );
+            return;
+        }
+        if ( ! self::install() ) {
+            self::record_failure( 'schema_error' );
         }
     }
 
@@ -64,16 +107,21 @@ final class Store {
         $saved = (array) get_option( self::SETTINGS, [] );
         return [
             'retention' => min( 3650, max( 1, (int) ( $saved['retention'] ?? 90 ) ) ),
-            'erase'     => ! empty( $saved['erase'] ),
+            'erase'     => in_array( $saved['erase'] ?? false, [ true, 1, '1' ], true ),
         ];
     }
 
     public static function schedule(): void {
-        if ( ! wp_next_scheduled( self::CLEANUP ) ) {
-            $result = wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', self::CLEANUP, [], true );
-            if ( is_wp_error( $result ) ) {
-                self::record_failure( 'cleanup_error' );
-            }
+        if ( wp_next_scheduled( self::CLEANUP ) ) {
+            self::clear_failure( 'schedule_error' );
+            return;
+        }
+
+        $result = wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', self::CLEANUP, [], true );
+        if ( false === $result || is_wp_error( $result ) ) {
+            self::record_failure( 'schedule_error' );
+        } else {
+            self::clear_failure( 'schedule_error' );
         }
     }
 
@@ -99,7 +147,7 @@ final class Store {
         update_option( self::HEALTH, $health, false );
         if ( self::CLEANUP_SIZE === $deleted && ! wp_next_scheduled( self::CONTINUE_CLEANUP ) ) {
             $scheduled = wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::CONTINUE_CLEANUP, [], true );
-            if ( is_wp_error( $scheduled ) && 'duplicate_event' !== $scheduled->get_error_code() ) {
+            if ( false === $scheduled || ( is_wp_error( $scheduled ) && 'duplicate_event' !== $scheduled->get_error_code() ) ) {
                 self::record_failure( 'cleanup_error' );
             }
         }
@@ -109,6 +157,14 @@ final class Store {
         $health = (array) get_option( self::HEALTH, [] );
         if ( time() - (int) ( $health[ $key ] ?? 0 ) >= MINUTE_IN_SECONDS ) {
             $health[ $key ] = time();
+            update_option( self::HEALTH, $health, false );
+        }
+    }
+
+    private static function clear_failure( string $key ): void {
+        $health = (array) get_option( self::HEALTH, [] );
+        if ( array_key_exists( $key, $health ) ) {
+            unset( $health[ $key ] );
             update_option( self::HEALTH, $health, false );
         }
     }
@@ -131,7 +187,7 @@ final class Store {
         }
     }
 
-    public static function query( array $filters, int $limit, int $before = 0, int $ceiling = 0 ): array|\WP_Error {
+    public static function query( array $filters, int $limit, int $before = 0, int $ceiling = 0, bool $include_details = false ): array|\WP_Error {
         global $wpdb;
         $conditions = [ '1=1' ];
         $params = [ self::table() ];
@@ -141,14 +197,33 @@ final class Store {
                 $params[] = $filters[ $key ];
             }
         }
-        if ( ! empty( $filters['actor'] ) ) {
+        if ( ! empty( $filters['actor_kind'] ) && empty( $filters['actor_id'] ) ) {
+            $conditions[] = 'actor_kind = %s';
+            $params[] = $filters['actor_kind'];
+        }
+        if ( ! empty( $filters['actor_id'] ) ) {
+            $conditions[] = "actor_kind = 'user' AND actor_id = %d";
+            $params[] = (int) $filters['actor_id'];
+        } elseif ( ! empty( $filters['actor'] ) ) {
             $actor = $filters['actor'];
             if ( ctype_digit( $actor ) ) {
-                $conditions[] = "actor_kind = 'user' AND actor_id = %d";
-                $params[] = (int) $actor;
-            } elseif ( in_array( $actor, [ 'anonymous', 'system', 'unknown' ], true ) ) {
-                $conditions[] = 'actor_kind = %s';
-                $params[] = $actor;
+                $user = get_user_by( 'login', $actor );
+                if ( $user ) {
+                    $conditions[] = "actor_kind = 'user' AND actor_id = %d";
+                    $params[] = (int) $user->ID;
+                } else {
+                    $conditions[] = "actor_kind = 'user' AND actor_id = %d";
+                    $params[] = (int) $actor;
+                }
+            } elseif ( in_array( $actor, [ 'anonymous', 'system', 'unknown' ], true ) && empty( $filters['actor_kind'] ) ) {
+                $user = get_user_by( 'login', $actor );
+                if ( $user ) {
+                    $conditions[] = "actor_kind = 'user' AND actor_id = %d";
+                    $params[] = (int) $user->ID;
+                } else {
+                    $conditions[] = 'actor_kind = %s';
+                    $params[] = $actor;
+                }
             } else {
                 $conditions[] = 'actor_name LIKE %s';
                 $params[] = '%' . $wpdb->esc_like( $actor ) . '%';
@@ -191,7 +266,11 @@ final class Store {
         $where = implode( ' AND ', $conditions );
         $params[] = $limit;
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Conditions contain fixed columns and placeholders for every value.
-        $query = "SELECT id, occurred_at, actor_kind, actor_id, actor_name, item_kind, item_key, item_name, action_key, severity, summary
+        $columns = 'id, occurred_at, actor_kind, actor_id, actor_name, item_kind, item_key, item_name, action_key, severity, summary';
+        if ( $include_details ) {
+            $columns .= ', details';
+        }
+        $query = "SELECT $columns
             FROM %i WHERE $where ORDER BY id DESC LIMIT %d";
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.NotPrepared -- The table is custom and indexed; condition values are prepared before the query runs.
         $rows = $wpdb->get_results( $wpdb->prepare( $query, ...$params ), ARRAY_A );
@@ -204,13 +283,17 @@ final class Store {
         $table = self::table();
         $since_day = gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
         $since_week = gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS );
-        $query = 'SELECT COUNT(*) AS week_count,
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Summarize the indexed custom event table for the administrator dashboard.
+        $counts = $wpdb->get_row( $wpdb->prepare(
+            'SELECT COUNT(*) AS week_count,
                 COALESCE(SUM(occurred_at >= %s), 0) AS day_count,
                 COALESCE(SUM(severity = %s), 0) AS warning_count
-            FROM %i WHERE occurred_at >= %s';
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Summarize the indexed custom event table for the administrator dashboard.
-        $counts = $wpdb->get_row( $wpdb->prepare( $query, $since_day, 'warning', $table, $since_week ), ARRAY_A );
+                FROM %i WHERE occurred_at >= %s',
+            $since_day,
+            'warning',
+            $table,
+            $since_week
+        ), ARRAY_A );
         if ( $wpdb->last_error ) {
             return self::unavailable();
         }
@@ -264,7 +347,9 @@ final class Store {
             'bytes'         => isset( $status['Data_length'], $status['Index_length'] ) ? (int) $status['Data_length'] + (int) $status['Index_length'] : null,
             'last_cleanup'  => $health['last_cleanup'] ?? null,
             'write_error'   => $health['write_error'] ?? null,
+            'schema_error'  => $health['schema_error'] ?? null,
             'cleanup_error' => $health['cleanup_error'] ?? null,
+            'schedule_error' => $health['schedule_error'] ?? null,
             'next_cleanup'  => wp_next_scheduled( self::CLEANUP ) ?: null,
         ];
     }

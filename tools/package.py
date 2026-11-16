@@ -1,5 +1,6 @@
 """Build an installable archive with stable paths, permissions and timestamps."""
 
+import argparse
 import json
 import re
 from pathlib import Path
@@ -12,8 +13,16 @@ version = re.search(r"^ \* Version: (\S+)$", (PLUGIN / f"{SLUG}.php").read_text(
 manifest = json.loads((ROOT / "package.json").read_text())
 assert version == manifest["version"]
 assert f"Stable tag: {version}" in (PLUGIN / "readme.txt").read_text()
-release = ROOT / "release"
-release.mkdir(exist_ok=True)
+parser = argparse.ArgumentParser(description="Build the installable plugin archive.")
+parser.add_argument(
+    "--output-dir",
+    type=Path,
+    default=ROOT / "release",
+    help="Directory for the generated ZIP, defaults to release.",
+)
+args = parser.parse_args()
+release = args.output_dir if args.output_dir.is_absolute() else ROOT / args.output_dir
+release.mkdir(parents=True, exist_ok=True)
 entries = {f"{SLUG}/{p.relative_to(PLUGIN).as_posix()}": p for p in PLUGIN.rglob("*") if p.is_file()}
 for p in (ROOT / "ui").rglob("*"):
     if p.is_file():

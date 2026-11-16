@@ -24,12 +24,13 @@ const actions = {
   setting_changed: "Setting changed",
 };
 const severities = { info: "Info", notice: "Notice", warning: "Warning" };
+const actorKinds = { anonymous: "Unauthenticated", system: "WordPress background task", cli: "WP CLI command", unknown: "Unknown" };
 const kindLabels = { post: "Post", page: "Page", user: "Account", plugin: "Plugin", theme: "Theme", setting: "Setting", login: "Sign in" };
 const icons = { post: FileText, page: FileText, user: UserRound, plugin: Plug, theme: SwatchBook, setting: Settings2, login: LockKeyhole };
 const statusNames = { publish: "Published", draft: "Draft", pending: "Pending review", private: "Private", future: "Scheduled", trash: "Trash" };
 
 function actorName(row) {
-  return row.actor_name || ({ anonymous: "Unauthenticated", system: "WordPress background task", unknown: "Unknown actor" })[row.actor_kind] || "Unknown actor";
+  return row.actor_name || actorKinds[row.actor_kind] || "Unknown";
 }
 
 function useResource(path, query, refresh = 0) {
@@ -76,19 +77,28 @@ function FilterField({ label, children }) {
 function Filters({ filters, apply, exportUrl }) {
   const [draft, setDraft] = useState(filters);
   const [open, setOpen] = useState(false);
+  useEffect(() => setDraft(filters), [filters]);
   const count = Object.entries(filters).filter(([key, value]) => key !== "q" && value).length;
   const active = count > 0 || Boolean(filters.q);
   const field = key => ({
     name: key,
-    value: draft[key],
-    onChange: event => setDraft(current => ({ ...current, [key]: event.target.value })),
+    value: "actor" === key && draft.actor_id ? draft.actor_id : draft[key],
+    onChange: event => setDraft(current => {
+      const next = { ...current, [key]: event.target.value };
+      if (key === "actor") next.actor_id = "";
+      if (key === "actor_kind" && event.target.value !== "user") {
+        next.actor_id = "";
+        if (event.target.value) next.actor = "";
+      }
+      return next;
+    }),
   });
   const clear = () => apply({});
   return <form className="alfa-filters" onSubmit={event => { event.preventDefault(); apply(draft); }}>
     <div className="alfa-toolbar">
       <div className="alfa-search">
         <Search size={18} aria-hidden="true" />
-        <Input aria-label="Search activity" placeholder="Search by item, user, or change" maxLength={255} {...field("q")} />
+        <Input aria-label="Search activity" placeholder="Search by item, actor, or change" maxLength={255} {...field("q")} />
       </div>
       <Button type="submit">Search</Button>
       <Button type="button" variant="outline" aria-expanded={open} aria-controls="alfa-filter-fields" onClick={() => setOpen(!open)}>
@@ -102,7 +112,11 @@ function Filters({ filters, apply, exportUrl }) {
       <div className="alfa-filter-grid">
         <FilterField label="From"><Input type="date" {...field("from")} /></FilterField>
         <FilterField label="Through"><Input type="date" {...field("to")} /></FilterField>
-        <FilterField label="User"><Input placeholder="Username or user ID" maxLength={255} {...field("actor")} /></FilterField>
+        <FilterField label="Actor type"><select {...field("actor_kind")}>
+          <option value="">All actors</option><option value="user">User account</option>
+          <option value="anonymous">Unauthenticated</option><option value="system">WordPress background task</option><option value="cli">WP CLI command</option><option value="unknown">Unknown</option>
+        </select></FilterField>
+        <FilterField label="Actor"><Input placeholder="Username or user ID" maxLength={255} disabled={Boolean(draft.actor_kind && draft.actor_kind !== "user")} {...field("actor")} /></FilterField>
         <FilterField label="Affected item"><Input placeholder="Title or name" maxLength={255} {...field("item")} /></FilterField>
         <FilterField label="Action"><select {...field("action")}><option value="">All actions</option>{config.actions.map(key => <option key={key} value={key}>{actions[key]}</option>)}</select></FilterField>
         <FilterField label="Severity"><select {...field("severity")}><option value="">All severities</option>{config.severities.map(key => <option key={key} value={key}>{severities[key]}</option>)}</select></FilterField>
@@ -112,7 +126,7 @@ function Filters({ filters, apply, exportUrl }) {
     {active && <div className="alfa-applied">
       <span>Filtered activity</span>
       {Object.entries(filters).filter(([, value]) => value).map(([key, value]) =>
-        <span className="alfa-chip" key={key}>{({ from: "From ", to: "Through ", actor: "User: ", item: "Item: " })[key] ?? ""}{actions[value] ?? severities[value] ?? value}</span>
+        <span className="alfa-chip" key={key}>{({ from: "From ", to: "Through ", actor: "Actor: ", actor_id: "Actor: ", actor_kind: "Actor type: ", item: "Item: " })[key] ?? ""}{key === "actor_id" ? `User ID ${value}` : key === "actor_kind" ? value === "user" ? "User account" : actorKinds[value] ?? value : actions[value] ?? severities[value] ?? value}</span>
       )}
       <button className="alfa-text-button" type="button" onClick={clear}><X size={14} aria-hidden="true" /> Clear all</button>
     </div>}
@@ -122,7 +136,7 @@ function Filters({ filters, apply, exportUrl }) {
 function EventTable({ events, select }) {
   return <Table aria-label="Activity events">
     <TableHeader><TableRow>
-      <TableHead>Change</TableHead><TableHead className="alfa-actor-col">User</TableHead>
+      <TableHead>Change</TableHead><TableHead className="alfa-actor-col">Actor</TableHead>
       <TableHead className="alfa-time-col" aria-sort="descending">When <ArrowDown size={13} aria-hidden="true" /></TableHead>
       <TableHead className="alfa-severity-col">Severity</TableHead>
     </TableRow></TableHeader>
@@ -169,7 +183,7 @@ function EventDetails({ row, close, related, trigger, fallback }) {
       </SheetHeader>
       <div className="alfa-sheet-body">
         <dl className="alfa-details">
-          <div><dt>User</dt><dd><button type="button" className="alfa-text-button" onClick={() => related("actor", label.actor_kind === "user" ? label.actor_id : label.actor_kind)}>{actorName(label)} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
+          <div><dt>Actor</dt><dd><button type="button" className="alfa-text-button" onClick={() => related(label.actor_kind === "user" ? "actor_id" : "actor_kind", label.actor_kind === "user" ? label.actor_id : label.actor_kind)}>{actorName(label)} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
           <div><dt>Affected item</dt><dd><button type="button" className="alfa-text-button" onClick={() => related("item", `${label.item_kind}:${label.item_key}`)}>{label.item_name} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
           <div><dt>Time</dt><dd><time dateTime={label.time_iso}>{label.time_exact}</time></dd></div>
           {data?.details?.version && <div><dt>Component version</dt><dd>{data.details.version}</dd></div>}
@@ -220,7 +234,9 @@ function Settings() {
         <h2>Log health</h2>
         {!health.available && <Alert>The activity log table is unavailable. Check the database connection.</Alert>}
         {health.write_error && <Alert>Last event recording failure: {health.write_error}. Some activity may be missing.</Alert>}
+        {health.schema_error && <Alert>Last event table schema update failure: {health.schema_error}.</Alert>}
         {health.cleanup_error && <Alert>Last cleanup failure: {health.cleanup_error}.</Alert>}
+        {health.schedule_error && <Alert>Last cleanup scheduling failure: {health.schedule_error}.</Alert>}
         {!health.next_cleanup && <Alert>Automatic cleanup is unscheduled. Save the settings to try scheduling it again.</Alert>}
         <dl className="alfa-health">
           <div><dt>Oldest event</dt><dd>{health.oldest || (health.available ? "No events recorded" : "Unavailable")}</dd></div>

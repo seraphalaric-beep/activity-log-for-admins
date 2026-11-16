@@ -8,6 +8,7 @@ final class Admin {
     private const ROUTE = 'activity-log-for-admins/v1';
     private const CAPABILITY = 'manage_options';
     private const SLUG = 'activity-log-for-admins';
+    private const EXPORT_BATCH_SIZE = 250;
     private static string $plugin_file;
     private static string $screen = '';
 
@@ -93,7 +94,7 @@ final class Admin {
                     $actor = match ( $event['actor_kind'] ) {
                         'anonymous' => __( 'Unauthenticated', 'activity-log-for-admins' ),
                         'system' => __( 'WordPress background task', 'activity-log-for-admins' ),
-                        default => __( 'Unknown actor', 'activity-log-for-admins' ),
+                        default => __( 'Unknown', 'activity-log-for-admins' ),
                     };
                 }
                 $timestamp = strtotime( $event['occurred_at'] . ' UTC' );
@@ -176,15 +177,22 @@ final class Admin {
 
     private static function filters( \WP_REST_Request $request ): array|\WP_Error {
         $filters = [];
-        foreach ( [ 'q', 'actor', 'item', 'action', 'severity', 'from', 'to' ] as $key ) {
+        foreach ( [ 'q', 'actor', 'actor_id', 'actor_kind', 'item', 'action', 'severity', 'from', 'to' ] as $key ) {
             $value = $request->get_param( $key );
             if ( null === $value || '' === $value ) {
                 continue;
             }
-            if ( ! is_string( $value ) || mb_strlen( $value ) > 255 ) {
+            if ( ! is_string( $value ) || 1 !== preg_match( '/\A.{0,255}\z/us', $value ) ) {
                 return self::bad_filters();
             }
             $filters[ $key ] = sanitize_text_field( $value );
+        }
+        if ( isset( $filters['actor_id'] ) ) {
+            $normalized_id = ltrim( (string) (int) $filters['actor_id'], '0' );
+            if ( ! ctype_digit( $filters['actor_id'] ) || (int) $filters['actor_id'] < 1
+                || $normalized_id !== ltrim( $filters['actor_id'], '0' ) ) {
+                return self::bad_filters();
+            }
         }
         foreach ( [ 'from', 'to' ] as $key ) {
             if ( isset( $filters[ $key ] ) ) {
@@ -196,7 +204,11 @@ final class Admin {
         }
         if ( ( isset( $filters['from'], $filters['to'] ) && $filters['from'] > $filters['to'] )
             || ( isset( $filters['action'] ) && ! in_array( $filters['action'], Capture::ACTIONS, true ) )
-            || ( isset( $filters['severity'] ) && ! in_array( $filters['severity'], Capture::SEVERITIES, true ) ) ) {
+            || ( isset( $filters['severity'] ) && ! in_array( $filters['severity'], Capture::SEVERITIES, true ) )
+            || ( isset( $filters['actor_kind'] ) && ! in_array( $filters['actor_kind'], [ 'user', 'anonymous', 'system', 'cli', 'unknown' ], true ) )
+            || ( isset( $filters['actor'], $filters['actor_kind'] ) && 'user' !== $filters['actor_kind'] )
+            || ( isset( $filters['actor_id'], $filters['actor'] ) )
+            || ( isset( $filters['actor_id'], $filters['actor_kind'] ) && 'user' !== $filters['actor_kind'] ) ) {
             return self::bad_filters();
         }
         return $filters;
@@ -261,7 +273,7 @@ final class Admin {
         if ( $health['oldest'] ) {
             $health['oldest'] = wp_date( 'j M Y, H:i T', strtotime( $health['oldest'] . ' UTC' ) );
         }
-        foreach ( [ 'last_cleanup', 'write_error', 'cleanup_error', 'next_cleanup' ] as $key ) {
+        foreach ( [ 'last_cleanup', 'write_error', 'schema_error', 'cleanup_error', 'schedule_error', 'next_cleanup' ] as $key ) {
             $health[ $key ] = $health[ $key ] ? wp_date( 'j M Y, H:i T', (int) $health[ $key ] ) : null;
         }
         $health['space'] = null === $health['bytes'] ? null : size_format( $health['bytes'], 1 );
@@ -286,7 +298,7 @@ final class Admin {
         if ( is_wp_error( $ceiling ) ) {
             return $ceiling;
         }
-        $first = $ceiling ? Store::query( $filters, 500, 0, $ceiling ) : [];
+        $first = $ceiling ? Store::query( $filters, self::EXPORT_BATCH_SIZE, 0, $ceiling, true ) : [];
         if ( is_wp_error( $first ) ) {
             return $first;
         }
@@ -351,19 +363,21 @@ final class Admin {
         // Include a UTF-8 marker for spreadsheet apps.
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Write the CSV marker to the REST response stream.
         fwrite( $out, "\xEF\xBB\xBF" );
-        fputcsv( $out, [ 'Event ID', 'Time (UTC)', 'Actor type', 'Actor', 'Actor ID', 'Item type', 'Item', 'Item key', 'Action', 'Severity', 'Summary' ], ',', '"', '' );
+        fputcsv( $out, [ 'Event ID', 'Time (UTC)', 'Actor type', 'Actor', 'Actor ID', 'Item type', 'Item', 'Item key', 'Action', 'Severity', 'Summary', 'Previous and new values', 'Event details' ], ',', '"', '' );
         $rows = $payload['first'];
         while ( $rows ) {
             foreach ( $rows as $row ) {
+                [ $changes, $details ] = self::csv_detail_cells( $row['details'] ?? '' );
                 fputcsv( $out, array_map( [ self::class, 'csv_cell' ], [
                     $row['id'], $row['occurred_at'], $row['actor_kind'], $row['actor_name'], $row['actor_id'],
                     $row['item_kind'], $row['item_name'], $row['item_key'], $row['action_key'], $row['severity'], $row['summary'],
+                    $changes, $details,
                 ] ), ',', '"', '' );
             }
-            if ( count( $rows ) < 500 || connection_aborted() ) {
+            if ( count( $rows ) < self::EXPORT_BATCH_SIZE || connection_aborted() ) {
                 break;
             }
-            $rows = Store::query( $payload['filters'], 500, (int) end( $rows )['id'], $payload['ceiling'] );
+            $rows = Store::query( $payload['filters'], self::EXPORT_BATCH_SIZE, (int) end( $rows )['id'], $payload['ceiling'], true );
             if ( is_wp_error( $rows ) ) {
                 fputcsv( $out, [ 'Export interrupted. Retry to download the remaining events.' ], ',', '"', '' );
                 break;
@@ -377,5 +391,27 @@ final class Admin {
     private static function csv_cell( mixed $value ): string {
         $value = (string) $value;
         return preg_match( '/^(?:[\t\r\n]|[\p{Z}\s]*[=+@\x{002D}\x{FF1D}\x{FF0B}\x{FF0D}\x{FF20}])/u', $value ) ? "'" . $value : $value;
+    }
+
+    private static function csv_detail_cells( string $json ): array {
+        $details = json_decode( $json, true );
+        if ( ! is_array( $details ) ) {
+            return [ '', '' ];
+        }
+        $changes = is_array( $details['changes'] ?? null ) ? $details['changes'] : [];
+        $lines = [];
+        foreach ( $changes as $field => $values ) {
+            if ( ! is_array( $values ) || ! array_key_exists( 0, $values ) || ! array_key_exists( 1, $values ) ) {
+                continue;
+            }
+            $lines[] = (string) $field . ': ' . (string) $values[0] . ' → ' . (string) $values[1];
+        }
+        if ( ! empty( $details['content_changed'] ) ) {
+            $lines[] = __( 'Content changed; compare WordPress revisions when available.', 'activity-log-for-admins' );
+        }
+        return [
+            implode( '; ', $lines ),
+            wp_json_encode( $details, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ?: '',
+        ];
     }
 }
