@@ -32,7 +32,7 @@ The activity, event detail, Dashboard, and Settings images use the 1.0.5 React b
 ## Confirm before a directory release
 
 * The official validator reports only a missing `Contributors` field. Add the field after confirming the WordPress.org username, then run the validator again. A GitHub account name is not a substitute.
-* The current `Tested up to: 7.1` value matches the 1.0.4 hosted run on WordPress 7.1.4, PHP 8.3, and MariaDB 11.4.9. Confirm this field again before uploading a later version.
+* The current `Tested up to: 7.1` value matches the 1.0.5 hosted run on WordPress 7.1.4 and PHP 8.5. Confirm this field again before uploading a later version.
 * Banner and icon files must use the documented names and dimensions. Screenshot files use numbered names, each matched to a readme caption. The directory gallery supports screenshots with different proportions.
 
 See the official [plugin asset guidance](https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/) and [readme guidance](https://developer.wordpress.org/plugins/wordpress-org/how-your-readme-txt-works/).

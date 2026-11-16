@@ -72,3 +72,11 @@ The [GitHub Actions run](https://github.com/seraphalaric-beep/activity-log-for-a
 The regression check confirmed that the newest Dashboard event also appeared in the full event response and the visible Activity table. Activity list, event details, Settings, and CSV responses used private cache headers and could not be stored. The full pilot covered event capture, filters, event details, permissions, export, cleanup failures, retention, uninstall, and a database seeded with 100,000 events.
 
 Anonymous reads and exports returned 401. Editor reads, exports, and settings changes returned 403. Twelve axe scans reported no findings across Activity, filters, event details, and Settings at widths from 320 to 1440 pixels. The browser reported no JavaScript errors. REST request latency at the 95th percentile was 52 ms for the first page and 178 ms for a filtered request in the hosted runner. These timings describe that runner. The current report is `docs/verification/security-ui-report.json`.
+
+## 1.0.5 verification results
+
+The [GitHub Actions run](https://github.com/seraphalaric-beep/activity-log-for-admins/actions/runs/43899600662) passed on source commit `eb56a5d`. The build job passed its dependency audit, PHP syntax checks, security and interface checks, and full activity pilot. The compatibility jobs passed on WordPress 6.9.11 with PHP 8.3, WordPress 7.0.8 with PHP 8.4, and WordPress 7.1.4 with PHP 8.5. The Dashboard comparison remained skipped as requested.
+
+The installable ZIP from that run is attached to the [GitHub 1.0.5 release](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/tag/v1.0.5). Its SHA256 is `032FAAC4CC7131A585326D8BB5CE14C49950434A66D159D4FDB9803792F74A77`. A copy downloaded from the release matched the CI artifact hash. The Settings preview shows version 1.0.5.
+
+The human 30 second investigation check remains pending. Install the GitHub release on a disposable or staging site, follow steps 3 and 4 above, and record the elapsed time, actor, previous status, and whether the administrator received any hints.
