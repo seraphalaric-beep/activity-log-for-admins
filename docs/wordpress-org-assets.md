@@ -1,6 +1,6 @@
 # WordPress.org listing assets
 
-This folder records the listing copy and graphics prepared for Activity Log for Admins 1.0.4.
+This folder records the listing copy and graphics prepared for Activity Log for Admins 1.0.5.
 
 ## Files
 
@@ -27,7 +27,7 @@ The asset command builds a temporary preview bundle from the current interface a
 
 ## Screenshot provenance
 
-The activity, event detail, Dashboard, and Settings images use the 1.0.4 React bundle and shared styles, with illustrative event records. The Settings footer takes its version from `package.json`. Fixture dates are fixed for reproducible screenshots. These are interface previews, not captures from a live or staging WordPress site. No site data is included. Saved pilot captures are kept as test evidence, since they contain repeated seed events or failure notices.
+The activity, event detail, Dashboard, and Settings images use the 1.0.5 React bundle and shared styles, with illustrative event records. The Settings footer takes its version from `package.json`. Fixture dates are fixed for reproducible screenshots. These are interface previews, not captures from a live or staging WordPress site. No site data is included. Saved pilot captures are kept as test evidence, since they contain repeated seed events or failure notices.
 
 ## Confirm before a directory release
 

@@ -3,7 +3,7 @@ Tags: activity log, audit log, history
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,7 +55,7 @@ Users with the WordPress `manage_options` capability can view, export, and chang
 
 = Does it support multisite or WooCommerce? =
 
-Not in version 1.0.4. This release is for a single WordPress site and does not include WooCommerce events.
+Not in version 1.0.5. This release is for a single WordPress site and does not include WooCommerce events.
 
 = Can Activity Log for Admins replace a redirect plugin? =
 
@@ -78,6 +78,13 @@ Deactivation and deletion preserve history by default. To erase activity and set
 
 == Changelog ==
 
+= 1.0.5 =
+* Expanded supported content, account, role, software update, and site setting activity.
+* Added clearer attribution for WP CLI, background tasks, unauthenticated attempts, and unknown actors.
+* Improved CSV details, captured values, schema checks, and recording and cleanup diagnostics.
+* Added page template, featured image, scheduled date, parent page, and content author changes.
+* Improved shared filters and account matching, including numeric usernames.
+
 = 1.0.4 =
 * Prevented shared caches from storing the private Activity Log REST responses.
 * Added a unique request value to Activity Log API calls to bypass stale cached responses.
@@ -96,6 +103,9 @@ Deactivation and deletion preserve history by default. To erase activity and set
 * Improved spacing, button sizing, and narrow screen layouts.
 
 == Upgrade Notice ==
+
+= 1.0.5 =
+Expands activity coverage and improves event attribution, CSV exports, and storage diagnostics.
 
 = 1.0.4 =
 Improves cache handling for private Activity Log requests.

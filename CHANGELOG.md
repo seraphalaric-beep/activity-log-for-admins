@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.5
 
 * Resolve WordPress Plugin Check findings for translator context, prepared queries, and uninstall naming.
 * Use a concise Unknown label when event attribution is unavailable in Activity and the Dashboard.
@@ -9,7 +9,7 @@
 * Verify required event table columns and indexes before marking the schema current.
 * Limit the item index prefix so it fits older InnoDB row formats.
 * Report schema upgrade failures separately from event recording failures.
-* Align the WordPress listing copy, pilot guide, and Settings screenshot with version 1.0.4.
+* Align the WordPress listing copy, pilot guide, and Settings screenshot with version 1.0.5.
 * Clarify that redirect management remains outside the plugin scope.
 * Include captured previous and new values plus structured details in CSV exports.
 * Keep UTF 8 text handling available when the PHP mbstring extension is not installed.
