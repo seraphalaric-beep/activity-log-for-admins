@@ -48,6 +48,7 @@ On a fresh disposable WordPress 7.1.4 site with PHP 8.5.12 and the 1.0.4 candida
 * All five plugin PHP files passed syntax checks.
 * The Git whitespace check passed. Git reported line ending notices for four files.
 * The extracted plugin files matched the workspace files in the tested candidate archive.
+* GitHub Actions run 17 passed on commit `4eea112`. It covered the build, security and interface checks, full activity pilot, and all three compatibility jobs. The WordPress 6.9.11 on PHP 8.3 job passed despite the local PHP curl limitation.
 
 The tested candidate archive SHA256 is `1037952EC8A81B3DAA3BE5A6C2F7503FB3C9E08A019E987C2EF7F3FE7F1D4ED7`.
 
@@ -55,7 +56,5 @@ The tested candidate archive SHA256 is `1037952EC8A81B3DAA3BE5A6C2F7503FB3C9E08A
 
 * A person must complete the page investigation with only the page name and finish in under 30 seconds.
 * The Dashboard comparison remains intentionally untested.
-* GitHub Actions has not run on these uncommitted workspace changes.
-* The local PHP 8.3.36 environment could not load php_curl.dll because Windows App Control blocked it. The GitHub compatibility job is configured to enable curl.
 
 The plugin metadata and Settings footer remain at version 1.0.4. No release was created from this refinement.
