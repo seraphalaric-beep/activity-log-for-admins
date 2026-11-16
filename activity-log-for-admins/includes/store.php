@@ -10,6 +10,7 @@ final class Store {
     public const SCHEMA = 'alfa_schema';
     public const CLEANUP = 'alfa_cleanup';
     public const CONTINUE_CLEANUP = 'alfa_continue_cleanup';
+    public const ALERT_DIGEST = 'alfa_alert_digest';
     public const PAGE_SIZE = 50;
     private const SCHEMA_VERSION = 2;
     private const CLEANUP_SIZE = 1000;
@@ -96,19 +97,58 @@ final class Store {
     public static function upgrade(): void {
         if ( (int) get_option( self::SCHEMA ) === self::SCHEMA_VERSION ) {
             self::clear_failure( 'schema_error' );
+            $health = (array) get_option( self::HEALTH, [] );
+            if ( empty( $health['schedule_error'] ) && ! wp_next_scheduled( self::CLEANUP ) ) {
+                self::schedule();
+            }
             return;
         }
         if ( ! self::install() ) {
             self::record_failure( 'schema_error' );
+            return;
         }
+        self::schedule();
     }
 
     public static function settings(): array {
         $saved = (array) get_option( self::SETTINGS, [] );
-        return [
+        return self::normalize_settings( $saved );
+    }
+
+    public static function normalize_settings( array $saved ): array {
+        $settings = [
             'retention' => min( 3650, max( 1, (int) ( $saved['retention'] ?? 90 ) ) ),
             'erase'     => in_array( $saved['erase'] ?? false, [ true, 1, '1' ], true ),
+            'woocommerce' => in_array( $saved['woocommerce'] ?? false, [ true, 1, '1' ], true ),
+            'redirection' => in_array( $saved['redirection'] ?? false, [ true, 1, '1' ], true ),
+            'email_alerts' => in_array( $saved['email_alerts'] ?? false, [ true, 1, '1' ], true ),
         ];
+        foreach ( [ 'content', 'accounts', 'comments', 'taxonomies', 'appearance', 'components', 'settings' ] as $category ) {
+            $settings[ 'capture_' . $category ] = ! array_key_exists( 'capture_' . $category, $saved )
+                || in_array( $saved[ 'capture_' . $category ], [ true, 1, '1' ], true );
+        }
+        return $settings;
+    }
+
+    public static function action_enabled( string $action ): bool {
+        $settings = self::settings();
+        $categories = [
+            'content_created' => 'content', 'content_edited' => 'content', 'content_status' => 'content', 'content_trashed' => 'content', 'content_restored' => 'content',
+            'user_created' => 'accounts', 'user_deleted' => 'accounts', 'user_removed_from_site' => 'accounts', 'role_changed' => 'accounts', 'signed_in' => 'accounts', 'signed_out' => 'accounts', 'sign_in_failed' => 'accounts', 'user_profile_changed' => 'accounts', 'password_changed' => 'accounts',
+            'comment_created' => 'comments', 'comment_edited' => 'comments', 'comment_status' => 'comments', 'comment_deleted' => 'comments',
+            'term_created' => 'taxonomies', 'term_edited' => 'taxonomies', 'term_deleted' => 'taxonomies', 'terms_changed' => 'taxonomies',
+            'menu_created' => 'appearance', 'menu_updated' => 'appearance', 'menu_deleted' => 'appearance', 'menu_item_added' => 'appearance', 'menu_item_updated' => 'appearance', 'menu_item_deleted' => 'appearance', 'widget_changed' => 'appearance',
+            'plugin_installed' => 'components', 'plugin_activated' => 'components', 'plugin_deactivated' => 'components', 'plugin_updated' => 'components', 'plugin_deleted' => 'components', 'theme_installed' => 'components', 'theme_switched' => 'components', 'theme_updated' => 'components', 'theme_deleted' => 'components',
+            'setting_changed' => 'settings',
+            'order_created' => 'woocommerce', 'order_status_changed' => 'woocommerce', 'order_refunded' => 'woocommerce',
+            'redirect_updated' => 'redirection', 'redirect_deleted' => 'redirection', 'redirect_enabled' => 'redirection', 'redirect_disabled' => 'redirection',
+        ];
+        if ( ! isset( $categories[ $action ] ) ) {
+            return true;
+        }
+        $category = $categories[ $action ];
+        $key = in_array( $category, [ 'woocommerce', 'redirection' ], true ) ? $category : 'capture_' . $category;
+        return (bool) $settings[ $key ];
     }
 
     public static function schedule(): void {
@@ -179,6 +219,11 @@ final class Store {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Store one event in the plugin owned table.
             if ( false === $wpdb->insert( self::table(), $row ) ) {
                 self::record_failure( 'write_error' );
+            } else {
+                self::clear_failure( 'write_error' );
+                if ( 'warning' === $row['severity'] && self::settings()['email_alerts'] ) {
+                    self::schedule_alert_digest( (int) $wpdb->insert_id );
+                }
             }
         } catch ( \Throwable $error ) {
             self::record_failure( 'write_error' );
@@ -231,7 +276,7 @@ final class Store {
         }
         if ( ! empty( $filters['item'] ) ) {
             $item = $filters['item'];
-            if ( str_contains( $item, ':' ) && preg_match( '/^(post|page|user|plugin|theme|setting|login):(.+)$/u', $item, $parts ) ) {
+            if ( preg_match( '/\A([a-z0-9_-]{1,24}):(.+)\z/u', $item, $parts ) ) {
                 $conditions[] = 'item_kind = %s AND item_key = %s';
                 $params[] = $parts[1];
                 $params[] = $parts[2];
@@ -350,8 +395,69 @@ final class Store {
             'schema_error'  => $health['schema_error'] ?? null,
             'cleanup_error' => $health['cleanup_error'] ?? null,
             'schedule_error' => $health['schedule_error'] ?? null,
+            'alert_error'   => $health['alert_error'] ?? null,
+            'alert_schedule_error' => $health['alert_schedule_error'] ?? null,
             'next_cleanup'  => wp_next_scheduled( self::CLEANUP ) ?: null,
         ];
+    }
+
+    private static function schedule_alert_digest( int $first_event_id ): void {
+        if ( wp_next_scheduled( self::ALERT_DIGEST ) ) {
+            return;
+        }
+        update_option( 'alfa_alert_digest_after_id', max( 0, $first_event_id ), false );
+        $scheduled = wp_schedule_single_event( time() + 900, self::ALERT_DIGEST, [], true );
+        if ( false === $scheduled || ( is_wp_error( $scheduled ) && 'duplicate_event' !== $scheduled->get_error_code() ) ) {
+            self::record_failure( 'alert_schedule_error' );
+        } else {
+            self::clear_failure( 'alert_schedule_error' );
+        }
+    }
+
+    public static function send_alert_digest(): void {
+        if ( ! self::settings()['email_alerts'] ) {
+            return;
+        }
+        $email = sanitize_email( (string) get_option( 'admin_email' ) );
+        if ( ! is_email( $email ) ) {
+            self::record_failure( 'alert_error' );
+            return;
+        }
+
+        global $wpdb;
+        $after_id = (int) get_option( 'alfa_alert_digest_after_id', 0 );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read a bounded set of warning summaries for the administrator opted in alert digest.
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            'SELECT id, occurred_at, summary FROM %i WHERE severity = %s AND id >= %d ORDER BY id DESC LIMIT 20',
+            self::table(), 'warning', $after_id
+        ), ARRAY_A );
+        if ( $wpdb->last_error ) {
+            self::record_failure( 'alert_error' );
+            return;
+        }
+        if ( ! $rows ) {
+            return;
+        }
+
+        $lines = array_map(
+            static function ( array $row ): string {
+                $timestamp = strtotime( $row['occurred_at'] . ' UTC' );
+                return wp_date( 'j M Y, H:i T', $timestamp ) . '  ' . sanitize_text_field( $row['summary'] );
+            },
+            $rows
+        );
+        $body = __( 'Activity Log recorded warning events on your site:', 'activity-log-for-admins' ) . "\n\n"
+            . implode( "\n", $lines ) . "\n\n"
+            . __( 'This digest includes event summaries only. Review the Activity Log in WordPress for details.', 'activity-log-for-admins' );
+        $site_name = sanitize_text_field( wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES ) );
+        $subject = sprintf( __( '[%s] Activity Log warning digest', 'activity-log-for-admins' ), $site_name );
+        if ( wp_mail( $email, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] ) ) {
+            update_option( 'alfa_alert_digest_after_id', (int) $rows[0]['id'] + 1, false );
+            self::clear_failure( 'alert_error' );
+        } else {
+            self::record_failure( 'alert_error' );
+            wp_schedule_single_event( time() + HOUR_IN_SECONDS, self::ALERT_DIGEST );
+        }
     }
 
     private static function unavailable(): \WP_Error {

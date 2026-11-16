@@ -5,8 +5,12 @@ if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || '127.0.0.1' !== ( $_SERV
     exit;
 }
 require __DIR__ . '/wp-load.php';
-require_once ABSPATH . 'wp-admin/includes/admin.php';
-require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+foreach ( [ 'admin.php', 'nav-menu.php', 'comment.php', 'class-wp-upgrader.php' ] as $alfa_include ) {
+    $alfa_path = ABSPATH . 'wp-admin/includes/' . $alfa_include;
+    if ( is_file( $alfa_path ) ) {
+        require_once $alfa_path;
+    }
+}
 
 use ActivityLogForAdmins\Store;
 
@@ -33,6 +37,13 @@ function fixture_check( mixed $result ): void {
     if ( false === $result ) {
         throw new RuntimeException( 'Fixture operation failed.' );
     }
+}
+
+function fixture_delete_account( int $user_id ): bool {
+    if ( is_multisite() && function_exists( 'wpmu_delete_user' ) ) {
+        return wpmu_delete_user( $user_id );
+    }
+    return wp_delete_user( $user_id );
 }
 
 function fixture_zip( string $kind, string $version ): string {
@@ -88,6 +99,168 @@ function fixture_component_events(): void {
     }
 }
 
+function fixture_extended_events( int $editor_id ): array {
+	$suffix = 'alfa-coverage-' . strtolower( wp_generate_password( 6, false, false ) );
+	$title = 'Pilot book ' . $suffix;
+	$book = wp_insert_post( [
+		'post_title' => $title,
+		'post_type' => 'alfa_book',
+		'post_status' => 'publish',
+		'post_content' => 'Original book content',
+		'comment_status' => 'open',
+	], true );
+	fixture_check( $book );
+	fixture_check( wp_update_post( [ 'ID' => $book, 'post_title' => 'Updated ' . $title, 'post_content' => 'Updated book content' ], true ) );
+
+	$genre = wp_insert_term( 'Pilot genre ' . $suffix, 'alfa_genre' );
+	fixture_check( $genre );
+	$genre_id = (int) $genre['term_id'];
+	fixture_check( wp_set_object_terms( $book, [ $genre_id ], 'alfa_genre' ) );
+	fixture_check( wp_set_object_terms( $book, [], 'alfa_genre' ) );
+	fixture_check( wp_update_term( $genre_id, 'alfa_genre', [ 'name' => 'Updated pilot genre ' . $suffix ] ) );
+	$category = wp_insert_term( 'Pilot category ' . $suffix, 'category' );
+	$tag = wp_insert_term( 'Pilot tag ' . $suffix, 'post_tag' );
+	fixture_check( $category );
+	fixture_check( $tag );
+	$post = wp_insert_post( [ 'post_title' => 'Tagged post ' . $suffix, 'post_type' => 'post', 'post_status' => 'publish' ], true );
+	fixture_check( $post );
+	fixture_check( wp_set_object_terms( $post, [ (int) $category['term_id'] ], 'category' ) );
+	fixture_check( wp_set_object_terms( $post, [ (int) $tag['term_id'] ], 'post_tag' ) );
+
+	$comment_secret = 'PRIVATE_COMMENT_' . $suffix;
+	$comment_id = wp_new_comment( [
+		'comment_post_ID' => $book,
+		'comment_author' => 'Pilot visitor',
+		'comment_author_email' => 'visitor@example.test',
+		'comment_content' => $comment_secret,
+		'comment_type' => 'comment',
+		'comment_approved' => 0,
+		'user_id' => 0,
+	], true );
+	fixture_check( $comment_id );
+	fixture_check( wp_update_comment( [ 'comment_ID' => $comment_id, 'comment_content' => 'PRIVATE_COMMENT_EDITED_' . $suffix ], true ) );
+	fixture_check( wp_set_comment_status( $comment_id, 'approve' ) );
+	fixture_check( wp_delete_comment( $comment_id, true ) );
+
+	fixture_check( wp_update_user( [
+		'ID' => $editor_id,
+		'user_email' => 'updated.' . $suffix . '@example.test',
+		'display_name' => 'Pilot editor ' . $suffix,
+	] ) );
+	$profile_user = get_userdata( $editor_id );
+	$password_secret = 'PRIVATE_PASSWORD_' . $suffix;
+	fixture_check( wp_update_user( [ 'ID' => $editor_id, 'user_pass' => $password_secret ] ) );
+	do_action( 'password_reset', get_userdata( $editor_id ), 'PRIVATE_RESET_PASSWORD_' . $suffix );
+	do_action( 'wp_logout', $editor_id );
+
+	$menu = wp_create_nav_menu( 'Pilot menu ' . $suffix );
+	fixture_check( $menu );
+	$url_secret = 'PRIVATE_MENU_TOKEN_' . $suffix;
+	$menu_item = wp_update_nav_menu_item( $menu, 0, [
+		'menu-item-title' => 'Pilot link ' . $suffix,
+		'menu-item-url' => 'https://example.test/?token=' . rawurlencode( $url_secret ),
+		'menu-item-status' => 'publish',
+		'menu-item-type' => 'custom',
+	] );
+	fixture_check( $menu_item );
+	fixture_check( wp_update_nav_menu_item( $menu, $menu_item, [
+		'menu-item-title' => 'Updated pilot link ' . $suffix,
+		'menu-item-url' => 'https://example.test/updated?token=' . rawurlencode( $url_secret ),
+		'menu-item-status' => 'publish',
+		'menu-item-type' => 'custom',
+	] ) );
+	fixture_check( wp_delete_nav_menu( $menu ) );
+
+	$widget_secret = 'PRIVATE_WIDGET_TEXT_' . $suffix;
+	$widget_option = 'widget_alfa_pilot_' . str_replace( '-', '_', $suffix );
+	add_option( $widget_option, [ '2' => [ 'text' => 'old widget value' ], '_multiwidget' => 1 ], '', false );
+	update_option( $widget_option, [ '2' => [ 'text' => $widget_secret ], '_multiwidget' => 1 ], false );
+	delete_option( $widget_option );
+
+	$events = \ActivityLogForAdmins\Store::query( [ 'q' => $suffix ], 200, 0, 0, true );
+	fixture_check( $events );
+	$encoded = wp_json_encode( $events, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+	$privacy_ok = ! str_contains( $encoded, $comment_secret )
+		&& ! str_contains( $encoded, 'PRIVATE_COMMENT_EDITED_' . $suffix )
+		&& ! str_contains( $encoded, $password_secret )
+		&& ! str_contains( $encoded, 'PRIVATE_RESET_PASSWORD_' . $suffix )
+		&& ! str_contains( $encoded, 'updated.' . $suffix . '@example.test' )
+		&& ! str_contains( $encoded, $url_secret )
+		&& ! str_contains( $encoded, $widget_secret );
+	$profile_event = \ActivityLogForAdmins\Store::query( [ 'action' => 'user_profile_changed', 'item' => 'user:' . $editor_id ], 10, 0, 0, true );
+	fixture_check( $profile_event );
+	$password_event = \ActivityLogForAdmins\Store::query( [ 'action' => 'password_changed', 'item' => 'user:' . $editor_id ], 10, 0, 0, true );
+	fixture_check( $password_event );
+	$sign_out_event = \ActivityLogForAdmins\Store::query( [ 'action' => 'signed_out', 'item' => 'user:' . $editor_id ], 10, 0, 0, true );
+	fixture_check( $sign_out_event );
+	$menu_events = \ActivityLogForAdmins\Store::query( [ 'action' => 'menu_item_updated', 'q' => $suffix ], 20, 0, 0, true );
+	fixture_check( $menu_events );
+	$menu_destination_captured = false;
+	foreach ( $menu_events as $menu_event ) {
+		$menu_details = json_decode( (string) $menu_event['details'], true ) ?: [];
+		if ( isset( $menu_details['changes']['Link destination'] ) ) {
+			$menu_destination_captured = true;
+		}
+	}
+	return [
+		'suffix' => $suffix,
+		'book' => (int) $book,
+		'genre' => $genre_id,
+		'comment' => (int) $comment_id,
+		'profileUser' => $editor_id,
+		'profileCaptured' => ! empty( $profile_event ),
+		'profileValuesCaptured' => str_contains( wp_json_encode( $profile_event ), 'Pilot editor ' . $suffix ),
+		'profileEmailRedacted' => ! str_contains( wp_json_encode( $profile_event ), 'updated.' . $suffix . '@example.test' ),
+		'menuDestinationCaptured' => $menu_destination_captured,
+		'passwordCaptured' => ! empty( $password_event ),
+		'signedOutCaptured' => ! empty( $sign_out_event ),
+		'privacyOk' => $privacy_ok,
+	];
+}
+
+function fixture_integration_events(): array {
+	$id = 700000 + random_int( 1000, 8999 );
+	$redirect_id = $id + 10000;
+	$secret = 'PRIVATE_REDIRECT_TARGET_' . wp_generate_password( 10, false, false );
+	$redirect = (object) [ 'id' => $redirect_id, 'source_url' => '/private-source', 'target_url' => 'https://example.test/?token=' . $secret ];
+	do_action( 'woocommerce_new_order', $id, null );
+	do_action( 'woocommerce_order_status_changed', $id, 'pending', 'processing', null );
+	do_action( 'woocommerce_order_refunded', $id, $id + 1 );
+	do_action( 'redirection_redirect_updated', $redirect_id, $redirect );
+	do_action( 'redirection_redirect_deleted', $redirect );
+	do_action( 'redirection_redirect_enabled', $redirect_id );
+	do_action( 'redirection_redirect_disabled', $redirect_id );
+	$orders = Store::query( [ 'item' => 'order:' . $id ], 20, 0, 0, true );
+	$redirects = Store::query( [ 'item' => 'redirect:' . $redirect_id ], 20, 0, 0, true );
+	fixture_check( $orders );
+	fixture_check( $redirects );
+	$encoded = wp_json_encode( [ $orders, $redirects ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+	return [
+		'orderId' => $id,
+		'redirectId' => $redirect_id,
+		'orderActions' => array_column( $orders, 'action_key' ),
+		'redirectActions' => array_column( $redirects, 'action_key' ),
+		'privacyOk' => ! str_contains( $encoded, $secret ) && ! str_contains( $encoded, 'source_url' ) && ! str_contains( $encoded, 'target_url' ),
+	];
+}
+
+function fixture_comment_events(): int {
+	$post_id = wp_insert_post( [ 'post_title' => 'Comment recording check', 'post_type' => 'page', 'post_status' => 'publish', 'comment_status' => 'open' ], true );
+	fixture_check( $post_id );
+	$comment_id = wp_new_comment( [
+		'comment_post_ID' => $post_id,
+		'comment_author' => 'Pilot visitor',
+		'comment_author_email' => 'visitor@example.test',
+		'comment_content' => 'Comment recording category check',
+		'comment_type' => 'comment',
+		'comment_approved' => 1,
+		'user_id' => 0,
+	], true );
+	fixture_check( $comment_id );
+	fixture_check( wp_delete_comment( $comment_id, true ) );
+	return (int) $comment_id;
+}
+
 function fixture_seed( int $count, string $name, string $summary, string $time ): void {
     global $wpdb;
     $table = Store::table();
@@ -114,12 +287,105 @@ try {
     switch ( $operation ) {
         case 'reset':
             fixture_check( $wpdb->query( 'TRUNCATE TABLE ' . $table ) );
+            update_option( Store::SETTINGS, [], false );
+            delete_option( Store::HEALTH );
+            delete_option( 'alfa_alert_digest_after_id' );
+            wp_clear_scheduled_hook( Store::CLEANUP );
+            wp_clear_scheduled_hook( Store::CONTINUE_CLEANUP );
+            wp_clear_scheduled_hook( Store::ALERT_DIGEST );
+            Store::schedule();
             wp_send_json( [ 'ok' => true ] );
+
+        case 'integrations':
+            wp_send_json( fixture_integration_events() );
+
+        case 'multisite':
+            if ( ! is_multisite() ) {
+                wp_send_json( [ 'supported' => false ] );
+            }
+            $multisite_path = '/alfa-pilot-' . strtolower( wp_generate_password( 8, false, false ) ) . '/';
+            $multisite_network = get_network();
+            $multisite_site = wp_insert_site( [
+                'domain' => (string) $multisite_network->domain,
+                'path' => $multisite_path,
+                'title' => 'Activity Log pilot ' . $multisite_path,
+                'user_id' => get_current_user_id(),
+            ] );
+            fixture_check( $multisite_site );
+            $main_retention = Store::settings()['retention'];
+            $multisite_results = [];
+            switch_to_blog( (int) $multisite_site );
+            try {
+                $site_table = Store::table();
+                $multisite_results['tableCreatedOnNewSite'] = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $site_table ) ) ) === $site_table;
+                $multisite_results['schemaInitializedOnNewSite'] = (int) get_option( Store::SCHEMA ) === 2;
+                $multisite_results['scheduledOnNewSite'] = (bool) wp_next_scheduled( Store::CLEANUP );
+                update_option( Store::SETTINGS, [ 'retention' => 7 ], false );
+                Store::add( [
+                    'actor_kind' => 'user', 'actor_id' => get_current_user_id(), 'actor_name' => 'pilotadmin',
+                    'item_kind' => 'page', 'item_key' => 'multisite-pilot', 'item_name' => 'Multisite isolation probe',
+                    'action_key' => 'content_edited', 'severity' => 'info', 'summary' => 'Multisite isolation probe',
+                ], [] );
+                $multisite_events = Store::query( [ 'q' => 'Multisite isolation probe' ], 10, 0, 0, true );
+                $multisite_results['eventStoredOnNewSite'] = is_array( $multisite_events ) && 1 === count( $multisite_events );
+                $multisite_results['siteRetention'] = Store::settings()['retention'];
+                wp_clear_scheduled_hook( Store::CLEANUP );
+                Store::upgrade();
+                $multisite_results['cleanupRescheduledOnUpgrade'] = (bool) wp_next_scheduled( Store::CLEANUP );
+            } finally {
+                restore_current_blog();
+            }
+            $multisite_results['mainRetention'] = Store::settings()['retention'];
+            $main_events = Store::query( [ 'q' => 'Multisite isolation probe' ], 10, 0, 0, true );
+            $multisite_results['eventIsolatedFromMainSite'] = is_array( $main_events ) && ! $main_events;
+            $multisite_results['retentionIsolatedFromMainSite'] = $main_retention === $multisite_results['mainRetention'];
+            $multisite_results['siteId'] = (int) $multisite_site;
+            wp_send_json( [ 'supported' => true ] + $multisite_results );
+
+        case 'comment_events':
+            wp_send_json( [ 'commentId' => fixture_comment_events() ] );
+
+        case 'warning':
+            Store::add( [
+                'actor_kind' => 'user', 'actor_id' => get_current_user_id(), 'actor_name' => 'pilotadmin',
+                'item_kind' => 'setting', 'item_key' => 'warning-fixture', 'item_name' => 'Warning fixture',
+                'action_key' => 'setting_changed', 'severity' => 'warning', 'summary' => 'Warning digest scheduling fixture',
+            ], [ 'note' => 'PRIVATE_DIGEST_DETAIL' ] );
+            wp_send_json( [ 'scheduled' => (bool) wp_next_scheduled( Store::ALERT_DIGEST ) ] );
+
+        case 'alert_delivery':
+            $captured_mail = null;
+            $capture_mail = static function( mixed $return, array $attributes ) use ( &$captured_mail ): bool {
+                $captured_mail = $attributes;
+                return true;
+            };
+            add_filter( 'pre_wp_mail', $capture_mail, 10, 2 );
+            try {
+                Store::send_alert_digest();
+            } finally {
+                remove_filter( 'pre_wp_mail', $capture_mail, 10 );
+            }
+            $mail_body = is_array( $captured_mail ) ? (string) ( $captured_mail['message'] ?? '' ) : '';
+            $mail_headers = is_array( $captured_mail ) ? (array) ( $captured_mail['headers'] ?? [] ) : [];
+            wp_send_json( [
+                'sent' => is_array( $captured_mail ) && str_contains( $mail_body, 'Warning digest scheduling fixture' ),
+                'plainText' => in_array( 'Content-Type: text/plain; charset=UTF-8', $mail_headers, true ),
+                'summaryOnly' => ! str_contains( $mail_body, 'PRIVATE_DIGEST_DETAIL' ),
+                'safeSubject' => is_array( $captured_mail ) && ! preg_match( '/[\r\n]/', (string) ( $captured_mail['subject'] ?? '' ) ),
+            ] );
 
         case 'events':
             $previous_editor = get_user_by( 'login', 'piloteditor' );
             if ( $previous_editor ) {
-                fixture_check( wp_delete_user( $previous_editor->ID ) );
+                fixture_check( fixture_delete_account( (int) $previous_editor->ID ) );
+            }
+            $previous_deleted = get_user_by( 'login', 'pilotdelete' );
+            if ( $previous_deleted ) {
+                fixture_check( fixture_delete_account( (int) $previous_deleted->ID ) );
+            }
+            $previous_removed = get_user_by( 'login', 'pilotremove' );
+            if ( $previous_removed ) {
+                fixture_check( fixture_delete_account( (int) $previous_removed->ID ) );
             }
             $editor_password = wp_generate_password( 32, true, true );
             $editor = wp_insert_user( [ 'user_login' => 'piloteditor', 'user_email' => 'editor@example.test', 'user_pass' => $editor_password, 'role' => 'subscriber' ] );
@@ -127,7 +393,17 @@ try {
             ( new WP_User( $editor ) )->set_role( 'editor' );
             $deleted = wp_insert_user( [ 'user_login' => 'pilotdelete', 'user_email' => 'delete@example.test', 'user_pass' => wp_generate_password() ] );
             fixture_check( $deleted );
-            fixture_check( wp_delete_user( $deleted ) );
+            fixture_check( fixture_delete_account( (int) $deleted ) );
+            $removed = 0;
+            $site_removal_captured = false;
+            if ( is_multisite() ) {
+                $removed = wp_insert_user( [ 'user_login' => 'pilotremove', 'user_email' => 'remove@example.test', 'user_pass' => wp_generate_password(), 'role' => 'subscriber' ] );
+                fixture_check( $removed );
+                fixture_check( wp_delete_user( (int) $removed ) );
+                $removal_events = Store::query( [ 'action' => 'user_removed_from_site', 'item' => 'user:' . (int) $removed ], 10, 0, 0, true );
+                fixture_check( $removal_events );
+                $site_removal_captured = ! empty( $removal_events );
+            }
             for ( $i = 1; $i <= 8; ++$i ) {
                 fixture_check( wp_insert_post( [ 'post_title' => "Routine page $i", 'post_type' => 'page', 'post_status' => 'publish' ], true ) );
             }
@@ -153,7 +429,9 @@ try {
             fixture_component_events();
             $rest = wp_insert_post( [ 'post_title' => 'REST editor fixture', 'post_type' => 'page', 'post_status' => 'publish' ], true );
             fixture_check( $rest );
-            wp_send_json( [ 'restPage' => $rest, 'scheduled' => $scheduled, 'editorPassword' => $editor_password ] );
+            $coverage = fixture_extended_events( (int) $editor );
+            wp_set_password( $editor_password, (int) $editor );
+            wp_send_json( [ 'restPage' => $rest, 'scheduled' => $scheduled, 'deletedUser' => (int) $deleted, 'removedUser' => (int) $removed, 'siteRemovalCaptured' => $site_removal_captured, 'editorPassword' => $editor_password, 'coverage' => $coverage ] );
 
         case 'xss':
             Store::add( [
@@ -168,6 +446,16 @@ try {
             fixture_seed( 552, '=1+1', 'Export fixture', gmdate( 'Y-m-d H:i:s' ) );
             fixture_seed( 65, 'Routine seeded activity', 'Routine seeded activity', gmdate( 'Y-m-d H:i:s' ) );
             wp_send_json( [ 'ok' => true ] );
+
+        case 'age_seed':
+            fixture_seed( 1001, 'Expired retention probe', 'Expired retention probe', gmdate( 'Y-m-d H:i:s', time() - 5 * DAY_IN_SECONDS ) );
+            wp_send_json( [ 'seeded' => 1001 ] );
+
+        case 'expired_count':
+            $cutoff = gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Count only disposable retention fixture rows in the custom test table.
+            $count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE item_name = %s AND occurred_at < %s', $table, 'Expired retention probe', $cutoff ) );
+            wp_send_json( [ 'count' => (int) $count ] );
 
         case 'permissions':
             $namespace = '/activity-log-for-admins/v1';
@@ -206,6 +494,9 @@ try {
             $scheduled_after_reactivation = wp_next_scheduled( Store::CLEANUP );
             $reactivated = $unscheduled && $latest_after_reactivation >= $before && (bool) $scheduled_after_reactivation;
             fixture_check( wp_clear_scheduled_hook( Store::CLEANUP ) );
+            Store::upgrade();
+            $upgrade_rescheduled = (bool) wp_next_scheduled( Store::CLEANUP );
+            fixture_check( wp_clear_scheduled_hook( Store::CLEANUP ) );
             $reject_cleanup_schedule = static function ( mixed $pre, object $event ): mixed {
                 return Store::CLEANUP === $event->hook
                     ? new WP_Error( 'alfa_fixture_schedule_failure', 'Intentional pilot schedule failure.' )
@@ -222,6 +513,7 @@ try {
                 'writeFailure' => (bool) $health['write_error'],
                 'primaryWrite' => is_int( $primary ) && $primary > 0,
                 'reactivated' => $reactivated,
+                'upgradeRescheduled' => $upgrade_rescheduled,
                 'scheduleFailure' => (bool) $schedule_health['schedule_error'] && ! wp_next_scheduled( Store::CLEANUP ),
             ] );
 

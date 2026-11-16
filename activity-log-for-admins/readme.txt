@@ -3,7 +3,7 @@ Tags: activity log, audit log, history
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.0.5
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -11,7 +11,7 @@ Search WordPress activity, see who changed what, compare recorded values, and ex
 
 == Description ==
 
-Activity Log for Admins keeps a searchable history of supported changes on a single WordPress site.
+Activity Log for Admins keeps a searchable history of supported changes on WordPress sites. On a Multisite network, each site has its own activity and retention settings.
 
 Start with a quick summary on the Dashboard, or open Activity to search by page or post title, user, and change. Combine filters for date, user, action, affected item, and severity.
 
@@ -25,20 +25,31 @@ Activity begins when the plugin is activated. Records stay in your WordPress dat
 
 == Supported events ==
 
-* Pages and posts: creation, title and core field edits, scheduled publish date changes, template assignments and featured image changes, content and excerpt changes, status changes, trash, and restoration. Revision comparisons depend on the revisions retained by WordPress.
-* Accounts: creation, deletion, and role changes.
+* Public content: creation, title and core field edits, scheduled publish date changes, template assignments and featured image changes, content and excerpt changes, status changes, trash, and restoration. Revision comparisons depend on the revisions retained by WordPress.
+* Categories and tags: creation, edits, deletion, and assignment changes on public taxonomies.
+* Comments: creation, edits, moderation, and deletion. Comment text is not stored.
+* Accounts: creation, deletion, selected profile changes, role changes, password change markers, and sign outs. On Multisite, site removal is distinguished from network account deletion.
 * Sign ins: successful and failed authentication through standard WordPress hooks.
+* Appearance: navigation menu and widget changes. Redirect destinations are not stored.
 * Plugins: installation, activation, deactivation, updates, and deletion.
 * Themes: installation, switching, updates, and deletion.
 * Site settings: site visibility, default role, permalink structure, site address, and WordPress address.
+* Optional WooCommerce integration: order creation, status changes, and refunds. It is off by default and does not copy customer names, contact details, or addresses.
+* Optional Redirection integration: redirect rule changes. It is off by default and stores rule identifiers without source or destination addresses.
 
 == Privacy and retention ==
 
-Events may contain usernames, user display names, content titles, built in template assignment and featured image values, and selected setting values. Post metadata capture is limited to those two built in fields, arbitrary custom metadata is not recorded. The plugin stores records in the site's database. It does not record passwords, tokens, IP addresses, or full request bodies. Retention defaults to 90 days and can be changed in Settings. Cleanup uses the WordPress schedule, so it may run later on quiet sites. Deactivation and deletion preserve history by default. Erasing all plugin data on deletion is an explicit option and is off by default.
+Events may contain usernames, changed display names, content titles, built in template assignment and featured image values, selected setting values, and identifiers needed to describe an event. Email address changes are recorded as a marker, not as an address. Comment text, menu destinations, redirect URLs, passwords, tokens, IP addresses, and full request bodies are not recorded.
+
+On Multisite, removing a user from one site is recorded separately from deleting the account across the network.
+
+Events stay in the WordPress database for each site. Retention defaults to 90 days and administrators can choose from 1 to 3650 days in Settings. Choose a period that fits the site's purpose and privacy obligations, and keep it as short as the purpose allows. The plugin does not determine which retention period is legally appropriate for a site. Cleanup uses the WordPress schedule, so it may run later on quiet sites.
+
+Optional warning email digests are off by default. When enabled, they send event summaries and times to the WordPress admin email address. Deactivation and deletion preserve history by default. Erasing a site's activity on deletion is an explicit option and is off by default.
 
 == Installation ==
 
-1. Use a single WordPress site running WordPress 6.9 or later and PHP 8.3 or later.
+1. Use WordPress 6.9 or later and PHP 8.3 or later. On a Multisite network, activate the plugin on a site or network activate it.
 2. In the WordPress admin, open Plugins, then Add New Plugin, then Upload Plugin.
 3. Select the plugin ZIP, install it, and activate it.
 4. Open the Dashboard for the activity summary, or choose Activity Log from the admin menu.
@@ -53,9 +64,13 @@ No. Recording starts when the plugin is activated. The plugin does not import hi
 
 Users with the WordPress `manage_options` capability can view, export, and change plugin settings.
 
-= Does it support multisite or WooCommerce? =
+= How does it work on Multisite networks? =
 
-Not in version 1.0.5. This release is for a single WordPress site and does not include WooCommerce events.
+Each site keeps a separate activity log and retention setting. Visit that site's WordPress admin to review its activity. This release does not provide one combined network view.
+
+= Are WooCommerce and Redirection events included? =
+
+Yes, both integrations are optional and off by default. Enable the integration you use in Activity Log Settings. WooCommerce events include order creation, status changes, and refunds. Redirection events include rule changes without storing the rule URLs.
 
 = Can Activity Log for Admins replace a redirect plugin? =
 
@@ -74,9 +89,17 @@ Deactivation and deletion preserve history by default. To erase activity and set
 1. Search and filter recent activity, then export matching results as CSV.
 2. Open an event to review its user, timestamp, and captured previous and new values.
 3. See activity counts and recent changes from the WordPress Dashboard.
-4. Set retention and review database space, cleanup status, and the plugin version.
+4. Choose a retention period, review database space and cleanup status, and note the plugin version.
 
 == Changelog ==
+
+= 1.1.0 =
+* Expanded capture to public content types, taxonomies, comments, profiles, sign outs, menus, and widgets.
+* Added optional WooCommerce order and Redirection rule events, both off by default.
+* Added per site logging on Multisite networks, event category controls, and optional warning email digests.
+* Reduced stored personal data by recording profile email changes as markers and excluding comment text, menu destinations, redirect URLs, customer details, passwords, tokens, and IP addresses.
+* Corrected taxonomy and menu deletion capture, scheduled cleanup per Multisite site, and distinguished site removal from network account deletion.
+* Clarified retention choice and privacy guidance in Settings and the plugin listing.
 
 = 1.0.5 =
 * Expanded supported content, account, role, software update, and site setting activity.

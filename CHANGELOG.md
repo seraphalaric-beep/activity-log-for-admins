@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0
+
+* Expanded capture to public content types, public taxonomies, comments, profiles, sign outs, navigation menus, and widgets.
+* Added opt in WooCommerce order events and Redirection rule events, both disabled until an administrator enables them.
+* Added per site logging for Multisite, event category controls, and optional warning email digests.
+* Ensure cleanup is scheduled as each Multisite site is checked, and capture taxonomy and menu deletions through the WordPress deletion hook.
+* Distinguish removing a user from one Multisite site from deleting the network account.
+* Reduced stored personal data by recording profile email changes as markers and excluding comment text, menu destinations, redirect URLs, customer details, passwords, tokens, and IP addresses.
+* Added immediate bounded cleanup when an administrator shortens the retention period.
+* Clarified privacy and retention controls in Settings and the plugin listing.
+
 ## 1.0.5
 
 * Resolve WordPress Plugin Check findings for translator context, prepared queries, and uninstall naming.

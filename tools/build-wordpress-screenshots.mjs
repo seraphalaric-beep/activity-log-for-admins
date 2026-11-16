@@ -69,6 +69,21 @@ const detail = {
   details: { changes: { Status: ["publish", "draft"] } },
 };
 
+const previewSettings = {
+  retention: 90,
+  erase: false,
+  woocommerce: false,
+  redirection: false,
+  email_alerts: false,
+  capture_content: true,
+  capture_accounts: true,
+  capture_comments: true,
+  capture_taxonomies: true,
+  capture_appearance: true,
+  capture_components: true,
+  capture_settings: true,
+};
+
 const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -110,7 +125,12 @@ const html = `<!doctype html>
 
 const actions = [
   "content_created", "content_edited", "content_status", "content_trashed", "content_restored",
-  "user_created", "user_deleted", "role_changed", "signed_in", "sign_in_failed",
+  "user_created", "user_deleted", "user_removed_from_site", "role_changed", "signed_in", "signed_out", "sign_in_failed",
+  "user_profile_changed", "password_changed", "term_created", "term_edited", "term_deleted", "terms_changed",
+  "comment_created", "comment_edited", "comment_status", "comment_deleted", "menu_created", "menu_updated",
+  "menu_deleted", "menu_item_added", "menu_item_updated", "menu_item_deleted", "widget_changed",
+  "order_created", "order_status_changed", "order_refunded", "redirect_updated", "redirect_deleted",
+  "redirect_enabled", "redirect_disabled", "plugin_settings_changed",
   "plugin_installed", "plugin_activated", "plugin_deactivated", "plugin_updated", "plugin_deleted",
   "theme_installed", "theme_switched", "theme_updated", "theme_deleted", "setting_changed",
 ];
@@ -122,7 +142,7 @@ const server = createServer((request, response) => {
       window.alfaSettings={base:location.origin+'/wp-json/activity-log-for-admins/v1/',nonce:'preview',actions:${JSON.stringify(actions)},severities:['info','notice','warning'],version:'${version}'};
       const activityEvents=${JSON.stringify(events)};
       const activityDetail=${JSON.stringify(detail)};
-      window.fetch=async input=>{const raw=typeof input==='string'?input:(input instanceof URL?input.href:input.url);const url=new URL(raw,location.href);const path=url.pathname.replace(/\\/+$/,'');let value;if(path.endsWith('/events/42'))value=activityDetail;else if(path.endsWith('/events'))value={events:activityEvents,next:null};else if(path.endsWith('/settings'))value={settings:{retention:90,erase:false},health:{available:true,write_error:null,cleanup_error:null,next_cleanup:'16 Nov 2026, 11:30',oldest:'16 Nov 2026, 08:42',space:'1.24 MB',last_cleanup:'16 Nov 2026, 10:30'}};else value={};return new Response(JSON.stringify(value),{status:200,headers:{'Content-Type':'application/json'}})};
+      window.fetch=async input=>{const raw=typeof input==='string'?input:(input instanceof URL?input.href:input.url);const url=new URL(raw,location.href);const path=url.pathname.replace(/\\/+$/,'');let value;if(path.endsWith('/events/42'))value=activityDetail;else if(path.endsWith('/events'))value={events:activityEvents,next:null};else if(path.endsWith('/settings'))value={settings:${JSON.stringify(previewSettings)},health:{available:true,write_error:null,cleanup_error:null,next_cleanup:'16 Nov 2026, 11:30',oldest:'16 Nov 2026, 08:42',space:'1.24 MB',last_cleanup:'16 Nov 2026, 10:30'}};else value={};return new Response(JSON.stringify(value),{status:200,headers:{'Content-Type':'application/json'}})};
     </script><script src="/admin.js"></script></body></html>`],
     "/admin.css": ["text/css; charset=utf-8", adminCss],
     "/admin.js": ["text/javascript; charset=utf-8", adminJs],

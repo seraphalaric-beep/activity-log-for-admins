@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
-const [base, password, output = "test-results"] = process.argv.slice(2);
+const [base, passwordArgument, output = "test-results"] = process.argv.slice(2);
+const password = process.env.PILOT_PASSWORD ?? (process.env.PILOT_PASSWORD_FILE
+  ? (await readFile(process.env.PILOT_PASSWORD_FILE, "utf8")).trim()
+  : passwordArgument);
 const { version } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 if (!base || !password || new URL(base).hostname !== "127.0.0.1") throw new Error("Pass a disposable loopback URL and its pilot password.");
 

@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import {
   Activity, ArrowDown, ArrowDownToLine, ArrowLeft, ArrowRight, ChevronRight, CircleAlert,
   CircleHelp, Clock3, FileText, ListFilter, LockKeyhole, Plug, RefreshCw, Search, Settings2,
-  ShieldAlert, SwatchBook, UserRound, X,
+  MessageSquare, Menu, PanelsTopLeft, ShieldAlert, SwatchBook, Tag, UserRound, X,
 } from "lucide-react";
 import { Badge } from "./components/badge";
 import { Button } from "./components/button";
@@ -17,16 +17,28 @@ const actions = {
   content_created: "Content created", content_edited: "Content edited", content_status: "Status changed",
   content_trashed: "Moved to Trash", content_restored: "Restored from Trash",
   user_created: "Account created", user_deleted: "Account deleted", role_changed: "Role changed",
-  signed_in: "Signed in", sign_in_failed: "Failed sign in",
+  user_profile_changed: "Profile changed", user_removed_from_site: "Account removed from site", password_changed: "Password changed",
+  signed_in: "Signed in", signed_out: "Signed out", sign_in_failed: "Failed sign in",
+  term_created: "Term created", term_edited: "Term edited", term_deleted: "Term deleted", terms_changed: "Terms changed",
+  comment_created: "Comment added", comment_edited: "Comment edited", comment_status: "Comment status changed", comment_deleted: "Comment deleted",
+  menu_created: "Menu created", menu_updated: "Menu changed", menu_deleted: "Menu deleted", widget_changed: "Widget changed",
+  order_created: "Order created", order_status_changed: "Order status changed", order_refunded: "Order refunded",
+  redirect_updated: "Redirect changed", redirect_deleted: "Redirect deleted", redirect_enabled: "Redirect enabled", redirect_disabled: "Redirect disabled",
   plugin_installed: "Plugin installed", plugin_activated: "Plugin activated", plugin_deactivated: "Plugin deactivated",
   plugin_updated: "Plugin updated", plugin_deleted: "Plugin deleted", theme_installed: "Theme installed",
   theme_switched: "Theme switched", theme_updated: "Theme updated", theme_deleted: "Theme deleted",
-  setting_changed: "Setting changed",
+  setting_changed: "Setting changed", plugin_settings_changed: "Activity Log settings changed",
 };
 const severities = { info: "Info", notice: "Notice", warning: "Warning" };
 const actorKinds = { anonymous: "Unauthenticated", system: "WordPress background task", cli: "WP CLI command", unknown: "Unknown" };
-const kindLabels = { post: "Post", page: "Page", user: "Account", plugin: "Plugin", theme: "Theme", setting: "Setting", login: "Sign in" };
-const icons = { post: FileText, page: FileText, user: UserRound, plugin: Plug, theme: SwatchBook, setting: Settings2, login: LockKeyhole };
+const kindLabels = {
+  post: "Post", page: "Page", user: "Account", plugin: "Plugin", theme: "Theme", setting: "Setting", login: "Sign in",
+  term: "Term", comment: "Comment", menu: "Navigation menu", widget: "Widget", order: "Order", redirect: "Redirect", ...(config.itemLabels ?? {}),
+};
+const icons = {
+  post: FileText, page: FileText, user: UserRound, plugin: Plug, theme: SwatchBook, setting: Settings2, login: LockKeyhole,
+  term: Tag, comment: MessageSquare, menu: Menu, widget: PanelsTopLeft, order: FileText, redirect: ArrowRight,
+};
 const statusNames = { publish: "Published", draft: "Draft", pending: "Pending review", private: "Private", future: "Scheduled", trash: "Trash" };
 
 function actorName(row) {
@@ -142,7 +154,7 @@ function EventTable({ events, select }) {
     </TableRow></TableHeader>
     <TableBody>
       {events.map(row => {
-        const Icon = icons[row.item_kind] ?? Activity;
+        const Icon = icons[row.item_kind] ?? (config.contentTypes?.includes(row.item_kind) ? FileText : Activity);
         return <TableRow key={row.id}>
           <TableCell>
             <div className="alfa-event">
@@ -237,6 +249,8 @@ function Settings() {
         {health.schema_error && <Alert>Last event table schema update failure: {health.schema_error}.</Alert>}
         {health.cleanup_error && <Alert>Last cleanup failure: {health.cleanup_error}.</Alert>}
         {health.schedule_error && <Alert>Last cleanup scheduling failure: {health.schedule_error}.</Alert>}
+        {health.alert_error && <Alert>Last warning digest delivery failure: {health.alert_error}.</Alert>}
+        {health.alert_schedule_error && <Alert>Last warning digest scheduling failure: {health.alert_schedule_error}.</Alert>}
         {!health.next_cleanup && <Alert>Automatic cleanup is unscheduled. Save the settings to try scheduling it again.</Alert>}
         <dl className="alfa-health">
           <div><dt>Oldest event</dt><dd>{health.oldest || (health.available ? "No events recorded" : "Unavailable")}</dd></div>
@@ -247,13 +261,46 @@ function Settings() {
       </section>
       <form className="alfa-settings-panel" onSubmit={save}>
         <h2>Retention</h2>
+        <p>Choose a period that fits your site’s audit needs and privacy obligations. The default is 90 days. Keep the period as short as your purpose allows.</p>
         <label className="alfa-field alfa-retention"><span>Keep events for (days)</span>
           <Input type="number" required min="1" max="3650" value={values.retention} onChange={event => setDraft({ ...values, retention: event.target.value })} />
         </label>
-        <p>Automatic cleanup deletes events older than this limit. Cleanup runs on the WordPress schedule.</p>
+        <p>Automatic cleanup deletes events older than this limit. Shortening this period starts cleanup immediately in bounded batches. Scheduled cleanup may run later on quiet sites.</p>
         <label className="alfa-check"><input type="checkbox" checked={values.erase} onChange={event => setDraft({ ...values, erase: event.target.checked })} />
           <span><strong>Erase all activity when deleting the plugin</strong><small>Deactivating the plugin preserves your history.</small></span>
         </label>
+        <fieldset className="alfa-settings-group">
+          <legend>Event recording</legend>
+          <p>Turn off categories you do not need. This affects new events only, existing events remain until cleanup.</p>
+          {[
+            ["capture_content", "Posts and pages", "Content changes, status, trash, and restoration"],
+            ["capture_accounts", "Accounts and sign ins", "Account changes, roles, password changes, and sign ins"],
+            ["capture_comments", "Comments", "Comment creation, changes, moderation, and deletion"],
+            ["capture_taxonomies", "Categories and tags", "Term changes and assignments"],
+            ["capture_appearance", "Menus and widgets", "Menu changes, locations, and widget placement"],
+            ["capture_components", "Plugins and themes", "Installation, activation, updates, switching, and deletion"],
+            ["capture_settings", "Site settings", "Selected site visibility, role, URL, and permalink settings"],
+          ].map(([key, title, description]) => <label className="alfa-check" key={key}>
+            <input type="checkbox" checked={values[key]} onChange={event => setDraft({ ...values, [key]: event.target.checked })} />
+            <span><strong>{title}</strong><small>{description}</small></span>
+          </label>)}
+        </fieldset>
+        <fieldset className="alfa-settings-group">
+          <legend>Optional integrations</legend>
+          <p>These integrations are off until you enable one. Order records contain order numbers and status only. Redirect records contain rule identifiers only, no source or destination addresses.</p>
+          <label className="alfa-check"><input type="checkbox" checked={values.woocommerce} onChange={event => setDraft({ ...values, woocommerce: event.target.checked })} />
+            <span><strong>WooCommerce</strong><small>Record new orders, status changes, and refunds. Customer names, contact details, and addresses are not copied.</small></span>
+          </label>
+          <label className="alfa-check"><input type="checkbox" checked={values.redirection} onChange={event => setDraft({ ...values, redirection: event.target.checked })} />
+            <span><strong>Redirection</strong><small>Record redirect rule changes without storing the URLs.</small></span>
+          </label>
+        </fieldset>
+        <fieldset className="alfa-settings-group">
+          <legend>Notifications</legend>
+          <label className="alfa-check"><input type="checkbox" checked={values.email_alerts} onChange={event => setDraft({ ...values, email_alerts: event.target.checked })} />
+            <span><strong>Email warning digests</strong><small>Send a digest of warning event summaries to the WordPress admin email, at most once every 15 minutes.</small></span>
+          </label>
+        </fieldset>
         <div className="alfa-save"><Button disabled={state.busy}>{state.busy ? "Saving…" : "Save settings"}</Button>
           <span role="status">{state.message}</span></div>
       </form>

@@ -21,4 +21,8 @@ if ( true !== $archive->open( $zip ) || ! $archive->extractTo( WP_PLUGIN_DIR ) )
     throw new RuntimeException( 'Unable to install the pilot ZIP.' );
 }
 $archive->close();
+$mu_plugin_dir = WP_CONTENT_DIR . '/mu-plugins';
+if ( ! wp_mkdir_p( $mu_plugin_dir ) || ! copy( __DIR__ . '/alfa-pilot-content.php', $mu_plugin_dir . '/alfa-pilot-content.php' ) ) {
+    throw new RuntimeException( 'Unable to install pilot content types.' );
+}
 echo wp_get_wp_version() . ' / PHP ' . PHP_VERSION . PHP_EOL;

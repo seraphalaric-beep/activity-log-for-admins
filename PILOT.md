@@ -3,7 +3,7 @@
 ## Install and investigate
 
 1. On a disposable or staging site running WordPress 6.9 or later and PHP 8.3 or later, open **Plugins**, then **Add New Plugin**, then **Upload Plugin**.
-2. Upload the installable ZIP from the [GitHub 1.0.5 release](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/tag/v1.0.5), install it, and activate it. Confirm Settings shows version 1.0.5. The main Dashboard shows activity counts and recent changes. Open **Activity Log** near the top of the admin menu to investigate.
+2. Upload the installable ZIP from the [GitHub 1.1.0 release](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/tag/v1.1.0), install it, and activate it. Confirm Settings shows version 1.1.0. The main Dashboard shows activity counts and recent changes. Open **Activity Log** near the top of the admin menu to investigate.
 3. Create a test page named **Housing Guide**, publish it, and move it back to Draft. Add a few unrelated edits to make the list realistic.
 4. Ask another administrator to start on the Activity screen with only the page name, without a date, user, or event hint. Record the elapsed time and whether they correctly find the unexpected change, identify the user, and verify the previous status without help. Pass if all are correct in under 30 seconds.
 5. Open an event, check the previous and new values, and try the actor and affected item links. Combine search with the Action and Severity filters, reload the URL, and verify that CSV export contains every matching row and any captured previous and new values.
@@ -23,9 +23,15 @@ On a hierarchical page, change its parent page and content author. Confirm the a
 
 Create or use an editor with a numeric username, make a page edit as that account, then confirm an administrator can find the event with the Actor filter using the exact username. Select each nonuser Actor type and confirm it filters to the intended category. Open an event with a background or unknown actor, follow its actor link, and confirm the shared URL restores that actor category separately from a similarly named account.
 
+Use a disposable site with WooCommerce and Redirection installed. Confirm their switches start off, enable each, and verify WooCommerce order creation, status, and refund events plus Redirection rule changes. Confirm event details and CSV contain no customer contact data or redirect URLs. Check that disabling an event category stops new events but leaves existing history until cleanup.
+
+On a disposable Multisite network, activate on a site and then network activate in a separate run. Make changes on two sites, confirm each site's activity is visible only in that site's admin, and set different retention periods. Create a new site while the plugin is network active and confirm its event table and cleanup task are ready when its admin loads. One combined network view is outside this release.
+
+Reduce a site's retention period and confirm cleanup starts in bounded batches, then inspect the oldest retained event and cleanup status. The default remains 90 days, administrators choose their own period from 1 to 3650 days. Optional warning email digests are off by default. Verify scheduling and cancellation without sending test mail to a real inbox.
+
 Run a supported setting change through WP CLI without a selected user. Confirm the actor is shown as WP CLI and its Actor type filter is separate from the WordPress background task filter.
 
-The plugin records activity from activation onward. The full event list is in the plugin readme. Revision comparison depends on WordPress retaining both revisions. Cleanup runs through the WordPress scheduler, so quiet sites can run it later than the displayed schedule. Database allocation may remain the same after expired events are deleted, since the database can reuse the freed space.
+The plugin records activity from activation onward. The full event list is in the plugin readme. Revision comparison depends on WordPress retaining both revisions. Scheduled cleanup runs through the WordPress scheduler, so quiet sites can run it later than the displayed schedule. Database allocation may remain the same after expired events are deleted, since the database can reuse the freed space.
 
 Deactivation and deletion preserve history by default. To remove the stored history and settings when deleting the plugin, select **Erase all activity when deleting the plugin** in Settings and save it first.
 

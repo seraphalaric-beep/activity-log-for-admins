@@ -168,6 +168,10 @@
 #alfa-root .alfa-check input { margin: 3px 0 0; }
 .alfa-check strong { font-weight: 600; }
 .alfa-check small { display: block; margin-top: 4px; color: var(--alfa-muted); font-size: 12px; }
+.alfa-settings-group { margin: 8px 0 0; padding: 16px; border: 1px solid var(--alfa-line); border-radius: 10px; display: grid; gap: 8px; }
+.alfa-settings-group legend { padding-inline: 6px; color: var(--alfa-ink); font-weight: 650; }
+.alfa-settings-group > p { margin: 2px 0 8px; }
+.alfa-settings-group .alfa-check { padding-block: 5px; }
 .alfa-save { display: flex; align-items: center; gap: 10px; }
 .alfa-version { color: var(--alfa-muted); font-size: 12px; padding: 0 2px 8px; }
 @media (max-width: 940px) {

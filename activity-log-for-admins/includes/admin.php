@@ -124,6 +124,32 @@ final class Admin {
         self::theme_assets( $version );
         wp_enqueue_style( 'alfa-admin', plugins_url( 'build/admin.css', self::$plugin_file ), [ 'alfa-theme' ], self::asset_version( 'admin.css', $version ) );
         wp_enqueue_script( 'alfa-admin', plugins_url( 'build/admin.js', self::$plugin_file ), [ 'react', 'react-dom', 'react-jsx-runtime' ], self::asset_version( 'admin.js', $version ), true );
+        $item_labels = [
+            'post' => __( 'Post', 'activity-log-for-admins' ),
+            'page' => __( 'Page', 'activity-log-for-admins' ),
+            'user' => __( 'Account', 'activity-log-for-admins' ),
+            'plugin' => __( 'Plugin', 'activity-log-for-admins' ),
+            'theme' => __( 'Theme', 'activity-log-for-admins' ),
+            'setting' => __( 'Setting', 'activity-log-for-admins' ),
+            'login' => __( 'Sign in', 'activity-log-for-admins' ),
+            'term' => __( 'Term', 'activity-log-for-admins' ),
+            'comment' => __( 'Comment', 'activity-log-for-admins' ),
+            'menu' => __( 'Navigation menu', 'activity-log-for-admins' ),
+            'widget' => __( 'Widget', 'activity-log-for-admins' ),
+            'order' => __( 'WooCommerce order', 'activity-log-for-admins' ),
+            'redirect' => __( 'Redirect rule', 'activity-log-for-admins' ),
+        ];
+        $content_types = [];
+        foreach ( get_post_types( [ 'public' => true ], 'objects' ) as $post_type => $object ) {
+            if ( in_array( $post_type, [ 'attachment', 'revision', 'nav_menu_item' ], true )
+                || ! $object->publicly_queryable || ! $object->show_ui ) {
+                continue;
+            }
+            $item_labels[ $post_type ] = $object->labels->singular_name ?: $object->label;
+            if ( ! in_array( $post_type, [ 'post', 'page' ], true ) ) {
+                $content_types[] = $post_type;
+            }
+        }
         $config = [
             'base' => rest_url( self::ROUTE . '/' ),
             'nonce' => wp_create_nonce( 'wp_rest' ),
@@ -132,6 +158,8 @@ final class Admin {
             'timezone' => wp_timezone_string(),
             'actions' => Capture::ACTIONS,
             'severities' => Capture::SEVERITIES,
+            'itemLabels' => $item_labels,
+            'contentTypes' => $content_types,
         ];
         wp_add_inline_script( 'alfa-admin', 'window.alfaSettings = ' . wp_json_encode( $config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . ';', 'before' );
     }
@@ -170,6 +198,16 @@ final class Admin {
                 'args' => [
                     'retention' => [ 'type' => 'integer', 'required' => true, 'minimum' => 1, 'maximum' => 3650 ],
                     'erase' => [ 'type' => 'boolean', 'required' => true ],
+                    'woocommerce' => [ 'type' => 'boolean' ],
+                    'redirection' => [ 'type' => 'boolean' ],
+                    'email_alerts' => [ 'type' => 'boolean' ],
+                    'capture_content' => [ 'type' => 'boolean' ],
+                    'capture_accounts' => [ 'type' => 'boolean' ],
+                    'capture_comments' => [ 'type' => 'boolean' ],
+                    'capture_taxonomies' => [ 'type' => 'boolean' ],
+                    'capture_appearance' => [ 'type' => 'boolean' ],
+                    'capture_components' => [ 'type' => 'boolean' ],
+                    'capture_settings' => [ 'type' => 'boolean' ],
                 ],
             ],
         ] );
@@ -273,7 +311,7 @@ final class Admin {
         if ( $health['oldest'] ) {
             $health['oldest'] = wp_date( 'j M Y, H:i T', strtotime( $health['oldest'] . ' UTC' ) );
         }
-        foreach ( [ 'last_cleanup', 'write_error', 'schema_error', 'cleanup_error', 'schedule_error', 'next_cleanup' ] as $key ) {
+        foreach ( [ 'last_cleanup', 'write_error', 'schema_error', 'cleanup_error', 'schedule_error', 'alert_error', 'alert_schedule_error', 'next_cleanup' ] as $key ) {
             $health[ $key ] = $health[ $key ] ? wp_date( 'j M Y, H:i T', (int) $health[ $key ] ) : null;
         }
         $health['space'] = null === $health['bytes'] ? null : size_format( $health['bytes'], 1 );
@@ -281,9 +319,24 @@ final class Admin {
     }
 
     public static function save( \WP_REST_Request $request ): array|\WP_Error {
-        $settings = [ 'retention' => (int) $request['retention'], 'erase' => rest_sanitize_boolean( $request['erase'] ) ];
-        if ( $settings !== Store::settings() && ! update_option( Store::SETTINGS, $settings, false ) && $settings !== Store::settings() ) {
+        $previous_settings = Store::settings();
+        $settings = $previous_settings;
+        $settings['retention'] = (int) $request['retention'];
+        $settings['erase'] = rest_sanitize_boolean( $request['erase'] );
+        foreach ( [ 'woocommerce', 'redirection', 'email_alerts', 'capture_content', 'capture_accounts', 'capture_comments', 'capture_taxonomies', 'capture_appearance', 'capture_components', 'capture_settings' ] as $key ) {
+            if ( null !== $request->get_param( $key ) ) {
+                $settings[ $key ] = rest_sanitize_boolean( $request->get_param( $key ) );
+            }
+        }
+        $changed = $settings !== $previous_settings;
+        if ( $changed && ! update_option( Store::SETTINGS, $settings, false ) && $settings !== Store::settings() ) {
             return new \WP_Error( 'alfa_settings', __( 'Settings could not be saved. Try again.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+        }
+        if ( $changed && $settings['retention'] < $previous_settings['retention'] ) {
+            Store::cleanup();
+        }
+        if ( ! $settings['email_alerts'] ) {
+            wp_clear_scheduled_hook( Store::ALERT_DIGEST );
         }
         Store::schedule();
         return self::settings();
