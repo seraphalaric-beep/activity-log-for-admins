@@ -4,11 +4,26 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.toolbar.config.js",
     "package": "npm run build && python tools/package.py",
     "assets:wordpress": "vite build --config vite.assets-preview.config.js && node tools/build-wordpress-screenshots.mjs",
     "test:pilot": "node tools/pilot.mjs",
-    "test:quality": "node tools/quality.mjs"
+    "test:quality": "node tools/quality.mjs",
+    "test:component-lifecycle": "node tools/component-lifecycle-smoke.mjs",
+    "test:pmpro": "node tools/pmpro-smoke.mjs",
+    "test:termly": "node tools/termly-smoke.mjs",
+    "test:mainwp": "node tools/mainwp-smoke.mjs",
+    "test:infinitewp": "node tools/infinitewp-smoke.mjs",
+    "test:alerts": "node tools/alerts-smoke.mjs",
+    "test:reports": "node tools/reports-smoke.mjs",
+    "test:saved-reports": "node tools/saved-reports-smoke.mjs",
+    "test:scheduled-reports": "node tools/scheduled-reports-smoke.mjs",
+    "test:privacy": "node tools/privacy-smoke.mjs",
+    "test:adapter-api": "node tools/adapter-api-smoke.mjs",
+    "test:network-center": "node tools/network-center-smoke.mjs",
+    "test:sessions": "node tools/session-management-smoke.mjs",
+    "test:bulk-actions": "node tools/bulk-actions-smoke.mjs",
+    "test:investigation-filters": "node tools/investigation-filters-smoke.mjs"
   },
   "dependencies": {
     "class-variance-authority": "0.7.1",

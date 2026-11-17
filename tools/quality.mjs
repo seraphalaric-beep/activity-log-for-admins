@@ -91,8 +91,13 @@ try {
   const anonymous = await browser.newContext();
   const anonymousEvents = await anonymous.request.get(endpoint(apiBase, "events").href);
   assert.equal(anonymousEvents.status(), 401, "Anonymous users must not read activity.");
+  const anonymousNote = await anonymous.request.post(endpoint(apiBase, `events/${seeded.eventId}/notes`).href, { data: { note: "Unauthorized note" } });
+  assert.equal(anonymousNote.status(), 401, "Anonymous users must not add event notes.");
   const anonymousExport = await anonymous.request.get(endpoint(apiBase, "export").href);
   assert.equal(anonymousExport.status(), 401, "Anonymous users must not export activity.");
+  const anonymousSettingsExport = await anonymous.request.get(endpoint(apiBase, "settings/export").href);
+  const anonymousSettingsImport = await anonymous.request.post(endpoint(apiBase, "settings/import").href, { data: {} });
+  assert.deepEqual([anonymousSettingsExport.status(), anonymousSettingsImport.status()], [401, 401], "Anonymous users must not transfer plugin settings.");
   await anonymous.close();
 
   const adminWithoutNonce = await context.request.get(endpoint(apiBase, "events").href);
@@ -101,6 +106,8 @@ try {
     data: { retention: 30, erase: false },
   });
   assert.equal(adminSettingsWithoutNonce.status(), 401, "Settings changes require a REST nonce.");
+  assert.equal((await context.request.get(endpoint(apiBase, "settings/export").href)).status(), 401, "Settings export requires a REST nonce.");
+  assert.equal((await context.request.post(endpoint(apiBase, "settings/import").href, { data: {} })).status(), 401, "Settings import requires a REST nonce.");
 
   const activityResponse = await context.request.get(endpoint(apiBase, "events").href, { headers: { "X-WP-Nonce": nonce } });
   assert.equal(activityResponse.status(), 200);
@@ -110,9 +117,17 @@ try {
   const eventDetailsResponse = await context.request.get(endpoint(apiBase, `events/${activityPayload.events[0].id}`).href, { headers: { "X-WP-Nonce": nonce } });
   assert.equal(eventDetailsResponse.status(), 200);
   assertPrivateNoStore(eventDetailsResponse.headers(), "Event details");
+  assert.equal((await context.request.post(endpoint(apiBase, `events/${activityPayload.events[0].id}/notes`).href, {
+    headers: { "X-WP-Nonce": nonce },
+    data: { note: "   " },
+  })).status(), 400, "Empty event notes must be rejected.");
   const settingsResponse = await context.request.get(endpoint(apiBase, "settings").href, { headers: { "X-WP-Nonce": nonce } });
   assert.equal(settingsResponse.status(), 200);
   assertPrivateNoStore(settingsResponse.headers(), "Settings");
+  const settingsExport = await context.request.get(endpoint(apiBase, "settings/export").href, { headers: { "X-WP-Nonce": nonce } });
+  assert.equal(settingsExport.status(), 200);
+  assertPrivateNoStore(settingsExport.headers(), "Settings export");
+  assert.equal((await settingsExport.json()).format, "activity-log-for-admins-settings");
 
   const exportUrl = endpoint(apiBase, "export");
   exportUrl.searchParams.set("_wpnonce", nonce);
@@ -142,12 +157,21 @@ try {
   assert.equal(editorNonceResponse.status(), 200);
   const editorNonce = (await editorNonceResponse.json()).nonce;
   const editorRead = await editor.request.get(endpoint(apiBase, "events").href, { headers: { "X-WP-Nonce": editorNonce } });
+  const editorNote = await editor.request.post(endpoint(apiBase, `events/${seeded.eventId}/notes`).href, {
+    headers: { "X-WP-Nonce": editorNonce },
+    data: { note: "Unauthorized note" },
+  });
   const editorExport = await editor.request.get(endpoint(apiBase, "export").href, { headers: { "X-WP-Nonce": editorNonce } });
   const editorSettings = await editor.request.post(endpoint(apiBase, "settings").href, {
     headers: { "X-WP-Nonce": editorNonce },
     data: { retention: 30, erase: false },
   });
-  assert.deepEqual([editorRead.status(), editorExport.status(), editorSettings.status()], [403, 403, 403]);
+  const editorSettingsExport = await editor.request.get(endpoint(apiBase, "settings/export").href, { headers: { "X-WP-Nonce": editorNonce } });
+  const editorSettingsImport = await editor.request.post(endpoint(apiBase, "settings/import").href, {
+    headers: { "X-WP-Nonce": editorNonce },
+    data: {},
+  });
+  assert.deepEqual([editorRead.status(), editorNote.status(), editorExport.status(), editorSettings.status(), editorSettingsExport.status(), editorSettingsImport.status()], [403, 403, 403, 403, 403, 403]);
   await editor.close();
 
   for (const width of [320, 390, 768, 1024, 1440]) {

@@ -59,8 +59,8 @@ async function api(path, options = {}) {
   }, { path, options });
 }
 
-async function fixture(operation) {
-  const response = await page.request.post(base + "/alfa-fixture.php", { form: { operation } });
+async function fixture(operation, fields = {}) {
+  const response = await page.request.post(base + "/alfa-fixture.php", { form: { operation, ...fields } });
   assert.equal(response.status(), 200, await response.text());
   return response.json();
 }
@@ -73,6 +73,7 @@ try {
   const activate = pluginRow.locator(".activate a");
   if (await activate.count()) await activate.click();
   await fixture("reset");
+  const accessUser = await fixture("access_user");
   await page.goto(base + screen);
   await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
   await page.getByText(/\d+ events? on this page/).waitFor();
@@ -83,18 +84,319 @@ try {
   assert.equal(settingsResponse.data.settings.redirection, false);
   assert.equal(settingsResponse.data.settings.email_alerts, false);
   assert.equal(settingsResponse.data.settings.capture_comments, true);
+  assert.equal(settingsResponse.data.settings.capture_network, true);
+  assert.equal(settingsResponse.data.settings.capture_database, true);
+  assert.equal(settingsResponse.data.settings.capture_files, false);
+  assert.equal(settingsResponse.data.settings.monitor_uploads, false);
+  assert.equal(settingsResponse.data.settings.file_max_size_mb, 10);
+  assert.equal(settingsResponse.data.settings.file_scan_interval, "daily");
+  assert.deepEqual(settingsResponse.data.settings.file_excluded_paths, []);
+  assert.deepEqual(settingsResponse.data.settings.disabled_actions, []);
   assertPrivateNoStore(settingsResponse, "Settings");
+  const settingsExport = await api("settings/export");
+  assert.equal(settingsExport.status, 200);
+  assertPrivateNoStore(settingsExport, "Settings export");
+  assert.equal(settingsExport.data.format, "activity-log-for-admins-settings");
+  assert.equal(settingsExport.data.plugin, "activity-log-for-admins");
+  assert.deepEqual(settingsExport.data.settings.disabled_actions, []);
+  assert.deepEqual(settingsExport.data.settings.viewer_roles, []);
+  assert.deepEqual(settingsExport.data.settings.manager_roles, []);
+  assert.equal("credentials" in settingsExport.data.settings, false);
+  const invalidSettings = structuredClone(settingsExport.data);
+  invalidSettings.settings.disabled_actions = ["unknown_event"];
+  assert.equal((await api("settings/import", { data: invalidSettings })).status, 400);
+  const unsafeFileSettings = structuredClone(settingsExport.data);
+  unsafeFileSettings.settings.file_excluded_paths = ["../private"];
+  assert.equal((await api("settings/import", { data: unsafeFileSettings })).status, 400);
+  const previousSettingsExport = structuredClone(settingsExport.data);
+  for (const key of ["capture_files", "monitor_uploads", "file_max_size_mb", "file_scan_interval", "file_excluded_paths"]) delete previousSettingsExport.settings[key];
+  const previousImport = await api("settings/import", { data: previousSettingsExport });
+  assert.equal(previousImport.status, 200);
+  assert.equal(previousImport.data.settings.capture_files, false);
+  assert.equal(previousImport.data.settings.file_max_size_mb, 10);
+  const shorterRetention = structuredClone(settingsExport.data);
+  shorterRetention.settings.retention = 1;
+  assert.equal((await api("settings/import", { data: shorterRetention })).status, 409);
+  const eraseOnUninstall = structuredClone(settingsExport.data);
+  eraseOnUninstall.settings.erase = true;
+  assert.equal((await api("settings/import", { data: eraseOnUninstall })).status, 409);
   await navigation.getByRole("link", { name: "Settings", exact: true }).click();
   await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
+  const fileCategory = page.locator(".alfa-settings-group .alfa-check").filter({ hasText: "New, changed, removed, and permission changes found during scans" }).getByRole("checkbox");
+  await fileCategory.waitFor();
+  assert.equal(await fileCategory.isChecked(), false);
+  const uploadsCheckbox = page.getByRole("checkbox", { name: /Include uploads/ });
+  await uploadsCheckbox.waitFor();
+  assert.equal(await uploadsCheckbox.isChecked(), false);
+  assert.equal(await page.getByLabel("Additional excluded paths").isDisabled(), true);
+  await page.locator(".alfa-event-controls > summary").click();
+  const importFile = async payload => page.locator('input[type="file"]').setInputFiles({
+    name: "activitylog-settings.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(payload)),
+  });
+  await importFile(shorterRetention);
+  const applyImport = page.getByRole("button", { name: "Apply imported settings" });
+  assert.equal(await applyImport.isDisabled(), true);
+  await page.getByRole("checkbox", { name: /Confirm shorter retention/ }).check();
+  await applyImport.click();
+  await page.getByText("Settings imported.", { exact: true }).waitFor();
+  assert.equal((await api("settings")).data.settings.retention, 1);
+  await api("settings", { data: settingsExport.data.settings });
+  await page.reload();
+  await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
+  await page.locator(".alfa-event-controls > summary").click();
+  await importFile(eraseOnUninstall);
+  assert.equal(await page.getByRole("button", { name: "Apply imported settings" }).isDisabled(), true);
+  await page.getByRole("checkbox", { name: /Confirm erase on uninstall/ }).check();
+  await page.getByRole("button", { name: "Apply imported settings" }).click();
+  await page.getByText("Settings imported.", { exact: true }).waitFor();
+  assert.equal((await api("settings")).data.settings.erase, true);
+  await api("settings", { data: settingsExport.data.settings });
+  await page.reload();
+  await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
+  await page.locator(".alfa-event-controls > summary").click();
+  const individualEventSettings = structuredClone(settingsExport.data);
+  individualEventSettings.settings.disabled_actions = ["content_edited"];
+  await importFile(individualEventSettings);
+  await page.getByRole("button", { name: "Apply imported settings" }).click();
+  await page.getByText("Settings imported.", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("checkbox", { name: "Content edited", exact: true }).isChecked(), false);
+  assert.deepEqual((await api("settings")).data.settings.disabled_actions, ["content_edited"]);
+  assert.equal((await fixture("event_toggle")).editedEvents, 0);
+  const probeEvents = await api("events", { query: { q: "Individual event control probe" } });
+  const probeEvent = probeEvents.data.events.find(event => event.action_key === "content_created");
+  assert.ok(probeEvent, "The individual event control probe must create a visible event.");
+  assert.equal(probeEvent.actor_role, "administrator");
+  assert.equal(probeEvent.source, "frontend");
+  assert.equal(probeEvent.category, "content");
+  const metadataQuery = { actor_role: "administrator", source: "frontend", category: "content" };
+  const metadataFiltered = await api("events", { query: metadataQuery });
+  assert.ok(metadataFiltered.data.events.length > 0);
+  assert.ok(metadataFiltered.data.events.every(event => event.actor_role === "administrator" && event.source === "frontend" && event.category === "content"));
+  assert.equal((await api("events", { query: { category: "not_a_category" } })).status, 400);
+  const metadataExport = await api("export", { query: metadataQuery });
+  assert.equal(metadataExport.status, 200);
+  const metadataHeader = metadataExport.data.slice(0, metadataExport.data.indexOf("\n"));
+  assert.ok(["Actor role", "Source", "Event category"].every(column => metadataHeader.includes(column)));
+  assert.ok(metadataExport.data.includes("administrator") && metadataExport.data.includes("frontend") && metadataExport.data.includes("Individual event control probe"));
+  await navigation.getByRole("link", { name: "Activity", exact: true }).click();
+  await page.getByRole("button", { name: /Individual event control probe/ }).click();
+  await page.getByRole("heading", { name: "Investigation notes" }).waitFor();
+  await page.getByText("Event type", { exact: true }).waitFor();
+  await page.getByText("Item identifier", { exact: true }).waitFor();
+  await page.getByRole("dialog").getByRole("button", { name: "Front end", exact: true }).waitFor();
+  await page.getByText(/No notes yet/).waitFor();
+  await page.getByText("Loading event details…", { exact: true }).waitFor({ state: "hidden" });
+  await mkdir(output, { recursive: true });
+  await page.screenshot({ path: output + "/event-metadata-desktop.png", animations: "disabled" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Event metadata must fit a narrow screen.");
+  await page.screenshot({ path: output + "/event-metadata-mobile.png", animations: "disabled" });
+  await page.setViewportSize({ width: 1440, height: 950 });
+  await page.getByText(/No notes yet/).waitFor();
+  const noteText = "Reviewed the page change with the editor.\nThe recorded edit event stayed disabled.";
+  await page.getByRole("textbox", { name: "Add a note" }).fill(noteText);
+  await page.getByRole("button", { name: "Add note", exact: true }).click();
+  await page.locator(".alfa-notes ol").getByText(noteText, { exact: true }).waitFor();
+  const notedEvent = await api(`events/${probeEvent.id}`);
+  assert.equal(notedEvent.data.notes.length, 1);
+  assert.equal(notedEvent.data.notes[0].note, noteText);
+  assert.equal(notedEvent.data.notes[0].author_name, "pilotadmin");
+  assert.equal((await api(`events/${probeEvent.id}/notes`, { data: { note: "   " } })).status, 400);
+  await page.keyboard.press("Escape");
+  await page.getByRole("heading", { name: "Investigation notes" }).waitFor({ state: "hidden" });
+  await page.getByRole("button", { name: "Filters", exact: true }).click();
+  await page.getByLabel("Actor role", { exact: true }).selectOption("administrator");
+  await page.getByLabel("Source", { exact: true }).selectOption("frontend");
+  await page.getByLabel("Event category", { exact: true }).selectOption("content");
+  await page.getByRole("button", { name: "Apply filters" }).click();
+  assert.equal(new URL(page.url()).searchParams.get("actor_role"), "administrator");
+  assert.equal(new URL(page.url()).searchParams.get("source"), "frontend");
+  assert.equal(new URL(page.url()).searchParams.get("category"), "content");
+  await page.getByRole("button", { name: /Individual event control probe/ }).waitFor();
+  await navigation.getByRole("link", { name: "Settings", exact: true }).click();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download settings" }).click();
+  assert.match((await downloadPromise).suggestedFilename(), /^activitylog-settings-\d{8}\.json$/);
+  await api("settings", { data: settingsExport.data.settings });
+  await page.reload();
+  await page.getByRole("textbox", { name: "Find users to exclude" }).fill("pilot");
+  const excludedEditor = page.getByRole("checkbox", { name: /@piloteditor/ });
+  await excludedEditor.waitFor();
+  await excludedEditor.check();
+  await page.getByRole("checkbox", { name: /Ignore WordPress background tasks/ }).check();
+  await page.getByRole("button", { name: "Save settings" }).click();
+  await page.getByText("Settings saved.", { exact: true }).waitFor();
+  const exclusionSettings = (await api("settings")).data.settings;
+  assert.deepEqual(exclusionSettings.excluded_users, [accessUser.userId]);
+  assert.equal(exclusionSettings.exclude_system_activity, true);
+  const exclusionExport = await api("settings/export");
+  assert.equal("excluded_users" in exclusionExport.data.settings, false, "Settings exports must not transfer user IDs to a different site.");
+  assert.equal((await api("settings/import", { data: settingsExport.data })).status, 200);
+  assert.deepEqual((await api("settings")).data.settings.excluded_users, [accessUser.userId], "Import must preserve this site's user exclusions.");
+  const exclusionResults = await fixture("exclusions");
+  assert.deepEqual(exclusionResults, { user: true, role: true, item_kind: true, post_status: true, system: true, control: true });
+  await page.getByRole("checkbox", { name: "Editor can view and export activity", exact: true }).check();
+  await page.getByRole("button", { name: "Save settings" }).click();
+  await page.getByText("Settings saved.", { exact: true }).waitFor();
+  assert.deepEqual((await api("settings")).data.settings.viewer_roles, ["editor"]);
+  await page.getByRole("textbox", { name: "Find users to grant access" }).fill("pilot");
+  const editorAccessRow = page.locator(".alfa-access-user").filter({ hasText: "@piloteditor" });
+  const editorViewAccess = editorAccessRow.getByRole("checkbox", { name: /can view and export activity$/ });
+  await editorViewAccess.waitFor();
+  await editorViewAccess.check();
+  await page.getByRole("button", { name: "Save settings" }).click();
+  await page.getByText("Settings saved.", { exact: true }).waitFor();
+  assert.deepEqual((await api("settings")).data.settings.viewer_users, [accessUser.userId]);
+  const directAccessExport = await api("settings/export");
+  assert.equal("viewer_users" in directAccessExport.data.settings, false);
+  assert.equal("manager_users" in directAccessExport.data.settings, false);
+  await api("settings/import", { data: settingsExport.data });
+  assert.deepEqual((await api("settings")).data.settings.viewer_users, [accessUser.userId], "Settings import must preserve direct user access on this site.");
+  await api("settings", { data: { ...settingsExport.data.settings, viewer_roles: ["editor"] } });
+
+  const editorContext = await browser.newContext();
+  const editorPage = await editorContext.newPage();
+  await signIn(editorPage, "piloteditor", accessUser.editorPassword);
+  const adminScreen = base + "/wp-admin/admin.php?page=activity-log-for-admins";
+  await editorPage.goto(adminScreen);
+  await editorPage.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  assert.equal(await editorPage.getByRole("link", { name: "Settings", exact: true }).count(), 0);
+  const editorConfig = await editorPage.evaluate(() => window.alfaSettings);
+  const editorNonce = editorConfig.nonce;
+  const editorUrl = path => {
+    const url = new URL(editorConfig.base);
+    if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
+    else url.pathname += path;
+    return url;
+  };
+  const editorHeaders = { "X-WP-Nonce": editorNonce };
+  assert.equal((await editorContext.request.get(editorUrl("events").href, { headers: editorHeaders })).status(), 200);
+  assert.equal((await editorContext.request.get(editorUrl("export").href, { headers: editorHeaders })).status(), 200);
+  assert.equal((await editorContext.request.get(editorUrl("settings").href, { headers: editorHeaders })).status(), 403);
+  assert.equal((await editorContext.request.post(editorUrl(`events/${probeEvent.id}/notes`).href, { headers: editorHeaders, data: { note: "Viewer cannot add notes." } })).status(), 403);
+
+  await api("settings", { data: { ...settingsExport.data.settings, viewer_roles: [], manager_roles: ["editor"] } });
+  await editorPage.reload();
+  await editorPage.getByRole("link", { name: "Settings", exact: true }).waitFor();
+  assert.equal((await editorContext.request.get(editorUrl("settings").href, { headers: editorHeaders })).status(), 200);
+  assert.equal((await editorContext.request.post(editorUrl(`events/${probeEvent.id}/notes`).href, { headers: editorHeaders, data: { note: "Manager role access check." } })).status(), 200);
+
+  await api("settings", { data: { ...settingsExport.data.settings, viewer_roles: [], manager_roles: [], viewer_users: [accessUser.userId], manager_users: [] } });
+  await editorPage.reload();
+  assert.equal(await editorPage.getByRole("link", { name: "Settings", exact: true }).count(), 0);
+  assert.equal((await editorContext.request.get(editorUrl("events").href, { headers: editorHeaders })).status(), 200);
+  assert.equal((await editorContext.request.get(editorUrl("settings").href, { headers: editorHeaders })).status(), 403);
+
+  await page.reload();
+  await page.getByRole("textbox", { name: "Find users to grant access" }).fill("pilot");
+  const editorManageAccess = page.locator(".alfa-access-user").filter({ hasText: "@piloteditor" }).getByRole("checkbox", { name: /can add notes and manage settings$/ });
+  await editorManageAccess.waitFor();
+  await editorManageAccess.check();
+  await page.getByRole("button", { name: "Save settings" }).click();
+  await page.getByText("Settings saved.", { exact: true }).waitFor();
+  assert.deepEqual((await api("settings")).data.settings.manager_users, [accessUser.userId]);
+  await editorPage.reload();
+  await editorPage.getByRole("link", { name: "Settings", exact: true }).waitFor();
+  assert.equal((await editorContext.request.get(editorUrl("settings").href, { headers: editorHeaders })).status(), 200);
+  assert.equal((await editorContext.request.post(editorUrl(`events/${probeEvent.id}/notes`).href, { headers: editorHeaders, data: { note: "Direct manager user access check." } })).status(), 200);
+  await editorContext.close();
+  await api("settings", { data: { ...settingsExport.data.settings, viewer_users: [], manager_users: [], excluded_users: [], excluded_roles: [], excluded_item_kinds: [], excluded_post_statuses: [], exclude_system_activity: false } });
+  await page.reload();
+  await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
   assert.deepEqual(pageErrors, []);
+  await navigation.getByRole("link", { name: "Settings", exact: true }).click();
+  const databaseCategory = page.getByRole("checkbox", { name: /Database tables/ });
+  await databaseCategory.waitFor();
+  assert.equal(await databaseCategory.isChecked(), true);
+  await navigation.getByRole("link", { name: "Activity", exact: true }).click();
+  await page.getByRole("table", { name: "Activity events" }).waitFor();
+  const networkPrivacy = await fixture("network_options_email");
+  assert.equal(networkPrivacy.siteEmailRequestCaptured, true);
+  assert.equal(networkPrivacy.siteEmailChangeCaptured, true);
+  assert.equal(networkPrivacy.siteEmailValuesRedacted, true);
+  if (networkPrivacy.networkEmailRequestCaptured !== undefined) {
+    assert.equal(networkPrivacy.networkEmailRequestCaptured, true);
+    assert.equal(networkPrivacy.networkEmailChangeCaptured, true);
+    assert.equal(networkPrivacy.networkEmailValuesRedacted, true);
+    assert.equal(networkPrivacy.networkSettingValuesCaptured, true);
+  }
+  const databaseFixture = await fixture("database_create");
+  assert.equal(databaseFixture.created, true);
+  let databaseDeletionFixture;
+  try {
+    const createdTables = await api("events", { query: { action: "database_table_created", item: `table:${databaseFixture.table}` } });
+    assert.equal(createdTables.status, 200);
+    assert.equal(createdTables.data.events.length, 1);
+    const createdDetail = await api(`events/${createdTables.data.events[0].id}`);
+    assert.equal(createdDetail.data.category, "database");
+    assert.equal(createdDetail.data.item_kind, "table");
+    assert.equal(createdDetail.data.details.operation, "created");
+  } finally {
+    databaseDeletionFixture = await fixture("database_drop");
+  }
+  assert.equal(databaseDeletionFixture.deleted, true);
+  const deletedTables = await api("events", { query: { action: "database_table_deleted", item: `table:${databaseFixture.table}` } });
+  assert.equal(deletedTables.status, 200);
+  assert.equal(deletedTables.data.events.length, 1);
+  assert.equal((await api("export", { query: { category: "database" } })).data.includes(databaseFixture.table), true);
+  await page.goto(base + screen + "&category=database");
+  const databaseActivity = page.getByRole("table", { name: "Activity events" });
+  await databaseActivity.waitFor();
+  const databaseEventButton = page.getByRole("button", { name: /Created database table/ }).first();
+  await databaseEventButton.waitFor();
+  await databaseEventButton.click();
+  const databaseDialog = page.getByRole("dialog");
+  await databaseDialog.getByText("Database", { exact: true }).waitFor();
+  await databaseDialog.getByText(databaseFixture.table, { exact: true }).first().waitFor();
+  await page.keyboard.press("Escape");
+  await databaseDialog.waitFor({ state: "hidden" });
+  const databaseSettings = (await api("settings")).data.settings;
+  await api("settings", { data: { ...databaseSettings, capture_database: false } });
+  const databaseSuppressed = await fixture("database_create");
+  assert.equal(databaseSuppressed.created, true);
+  try {
+    await fixture("database_drop");
+  } finally {
+    await api("settings", { data: { ...databaseSettings, capture_database: true } });
+  }
+  const suppressedEvents = await api("events", { query: { item: `table:${databaseSuppressed.table}` } });
+  assert.equal(suppressedEvents.data.events.length, 0);
+  const beforeFileSettings = (await api("settings")).data.settings;
+  const fileSettings = {
+    ...beforeFileSettings,
+    capture_files: true,
+    monitor_uploads: false,
+    file_max_size_mb: 10,
+    file_scan_interval: "daily",
+    file_excluded_paths: ["wp-admin", "wp-includes", "wp-content"],
+  };
+  assert.equal((await api("settings", { data: fileSettings })).status, 200);
+  const fileProbe = await fixture("file_monitor");
+  assert.equal(fileProbe.created, true);
+  assert.equal(fileProbe.modified, true);
+  assert.equal(fileProbe.deleted, true);
+  assert.equal(fileProbe.boundedBatchContinuation, true);
+  assert.equal(fileProbe.contentRedacted, true);
+  assert.equal(fileProbe.absolutePathHidden, true);
+  assert.equal(fileProbe.relativePathRecorded, true);
+  assert.equal(fileProbe.baselineClearedWhenDisabled, true);
+  if (fileProbe.permissionsSupported) assert.equal(fileProbe.permissionsChanged, true);
+  const fileEvents = await api("events", { query: { category: "files", q: fileProbe.relativePath } });
+  assert.ok(fileEvents.data.events.some(event => event.action_key === "file_created"));
+  const fileExport = await api("export", { query: { category: "files" } });
+  assert.ok(fileExport.data.includes(fileProbe.relativePath));
+  assert.ok(!fileExport.data.includes("PRIVATE_FILE_CONTENT"));
   if (level !== "full") {
     console.log("ZIP activation, REST, UI and Settings footer passed");
   } else {
     const disabledIntegrations = await fixture("integrations");
     assert.deepEqual(disabledIntegrations.orderActions, []);
     assert.deepEqual(disabledIntegrations.redirectActions, []);
-    await page.getByRole("checkbox", { name: /WooCommerce/ }).check();
-    await page.getByRole("checkbox", { name: /Redirection/ }).check();
+    await navigation.getByRole("link", { name: "Settings", exact: true }).click();
+    await page.getByRole("checkbox", { name: /WooCommerce Record products,/ }).check();
+    await page.getByRole("checkbox", { name: /^Redirection Record redirect/ }).check();
     await page.getByRole("button", { name: "Save settings" }).click();
     await page.getByText("Settings saved.", { exact: true }).waitFor();
     const integrationSettings = (await api("settings")).data.settings;
@@ -122,6 +424,10 @@ try {
       assert.equal(multisite.tableCreatedOnNewSite, true);
       assert.equal(multisite.schemaInitializedOnNewSite, true);
       assert.equal(multisite.scheduledOnNewSite, true);
+      assert.equal(multisite.siteCreatedCaptured, true);
+      assert.equal(multisite.siteStatusCaptured, true);
+      assert.equal(multisite.networkExclusionsApplied, true);
+      assert.equal(multisite.siteDeletedCaptured, true);
       assert.equal(multisite.eventStoredOnNewSite, true);
       assert.equal(multisite.eventIsolatedFromMainSite, true);
       assert.equal(multisite.siteRetention, 7);
@@ -162,10 +468,10 @@ try {
     assert.ok((await rowsFor("plugin_activated")).length);
     assert.equal((await rowsFor("plugin_updated")).length, 1);
     assert.ok((await rowsFor("plugin_deleted")).length);
-    assert.ok((await rowsFor("theme_installed")).length);
-    assert.ok((await rowsFor("theme_switched")).length);
-    assert.ok((await rowsFor("theme_updated")).length);
-    assert.ok((await rowsFor("theme_deleted")).length);
+    const fixtureTheme = `theme:${seeded.componentEvents.themeSlug}`;
+    for (const action of ["theme_installed", "theme_switched", "theme_updated", "theme_deleted"]) {
+      assert.ok((await rowsFor(action, { item: fixtureTheme })).length, `Expected ${action} for the fixture theme`);
+    }
 
     const coverage = seeded.coverage;
     assert.equal(coverage.profileCaptured, true);

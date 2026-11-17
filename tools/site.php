@@ -25,4 +25,10 @@ $mu_plugin_dir = WP_CONTENT_DIR . '/mu-plugins';
 if ( ! wp_mkdir_p( $mu_plugin_dir ) || ! copy( __DIR__ . '/alfa-pilot-content.php', $mu_plugin_dir . '/alfa-pilot-content.php' ) ) {
     throw new RuntimeException( 'Unable to install pilot content types.' );
 }
+if ( ! copy( __DIR__ . '/alfa-fixture.php', $root . '/alfa-fixture.php' ) ) {
+    throw new RuntimeException( 'Unable to install the current pilot fixture.' );
+}
+if ( ! copy( __DIR__ . '/privacy-fixture.php', $root . '/privacy-fixture.php' ) ) {
+    throw new RuntimeException( 'Unable to install the current privacy fixture.' );
+}
 echo wp_get_wp_version() . ' / PHP ' . PHP_VERSION . PHP_EOL;
