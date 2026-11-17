@@ -3,7 +3,7 @@
 ## Install and investigate
 
 1. On a disposable or staging site running WordPress 6.9 or later and PHP 8.3 or later, open **Plugins**, then **Add New Plugin**, then **Upload Plugin**.
-2. Upload the installable ZIP from the [GitHub 1.2.0 release](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/tag/v1.2.0), install it, and activate it. Confirm Settings shows version 1.2.0. The main Dashboard shows activity counts and recent changes. Open **Activity Log** near the top of the admin menu to investigate.
+2. Upload the installable ZIP from the [GitHub 1.2.1 release](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/tag/v1.2.1), install it, and activate it. Confirm Settings shows version 1.2.1. The main Dashboard shows activity counts and recent changes. Open **Activity Log** near the top of the admin menu to investigate.
 3. Create a test page named **Housing Guide**, publish it, and move it back to Draft. Add a few unrelated edits to make the list realistic.
 4. Ask another administrator to start on the Activity screen with only the page name, without a date, user, or event hint. Record the elapsed time and whether they correctly find the unexpected change, identify the user, and verify the previous status without help. Pass if all are correct in under 30 seconds.
 5. Open an event, check the previous and new values, and try the actor and affected item links. Combine search with the Action and Severity filters, reload the URL, and verify that CSV export contains every matching row and any captured previous and new values.
@@ -96,3 +96,15 @@ The security and interface suite passed. Anonymous reads and exports returned 40
 The full automated activity pilot passed, including capture, filters, event details and notes, CSV export, permissions, cleanup failures, retention, uninstall behavior, and the 100000 event performance check. REST first page latency measured 180 milliseconds at the 95th percentile, and filtered REST results measured 353 milliseconds. Event capture measured 27 milliseconds with the plugin enabled and 35 milliseconds with it disabled. Public page requests measured 207 milliseconds with the plugin enabled and 194 milliseconds with it disabled. These measurements describe this local test environment.
 
 The scripted investigation completed in 1267 milliseconds. This does not replace the pending human check in step 4. The Dashboard comparison was skipped as requested. WordPress 6.9 with PHP 8.3, isolation between two separate networks, and remaining roadmap items still need verification. Structured results are in `docs/verification/pilot-report-1.2.0.json`.
+
+## 1.2.1 release verification
+
+The WordPress automated review findings were corrected for report output escaping, translation context, prepared database queries, and scheduled report file handling. Privacy erasure now preserves the affected account label when removing an email address from the same event.
+
+The security and interface suite passed on WordPress 7.1.4 with PHP 8.5.12 and MariaDB 11.4.13. Anonymous reads and exports returned 401, and editor requests were denied. Twelve axe scans reported no violations across Activity, filters, event details, and Settings at widths of 320, 390, 768, 1024, and 1440 pixels. The browser reported no errors.
+
+The privacy export and erasure flow passed, including bounded batches, account anonymization, report cleanup, recipient cleanup, note removal, stale alert retry rejection, and editor denial. Scheduled report authorization, recipient and format validation, batched delivery, bounded retries, private history downloads, retention cleanup, privacy erasure, and editor denial passed.
+
+The production dependency audit reported zero vulnerabilities. A full audit of development tools reported five high severity entries stemming from the known [picomatch advisory](https://github.com/advisories/GHSA-fc5q-39xc-vjpf), pulled in through Vite. The project lockfile records picomatch, but its code is not bundled in the installable ZIP. Its [upstream fix remains an open pull request](https://github.com/micromatch/picomatch/pull/237), so the build workflow audits production dependencies and the remaining development tool finding is recorded here.
+
+The full automated activity pilot passed on the same environment, with the Dashboard comparison skipped as requested. The 100000 event check measured 178 milliseconds for the first REST page and 333 milliseconds for representative filtered REST results at the 95th percentile. Event capture measured 29 milliseconds with the plugin enabled and 26 milliseconds with it disabled. Public page requests measured 232 milliseconds with the plugin enabled and 202 milliseconds with it disabled. The scripted investigation completed in 1214 milliseconds. These measurements describe this local test environment.

@@ -1,0 +1,41 @@
+{
+  "version": "1.2.1",
+  "testedOn": "2026-11-17",
+  "archive": "activity-log-for-admins.1.2.1.zip",
+  "installation": "The release archive files were installed into a disposable WordPress site",
+  "environment": {
+    "wordpress": "7.1.4",
+    "php": "8.5.12",
+    "mariadb": "11.4.13",
+    "browser": "Chrome through Playwright"
+  },
+  "result": "Passed",
+  "regressionComparison": "Skipped as requested",
+  "pluginReviewPhpFindings": 0,
+  "productionDependencyAudit": "Passed, 0 vulnerabilities",
+  "developmentDependencyAudit": "Five high severity entries from picomatch 4.0.7 through Vite, its code is recorded in the project lockfile but is not bundled in the installable ZIP, and the upstream fix remains an open pull request",
+  "developmentDependencyAdvisory": "https://github.com/advisories/GHSA-fc5q-39xc-vjpf",
+  "securityUiReport": "security-ui-report-1.2.1.json",
+  "privacyExportAndErasure": "Passed",
+  "scheduledReports": "Passed",
+  "investigationAutomationMs": 1214,
+  "humanThirtySecondInvestigation": "Pending",
+  "benchmark": {
+    "seededEvents": 100000,
+    "restFirstPageP95Ms": 178,
+    "restFilteredP95Ms": 333,
+    "eventCaptureEnabledP95Ms": 28.86,
+    "eventCaptureDisabledP95Ms": 26.16,
+    "publicPageEnabledP95Ms": 232,
+    "publicPageDisabledP95Ms": 202
+  },
+  "scope": [
+    "WordPress Plugin Check PHP review scan",
+    "Security, access control, stored markup, formula protection, and REST cache checks",
+    "Twelve accessibility scans across five screen widths",
+    "Privacy export, bounded erasure, anonymization, and related data cleanup",
+    "Scheduled report access, delivery, retries, history, retention, and privacy cleanup",
+    "Capture, filters, event details and notes, CSV export, permissions, cleanup failures, retention, and uninstall behavior",
+    "Performance checks with 100000 events"
+  ]
+}

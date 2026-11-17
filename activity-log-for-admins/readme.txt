@@ -3,7 +3,7 @@ Tags: activity log, audit log, history
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -120,6 +120,10 @@ Deactivation and deletion preserve history by default. To erase activity and set
 
 == Changelog ==
 
+= 1.2.1 =
+* Corrected output escaping, translation context, database query preparation, and report file handling found by automated WordPress checks.
+* Preserved the affected account label when privacy erasure also removes an email address from the event.
+
 = 1.2.0 =
 * Added a Super Admin network activity center with site filters, details, notes, exports, and per site controls.
 * Added session review and revocation, optional session limits and idle expiry, and a five event admin toolbar feed.
@@ -164,6 +168,9 @@ Deactivation and deletion preserve history by default. To erase activity and set
 * Improved spacing, button sizing, and narrow screen layouts.
 
 == Upgrade Notice ==
+
+= 1.2.1 =
+Corrects automated review findings and a privacy erasure label issue.
 
 = 1.2.0 =
 This expanded pilot includes a network center, session tools, reports and alerts, privacy controls, file monitoring, and additional integrations. Install on disposable or staging sites while compatibility and remaining roadmap checks continue.

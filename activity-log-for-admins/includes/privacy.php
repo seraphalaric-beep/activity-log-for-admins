@@ -73,20 +73,32 @@ final class Privacy {
         $events = [];
         $notes = [];
         $email_pattern = '%' . $wpdb->esc_like( $email ) . '%';
-        $event_conditions = [ 'actor_name LIKE %s', 'item_key LIKE %s', 'item_name LIKE %s', 'summary LIKE %s', 'details LIKE %s' ];
-        $event_values = array_fill( 0, count( $event_conditions ), $email_pattern );
         if ( $user_id ) {
-            array_unshift( $event_conditions, 'actor_id = %d', '(item_kind = %s AND item_key = %s)' );
-            array_unshift( $event_values, $user_id, 'user', (string) $user_id );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Export only events linked to the account or containing its email address.
+            $events = $wpdb->get_results( $wpdb->prepare(
+                'SELECT id, occurred_at, actor_id, actor_name, item_kind, item_key, item_name, action_key, summary, details FROM %i WHERE (actor_id = %d OR (item_kind = %s AND item_key = %s) OR actor_name LIKE %s OR item_key LIKE %s OR item_name LIKE %s OR summary LIKE %s OR details LIKE %s) ORDER BY id ASC LIMIT %d OFFSET %d',
+                Store::table(), $user_id, 'user', (string) $user_id, $email_pattern, $email_pattern, $email_pattern, $email_pattern, $email_pattern, self::PAGE_SIZE, $offset
+            ), ARRAY_A );
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Export events containing the email address.
+            $events = $wpdb->get_results( $wpdb->prepare(
+                'SELECT id, occurred_at, actor_id, actor_name, item_kind, item_key, item_name, action_key, summary, details FROM %i WHERE (actor_name LIKE %s OR item_key LIKE %s OR item_name LIKE %s OR summary LIKE %s OR details LIKE %s) ORDER BY id ASC LIMIT %d OFFSET %d',
+                Store::table(), $email_pattern, $email_pattern, $email_pattern, $email_pattern, $email_pattern, self::PAGE_SIZE, $offset
+            ), ARRAY_A );
         }
-        $event_sql = 'SELECT id, occurred_at, actor_id, actor_name, item_kind, item_key, item_name, action_key, summary, details FROM %i WHERE (' . implode( ' OR ', $event_conditions ) . ') ORDER BY id ASC LIMIT %d OFFSET %d';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Export only events linked to the account or containing its exact email address.
-        $events = $wpdb->get_results( $wpdb->prepare( $event_sql, Store::table(), ...[ ...$event_values, self::PAGE_SIZE, $offset ] ), ARRAY_A );
-        $note_conditions = $user_id ? 'user_id = %d OR note LIKE %s' : 'note LIKE %s';
-        $note_values = $user_id ? [ $user_id, $email_pattern ] : [ $email_pattern ];
-        $note_sql = 'SELECT id, event_id, created_at, note FROM %i WHERE (' . $note_conditions . ') ORDER BY id ASC LIMIT %d OFFSET %d';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Export notes by the account or notes containing its exact email address.
-        $notes = $wpdb->get_results( $wpdb->prepare( $note_sql, Store::notes_table(), ...[ ...$note_values, self::PAGE_SIZE, $offset ] ), ARRAY_A );
+        if ( $user_id ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Export notes authored by the account or notes containing its email address.
+            $notes = $wpdb->get_results( $wpdb->prepare(
+                'SELECT id, event_id, created_at, note FROM %i WHERE (user_id = %d OR note LIKE %s) ORDER BY id ASC LIMIT %d OFFSET %d',
+                Store::notes_table(), $user_id, $email_pattern, self::PAGE_SIZE, $offset
+            ), ARRAY_A );
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Export notes containing the email address.
+            $notes = $wpdb->get_results( $wpdb->prepare(
+                'SELECT id, event_id, created_at, note FROM %i WHERE note LIKE %s ORDER BY id ASC LIMIT %d OFFSET %d',
+                Store::notes_table(), $email_pattern, self::PAGE_SIZE, $offset
+            ), ARRAY_A );
+        }
 
         foreach ( is_array( $events ) ? $events : [] as $event ) {
             $details = json_decode( (string) $event['details'], true );
@@ -247,6 +259,7 @@ final class Privacy {
                     $statistics = $report['statistics'];
                     $item_data[] = [
                         'name' => __( 'Saved statistics result', 'activity-log-for-admins' ),
+                        // translators: %1$d is the number of matching events; %2$s is the start of the date range; %3$s is the end of the date range.
                         'value' => sprintf( _n( '%1$d event, %2$s through %3$s', '%1$d events, %2$s through %3$s', $statistics['total'], 'activity-log-for-admins' ), $statistics['total'], $statistics['from'], $statistics['to'] ),
                     ];
                 }
@@ -263,12 +276,16 @@ final class Privacy {
     private static function access_data( int $user_id ): array {
         $items = [];
         $settings = Store::settings();
-        foreach ( [ 'viewer_users' => 'Can view activity', 'manager_users' => 'Can manage Activity Log', 'excluded_users' => 'Excluded from activity recording' ] as $key => $label ) {
+        foreach ( [
+            'viewer_users' => __( 'Can view activity', 'activity-log-for-admins' ),
+            'manager_users' => __( 'Can manage Activity Log', 'activity-log-for-admins' ),
+            'excluded_users' => __( 'Excluded from activity recording', 'activity-log-for-admins' ),
+        ] as $key => $label ) {
             if ( in_array( $user_id, $settings[ $key ], true ) ) {
                 $items[] = [
                     'item_id' => 'activity-log-access-' . $key,
                     'group_id' => 'activity-log-settings',
-                    'item_data' => [ [ 'name' => __( 'Access setting', 'activity-log-for-admins' ), 'value' => __( $label, 'activity-log-for-admins' ) ] ],
+                    'item_data' => [ [ 'name' => __( 'Access setting', 'activity-log-for-admins' ), 'value' => $label ] ],
                 ];
             }
         }
@@ -350,47 +367,65 @@ final class Privacy {
         }
         if ( $events_safe ) {
             $email_pattern = '%' . $wpdb->esc_like( $email ) . '%';
-            $note_condition = $user_id ? 'user_id = %d OR note LIKE %s' : 'note LIKE %s';
-            $note_values = $user_id ? [ $user_id, $email_pattern ] : [ $email_pattern ];
-            $note_sql = 'SELECT id FROM %i WHERE (' . $note_condition . ') ORDER BY id ASC LIMIT %d';
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Erase authored notes and notes naming this email in bounded batches.
-            $note_ids = $wpdb->get_col( $wpdb->prepare( $note_sql, Store::notes_table(), ...[ ...$note_values, self::ERASE_BATCH + 1 ] ) );
+            if ( $user_id ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Find authored notes and notes naming this email in a bounded batch.
+                $note_ids = $wpdb->get_col( $wpdb->prepare(
+                    'SELECT id FROM %i WHERE (user_id = %d OR note LIKE %s) ORDER BY id ASC LIMIT %d',
+                    Store::notes_table(), $user_id, $email_pattern, self::ERASE_BATCH + 1
+                ) );
+            } else {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Find notes naming this email in a bounded batch.
+                $note_ids = $wpdb->get_col( $wpdb->prepare(
+                    'SELECT id FROM %i WHERE note LIKE %s ORDER BY id ASC LIMIT %d',
+                    Store::notes_table(), $email_pattern, self::ERASE_BATCH + 1
+                ) );
+            }
             if ( $wpdb->last_error || ! is_array( $note_ids ) ) {
                 $messages[] = __( 'Personal notes could not be processed. Check the Activity Log database table and retry the erasure.', 'activity-log-for-admins' );
                 $has_error = true;
             } elseif ( $note_ids ) {
                 $notes_more = count( $note_ids ) > self::ERASE_BATCH;
                 $note_ids = array_slice( array_map( 'intval', $note_ids ), 0, self::ERASE_BATCH );
-                $placeholders = implode( ', ', array_fill( 0, count( $note_ids ), '%d' ) );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.NotPrepared -- Each bounded note ID has its own integer placeholder.
-                $deleted = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id IN (' . $placeholders . ')', Store::notes_table(), ...$note_ids ) );
-                if ( false === $deleted ) {
-                    $messages[] = __( 'Personal notes could not be deleted. Retry the erasure request.', 'activity-log-for-admins' );
-                    $has_error = true;
-                } else {
+                foreach ( $note_ids as $note_id ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Remove a note selected for privacy erasure by its integer primary key.
+                    $deleted = $wpdb->delete( Store::notes_table(), [ 'id' => $note_id ], [ '%d' ] );
+                    if ( false === $deleted ) {
+                        $messages[] = __( 'Personal notes could not be deleted. Retry the erasure request.', 'activity-log-for-admins' );
+                        $has_error = true;
+                        break;
+                    }
                     $items_removed = $items_removed || $deleted > 0;
                 }
             }
 
-            $event_conditions = [ 'actor_name LIKE %s', 'item_key LIKE %s', 'item_name LIKE %s', 'summary LIKE %s', 'details LIKE %s' ];
-            $event_values = array_fill( 0, count( $event_conditions ), $email_pattern );
             if ( $user_id ) {
-                array_unshift( $event_conditions, 'actor_id = %d', '(item_kind = %s AND item_key = %s)' );
-                array_unshift( $event_values, $user_id, 'user', (string) $user_id );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Find events linked to this account or containing its email in a bounded batch.
+                $events = $wpdb->get_results( $wpdb->prepare(
+                    'SELECT id, actor_id, actor_name, actor_role, item_kind, item_key, item_name, summary, details FROM %i WHERE (actor_id = %d OR (item_kind = %s AND item_key = %s) OR actor_name LIKE %s OR item_key LIKE %s OR item_name LIKE %s OR summary LIKE %s OR details LIKE %s) AND id > %d ORDER BY id ASC LIMIT %d',
+                    Store::table(), $user_id, 'user', (string) $user_id, $email_pattern, $email_pattern, $email_pattern, $email_pattern, $email_pattern, $cursor, self::ERASE_BATCH + 1
+                ), ARRAY_A );
+            } else {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Find events containing this email in a bounded batch.
+                $events = $wpdb->get_results( $wpdb->prepare(
+                    'SELECT id, actor_id, actor_name, actor_role, item_kind, item_key, item_name, summary, details FROM %i WHERE (actor_name LIKE %s OR item_key LIKE %s OR item_name LIKE %s OR summary LIKE %s OR details LIKE %s) AND id > %d ORDER BY id ASC LIMIT %d',
+                    Store::table(), $email_pattern, $email_pattern, $email_pattern, $email_pattern, $email_pattern, $cursor, self::ERASE_BATCH + 1
+                ), ARRAY_A );
             }
-            $event_sql = 'SELECT id FROM %i WHERE (' . implode( ' OR ', $event_conditions ) . ') AND id > %d ORDER BY id ASC LIMIT %d';
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Find events linked to the account or containing its exact email in a bounded batch.
-            $events = $wpdb->get_col( $wpdb->prepare( $event_sql, Store::table(), ...[ ...$event_values, $cursor, self::ERASE_BATCH + 1 ] ) );
             if ( $wpdb->last_error || ! is_array( $events ) ) {
                 $messages[] = __( 'Activity data could not be processed. Check the Activity Log database table and retry the erasure.', 'activity-log-for-admins' );
                 $has_error = true;
             } elseif ( $events ) {
                 $events_more = count( $events ) > self::ERASE_BATCH;
-                $events = array_slice( array_map( 'intval', $events ), 0, self::ERASE_BATCH );
-                $placeholders = implode( ', ', array_fill( 0, count( $events ), '%d' ) );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.NotPrepared -- Each bounded event ID has its own integer placeholder.
-                $deleted_notes = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE event_id IN (' . $placeholders . ')', Store::notes_table(), ...$events ) );
-                if ( false === $deleted_notes ) {
+                $events = array_slice( $events, 0, self::ERASE_BATCH );
+                $note_deletion_failed = false;
+                foreach ( $events as $event ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Remove notes linked to an event selected for privacy erasure by its integer key.
+                    if ( false === $wpdb->delete( Store::notes_table(), [ 'event_id' => (int) $event['id'] ], [ '%d' ] ) ) {
+                        $note_deletion_failed = true;
+                        break;
+                    }
+                }
+                if ( $note_deletion_failed ) {
                     $messages[] = __( 'Notes linked to activity could not be deleted. Retry the erasure request.', 'activity-log-for-admins' );
                     $has_error = true;
                 } else {
@@ -398,38 +433,63 @@ final class Privacy {
                     $actor_summary = __( 'Activity retained, details removed during privacy erasure', 'activity-log-for-admins' );
                     $account_name = __( 'WordPress account', 'activity-log-for-admins' );
                     $account_summary = __( 'Account activity with personal details removed', 'activity-log-for-admins' );
-                    $actor_update = 0;
-                    $account_update = 0;
-                    if ( $user_id ) {
-                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Keep audit rows while clearing actor identifiers and potentially personal details.
-                        $actor_update = $wpdb->query( $wpdb->prepare(
-                            'UPDATE %i SET actor_id = 0, actor_name = %s, actor_role = %s, summary = %s, details = %s WHERE actor_id = %d AND id IN (' . $placeholders . ')',
-                            Store::table(), $actor_name, '', $actor_summary, '{}', $user_id, ...$events
-                        ) );
-                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Replace the affected account name and key in retained audit rows.
-                        $account_update = $wpdb->query( $wpdb->prepare(
-                            'UPDATE %i SET item_name = %s, item_key = %s, summary = %s, details = %s WHERE item_kind = %s AND item_key = %s AND id IN (' . $placeholders . ')',
-                            Store::table(), $account_name, '', $account_summary, '{}', 'user', (string) $user_id, ...$events
-                        ) );
+                    $update_failed = false;
+                    foreach ( $events as $event ) {
+                        $id = (int) $event['id'];
+                        $actor_matches = $user_id && (int) $event['actor_id'] === $user_id;
+                        $account_matches = $user_id && 'user' === $event['item_kind'] && (string) $user_id === (string) $event['item_key'];
+                        $actor_email_matches = false !== stripos( (string) $event['actor_name'], $email );
+                        $key_email_matches = false !== stripos( (string) $event['item_key'], $email );
+                        $item_email_matches = false !== stripos( (string) $event['item_name'], $email );
+                        $email_in_event = $actor_email_matches || $key_email_matches || $item_email_matches
+                            || false !== stripos( (string) $event['summary'], $email )
+                            || false !== stripos( (string) $event['details'], $email );
+                        $changes = [];
+                        if ( $actor_matches ) {
+                            $changes['actor_id'] = 0;
+                            $changes['actor_name'] = $actor_name;
+                            $changes['actor_role'] = '';
+                            $changes['summary'] = $actor_summary;
+                            $changes['details'] = '{}';
+                        }
+                        if ( $account_matches ) {
+                            $changes['item_name'] = $account_name;
+                            $changes['item_key'] = '';
+                            $changes['summary'] = $account_summary;
+                            $changes['details'] = '{}';
+                        }
+                        if ( $email_in_event ) {
+                            if ( $actor_email_matches ) {
+                                $changes['actor_id'] = 0;
+                                $changes['actor_name'] = $actor_name;
+                            }
+                            if ( $key_email_matches ) {
+                                $changes['item_key'] = '';
+                            }
+                            if ( $item_email_matches && ! $account_matches ) {
+                                $changes['item_name'] = __( 'Activity item', 'activity-log-for-admins' );
+                            }
+                            $changes['summary'] = $actor_summary;
+                            $changes['details'] = '{}';
+                        }
+                        if ( ! $changes ) {
+                            continue;
+                        }
+                        $formats = array_map( static fn( string $key ): string => 'actor_id' === $key ? '%d' : '%s', array_keys( $changes ) );
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Retain the audit row while replacing personal fields by its integer primary key.
+                        $updated = $wpdb->update( Store::table(), $changes, [ 'id' => $id ], $formats, [ '%d' ] );
+                        if ( false === $updated ) {
+                            $update_failed = true;
+                        } else {
+                            $items_retained = $items_retained || $updated > 0;
+                        }
                     }
-                    $generic_condition = '(actor_name LIKE %s OR item_key LIKE %s OR item_name LIKE %s OR summary LIKE %s OR details LIKE %s)';
-                    $generic_sql = 'UPDATE %i SET actor_id = CASE WHEN actor_name LIKE %s THEN 0 ELSE actor_id END,
-                        actor_name = CASE WHEN actor_name LIKE %s THEN %s ELSE actor_name END,
-                        item_key = CASE WHEN item_key LIKE %s THEN %s ELSE item_key END,
-                        item_name = CASE WHEN item_name LIKE %s THEN %s ELSE item_name END,
-                        summary = %s, details = %s WHERE id IN (' . $placeholders . ') AND ' . $generic_condition;
-                    $generic_update = $wpdb->query( $wpdb->prepare(
-                        $generic_sql,
-                        Store::table(), $email_pattern, $email_pattern, $actor_name, $email_pattern, '',
-                        $email_pattern, __( 'Activity item', 'activity-log-for-admins' ), $actor_summary, '{}',
-                        ...$events, ...array_fill( 0, 5, $email_pattern )
-                    ) );
-                    if ( false === $actor_update || false === $account_update || false === $generic_update ) {
+                    if ( $update_failed ) {
                         $messages[] = __( 'Activity entries could not be anonymized. Retry the erasure request.', 'activity-log-for-admins' );
                         $has_error = true;
                     } else {
-                        $items_retained = $actor_update > 0 || $account_update > 0 || $generic_update > 0 || $items_retained;
-                        $cursor = max( $cursor, max( $events ) );
+                        $event_ids = array_map( static fn( array $event ): int => (int) $event['id'], $events );
+                        $cursor = max( $cursor, max( $event_ids ) );
                     }
                 }
             }

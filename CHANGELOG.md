@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.2.1
+
+* Correct WordPress review findings for output escaping, translation context, prepared database queries, and scheduled report file handling.
+* Preserve the affected account label when privacy erasure removes an email address from an event.
+
 ## 1.2.0
 
 * Save generated statistics results with their report name or tag, exact date range, grouping, interval, total, and bounded result rows. Add permission checked viewing and private CSV and HTML downloads, with formula protection, escaped output, site retention cleanup, and privacy export and erasure.

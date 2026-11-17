@@ -484,6 +484,7 @@ final class Capture {
             return;
         }
         self::record( $action, 'setting', 'termly_' . sanitize_key( $label ), 'Termly ' . $label,
+            // translators: %s is the name or label of the affected record.
             sprintf( __( 'Changed the status of the Termly %s', 'activity-log-for-admins' ), strtolower( $label ) ),
             [ 'changes' => [ $label => [ $before, $after ] ] ], 'notice' );
     }
@@ -596,6 +597,7 @@ final class Capture {
             'infinitewp_backup_completed',
             'backup',
             (string) $post_id,
+            // translators: %d is the ID of the affected item.
             sprintf( __( 'InfiniteWP backup #%d', 'activity-log-for-admins' ), $post_id ),
             __( 'Completed an InfiniteWP backup', 'activity-log-for-admins' ),
             $details,
@@ -676,6 +678,7 @@ final class Capture {
         if ( $id < 1 ) {
             return;
         }
+        // translators: %d is the ID of the affected item.
         $name = sprintf( __( 'MainWP child site #%d', 'activity-log-for-admins' ), $id );
         self::record( $action, 'mainwp_site', $id, $name, sprintf( $format, $id ), $details, $severity );
     }
@@ -685,25 +688,30 @@ final class Capture {
         if ( $id < 1 ) {
             return;
         }
+        // translators: %d is the ID of the affected item.
         $name = sprintf( __( 'MainWP client #%d', 'activity-log-for-admins' ), $id );
         self::record( $action, 'mainwp_client', $id, $name, sprintf( $format, $id ), $details, $severity );
     }
 
     public static function mainwp_site_added( mixed $site_id, mixed $site ): void {
+        // translators: %d is the ID of the affected item.
         self::mainwp_site_event( 'mainwp_site_added', $site_id, __( 'Added MainWP child site #%d', 'activity-log-for-admins' ) );
     }
 
     public static function mainwp_site_updated( mixed $site_id, mixed $data ): void {
+        // translators: %d is the ID of the affected item.
         self::mainwp_site_event( 'mainwp_site_updated', $site_id, __( 'Changed MainWP child site #%d', 'activity-log-for-admins' ) );
     }
 
     public static function mainwp_site_deleted( mixed $site ): void {
+        // translators: %d is the ID of the affected item.
         self::mainwp_site_event( 'mainwp_site_deleted', $site, __( 'Removed MainWP child site #%d', 'activity-log-for-admins' ), 'warning' );
     }
 
     public static function mainwp_site_suspended( mixed $site, mixed $suspended ): void {
         $is_suspended = in_array( $suspended, [ true, 1, '1' ], true );
         $action = $is_suspended ? 'mainwp_site_suspended' : 'mainwp_site_resumed';
+        // translators: %d is the ID of the affected item.
         $summary = $is_suspended ? __( 'Suspended MainWP child site #%d', 'activity-log-for-admins' ) : __( 'Resumed MainWP child site #%d', 'activity-log-for-admins' );
         self::mainwp_site_event( $action, $site, $summary, $is_suspended ? 'warning' : 'notice' );
     }
@@ -715,6 +723,7 @@ final class Capture {
             self::import_mainwp_events( $site_id, $information['activity_log_for_admins'] ?? null );
         }
         $action = $succeeded ? 'mainwp_site_sync_succeeded' : 'mainwp_site_sync_failed';
+        // translators: %d is the ID of the affected item.
         $summary = $succeeded ? __( 'Synchronized MainWP child site #%d', 'activity-log-for-admins' ) : __( 'MainWP child site #%d synchronization failed', 'activity-log-for-admins' );
         $details = [ 'changes' => [ __( 'Synchronization', 'activity-log-for-admins' ) => [ __( 'Not recorded', 'activity-log-for-admins' ), $succeeded ? __( 'Completed', 'activity-log-for-admins' ) : __( 'Failed', 'activity-log-for-admins' ) ] ] ];
         self::mainwp_site_event( $action, $site, $summary, $succeeded ? 'info' : 'warning', $details );
@@ -723,17 +732,20 @@ final class Capture {
     public static function mainwp_client_updated( mixed $client, mixed $created ): void {
         $is_created = in_array( $created, [ true, 1, '1' ], true );
         $action = $is_created ? 'mainwp_client_created' : 'mainwp_client_updated';
+        // translators: %d is the ID of the affected item.
         $summary = $is_created ? __( 'Created MainWP client #%d', 'activity-log-for-admins' ) : __( 'Changed MainWP client #%d', 'activity-log-for-admins' );
         self::mainwp_client_event( $action, $client, $summary );
     }
 
     public static function mainwp_client_deleted( mixed $client, mixed $snapshot_info = null ): void {
+        // translators: %d is the ID of the affected item.
         self::mainwp_client_event( 'mainwp_client_deleted', $client, __( 'Deleted MainWP client #%d', 'activity-log-for-admins' ), 'warning' );
     }
 
     public static function mainwp_client_suspend( mixed $client, mixed $suspended ): void {
         $is_suspended = in_array( $suspended, [ true, 1, '1' ], true );
         $action = $is_suspended ? 'mainwp_client_suspended' : 'mainwp_client_resumed';
+        // translators: %d is the ID of the affected item.
         $summary = $is_suspended ? __( 'Suspended MainWP client #%d', 'activity-log-for-admins' ) : __( 'Resumed MainWP client #%d', 'activity-log-for-admins' );
         self::mainwp_client_event( $action, $client, $summary, $is_suspended ? 'warning' : 'notice' );
     }
@@ -789,7 +801,9 @@ final class Capture {
                 'membership_changed',
                 'user',
                 $user_id,
+                // translators: %d is the ID of the affected item.
                 sprintf( __( 'Account #%d', 'activity-log-for-admins' ), $user_id ),
+                // translators: %d is the ID of the affected item.
                 sprintf( __( 'Changed Paid Memberships Pro access for account #%d', 'activity-log-for-admins' ), $user_id ),
                 [ 'changes' => [ 'Membership level IDs' => [ (string) $before_value, (string) $after_value ] ] ],
                 'warning'
@@ -843,8 +857,10 @@ final class Capture {
             return;
         }
 
+        // translators: %d is the ID of the affected item.
         $name = sprintf( __( 'Membership level #%d', 'activity-log-for-admins' ), $id );
         self::record( 'membership_level_created', 'pmpro_level', $id, $name,
+            // translators: %d is the ID of the affected item.
             sprintf( __( 'Created Paid Memberships Pro level #%d', 'activity-log-for-admins' ), $id ), [], 'notice' );
     }
 
@@ -865,8 +881,10 @@ final class Capture {
             return;
         }
 
+        // translators: %d is the ID of the affected item.
         $name = sprintf( __( 'Membership level #%d', 'activity-log-for-admins' ), $id );
         self::record( 'membership_level_updated', 'pmpro_level', $id, $name,
+            // translators: %d is the ID of the affected item.
             sprintf( __( 'Changed Paid Memberships Pro level #%d', 'activity-log-for-admins' ), $id ),
             [ 'changes' => [ 'Level configuration' => [ __( 'Not recorded', 'activity-log-for-admins' ), __( 'Changed', 'activity-log-for-admins' ) ] ] ], 'notice' );
     }
@@ -877,8 +895,10 @@ final class Capture {
             return;
         }
 
+        // translators: %d is the ID of the affected item.
         $name = sprintf( __( 'Membership level #%d', 'activity-log-for-admins' ), $id );
         self::record( 'membership_level_deleted', 'pmpro_level', $id, $name,
+            // translators: %d is the ID of the affected item.
             sprintf( __( 'Deleted Paid Memberships Pro level #%d', 'activity-log-for-admins' ), $id ), [], 'warning' );
     }
 
@@ -991,10 +1011,12 @@ final class Capture {
                 }
                 $name = self::redacted_text( $post->post_title, 220 );
                 if ( '' === $name ) {
+                    // translators: %1$s is the type of the affected item; %2$d is the ID of the affected item.
                     $name = sprintf( __( '%1$s #%2$d', 'activity-log-for-admins' ), self::post_type_label( $post->post_type ), $post->ID );
                 }
                 $count = count( $changes );
                 $summary = sprintf(
+                    // translators: %1$d is the number of changed fields; %2$s is the field label; %3$s is the content type; %4$s is the content item title.
                     _n( 'Changed %1$d %2$s field on %3$s “%4$s”', 'Changed %1$d %2$s fields on %3$s “%4$s”', $count, 'activity-log-for-admins' ),
                     $count,
                     $plugin,
@@ -1017,6 +1039,7 @@ final class Capture {
                 $changes[ $label ] = [ $not_recorded, $changed ];
             }
             self::record( $action, 'setting', $provider . '-seo', $plugin,
+                // translators: %s is the plugin or component name.
                 sprintf( __( 'Changed %s settings', 'activity-log-for-admins' ), $plugin ), [ 'changes' => $changes ], 'notice' );
         }
         self::$seo_settings_changes = [];
@@ -1028,6 +1051,7 @@ final class Capture {
 
     private static function wpforms_form_name( \WP_Post $post ): string {
         $title = self::redacted_text( $post->post_title, 220 );
+        // translators: %d is the ID of the affected item.
         return $title ?: sprintf( __( 'Form #%d', 'activity-log-for-admins' ), $post->ID );
     }
 
@@ -1049,6 +1073,7 @@ final class Capture {
         $created = ! $update || ! $before || 'auto-draft' === $before->post_status;
         if ( $created ) {
             self::record( 'wpforms_form_created', 'wpforms_form', $id, $name,
+                // translators: %s is the form name.
                 sprintf( __( 'Created WPForms form “%s”', 'activity-log-for-admins' ), $name ),
                 [ 'changes' => [ 'Title' => [ '', $name ], 'Status' => [ '', self::text( $post->post_status, 80 ) ] ] ], 'notice' );
             return;
@@ -1085,14 +1110,19 @@ final class Capture {
             $severity = 'notice';
         }
         if ( isset( $changes['Title'] ) && '' !== $changes['Title'][0] ) {
+            // translators: %1$s is the previous item name; %2$s is the new item name.
             $summary = sprintf( __( 'Renamed WPForms form from “%1$s” to “%2$s”', 'activity-log-for-admins' ), $changes['Title'][0], $changes['Title'][1] );
         } elseif ( 'wpforms_form_trashed' === $action ) {
+            // translators: %s is the form name.
             $summary = sprintf( __( 'Moved WPForms form “%s” to Trash', 'activity-log-for-admins' ), $name );
         } elseif ( 'wpforms_form_restored' === $action ) {
+            // translators: %s is the form name.
             $summary = sprintf( __( 'Restored WPForms form “%s” from Trash', 'activity-log-for-admins' ), $name );
         } elseif ( 'wpforms_form_status_changed' === $action ) {
+            // translators: %s is the form name.
             $summary = sprintf( __( 'Changed the status of WPForms form “%s”', 'activity-log-for-admins' ), $name );
         } else {
+            // translators: %s is the form name.
             $summary = sprintf( __( 'Changed WPForms form “%s”', 'activity-log-for-admins' ), $name );
         }
         self::record( $action, 'wpforms_form', $id, $name, $summary, [ 'changes' => $changes ], $severity );
@@ -1115,6 +1145,7 @@ final class Capture {
         }
         $name = self::wpforms_form_name( $form );
         self::record( 'wpforms_entry_submitted', 'wpforms_form', $form_id, $name,
+            // translators: %s is the form name.
             sprintf( __( 'Received a submission for WPForms form “%s”', 'activity-log-for-admins' ), $name ),
             [ 'changes' => [ 'Submission' => [ '', __( 'Received', 'activity-log-for-admins' ) ] ] ], 'info', self::wpforms_actor() );
     }
@@ -1249,10 +1280,12 @@ final class Capture {
 
             $name = self::text( get_the_title( $post ), 255 );
             if ( '' === $name ) {
+                // translators: %1$s is the type of the affected item; %2$d is the ID of the affected item.
                 $name = sprintf( __( '%1$s #%2$d', 'activity-log-for-admins' ), self::post_type_label( $post->post_type ), $post->ID );
             }
             $kind = $post->post_type;
             $summary = sprintf(
+                // translators: %1$d is the number of changed fields; %2$s is the content type; %3$s is the content item title.
                 _n( 'Changed %1$d custom field on %2$s “%3$s”', 'Changed %1$d custom fields on %2$s “%3$s”', count( $changes ), 'activity-log-for-admins' ),
                 count( $changes ),
                 self::post_type_label( $post->post_type ),
@@ -1374,6 +1407,7 @@ final class Capture {
             }
             try {
                 $verb = $exists ? __( 'Created', 'activity-log-for-admins' ) : __( 'Deleted', 'activity-log-for-admins' );
+                // translators: %1$s is the database action; %2$s is the database table name.
                 $summary = sprintf( __( '%1$s database table “%2$s”', 'activity-log-for-admins' ), $verb, $table['name'] );
                 $details = [ 'operation' => $exists ? 'created' : 'deleted' ];
                 if ( $table['network_id'] ) {
@@ -1420,6 +1454,7 @@ final class Capture {
     private static function record_email_change( string $action, string $kind, string $key, string $name, bool $network ): void {
         $verb = str_contains( $action, 'requested' ) ? __( 'Requested', 'activity-log-for-admins' ) : __( 'Changed', 'activity-log-for-admins' );
         $scope = $network ? __( 'network', 'activity-log-for-admins' ) : __( 'site', 'activity-log-for-admins' );
+        // translators: %1$s is the name or label of the affected record; %2$s is the name or label of the affected record.
         self::record( $action, $kind, $key, $name, sprintf( __( '%1$s %2$s administrator email change', 'activity-log-for-admins' ), $verb, $scope ), [ 'confirmation_required' => str_contains( $action, 'requested' ) ], 'notice' );
     }
 
@@ -1440,12 +1475,24 @@ final class Capture {
         if ( $previous === $next ) {
             return;
         }
-        $label = __( self::NETWORK_OPTIONS[ $option ], 'activity-log-for-admins' );
+        $label = match ( $option ) {
+            'registration' => __( 'New site registration', 'activity-log-for-admins' ),
+            'registrationnotification' => __( 'Registration notifications', 'activity-log-for-admins' ),
+            'add_new_users' => __( 'Add new users', 'activity-log-for-admins' ),
+            'upload_space' => __( 'Network upload limit', 'activity-log-for-admins' ),
+            'blog_upload_space' => __( 'Site upload limit', 'activity-log-for-admins' ),
+            'fileupload_maxk' => __( 'File upload limit', 'activity-log-for-admins' ),
+            'WPLANG' => __( 'Network language', 'activity-log-for-admins' ),
+            'global_terms_enabled' => __( 'Global terms', 'activity-log-for-admins' ),
+            'ms_files_rewriting' => __( 'Legacy media URL rewriting', 'activity-log-for-admins' ),
+            default => '',
+        };
         self::record(
             'network_setting_changed',
             'setting',
             $network_id . ':' . $option,
             $label,
+            // translators: %s is the network setting label.
             sprintf( __( 'Changed network setting “%s”', 'activity-log-for-admins' ), $label ),
             [ 'changes' => [ $label => [ $previous, $next ] ], 'network_id' => $network_id ],
             'notice'
@@ -1483,6 +1530,7 @@ final class Capture {
             'site',
             $network_id . ':' . $site_id,
             $name,
+            // translators: %s is the site name or label.
             sprintf( __( 'Created network site “%s”', 'activity-log-for-admins' ), $name ),
             [ 'network_id' => $network_id, 'site_id' => $site_id ],
             'notice'
@@ -1501,6 +1549,7 @@ final class Capture {
         }
         $site_id = (int) $site->blog_id;
         $network_id = (int) $site->site_id;
+        // translators: %d is the site ID.
         $name = self::$deleting_site_names[ $site_id ] ?? sprintf( __( 'Site %d', 'activity-log-for-admins' ), $site_id );
         unset( self::$deleting_site_names[ $site_id ] );
         self::record(
@@ -1508,6 +1557,7 @@ final class Capture {
             'site',
             $network_id . ':' . $site_id,
             $name,
+            // translators: %s is the site name or label.
             sprintf( __( 'Deleted network site “%s”', 'activity-log-for-admins' ), $name ),
             [ 'network_id' => $network_id, 'site_id' => $site_id ],
             'warning'
@@ -1551,6 +1601,7 @@ final class Capture {
             'site',
             $network_id . ':' . $site_id,
             $name,
+            // translators: %s is the plugin or component name.
             sprintf( __( 'Changed network site settings for “%s”', 'activity-log-for-admins' ), $name ),
             [ 'changes' => $changes, 'network_id' => $network_id, 'site_id' => $site_id ],
             $sensitive_status_change ? 'notice' : 'info'
@@ -1560,6 +1611,7 @@ final class Capture {
     private static function network_site_name( \WP_Site $site ): string {
         $name = get_blog_option( (int) $site->blog_id, 'blogname', '' );
         return self::text( is_scalar( $name ) ? (string) $name : '', 200 )
+            // translators: %d is the site ID.
             ?: sprintf( __( 'Site %d', 'activity-log-for-admins' ), (int) $site->blog_id );
     }
 
@@ -1716,7 +1768,9 @@ final class Capture {
         };
         $action = 'status' === $field ? 'forum_status_changed' : 'forum_edited';
         $summary = 'status' === $field
+            // translators: %s is the forum item name.
             ? sprintf( __( 'Changed the status of bbPress forum “%s”', 'activity-log-for-admins' ), $name )
+            // translators: %s is the forum item name.
             : sprintf( __( 'Changed the type of bbPress forum “%s”', 'activity-log-for-admins' ), $name );
         self::record( $action, 'forum', $forum_id, $name, $summary,
             [ 'changes' => [ $label => [ $format( $before ), $format( $after ) ] ] ], 'notice' );
@@ -1772,7 +1826,9 @@ final class Capture {
         }
         $name = self::bbpress_item_name( $topic, 'topic' );
         $summary = 'topic_stickied' === $action
+            // translators: %s is the forum item name.
             ? sprintf( __( 'Made bbPress topic “%s” sticky', 'activity-log-for-admins' ), $name )
+            // translators: %s is the forum item name.
             : sprintf( __( 'Removed sticky status from bbPress topic “%s”', 'activity-log-for-admins' ), $name );
         self::record( $action, 'topic', $topic_id, $name, $summary,
             [ 'changes' => [ 'Sticky' => [ $before, $after ] ] ], 'notice' );
@@ -1792,17 +1848,21 @@ final class Capture {
         }
         $post = get_post( $id );
         if ( ! $post instanceof \WP_Post ) {
+            // translators: %d is the ID of the affected item.
             return sprintf( __( 'Item ID %d', 'activity-log-for-admins' ), $id );
         }
         $title = self::redacted_text( $post->post_title, 140 ) ?: __( '(Untitled)', 'activity-log-for-admins' );
+        // translators: %1$s is the name or label of the affected record; %2$d is the ID of the affected item.
         return sprintf( __( '%1$s (item ID %2$d)', 'activity-log-for-admins' ), $title, $id );
     }
 
     private static function bbpress_item_name( \WP_Post $post, string $kind ): string {
         if ( 'reply' === $kind ) {
+            // translators: %d is the ID of the affected item.
             return sprintf( __( 'Reply #%d', 'activity-log-for-admins' ), $post->ID );
         }
         $title = self::redacted_text( $post->post_title, 220 );
+        // translators: %1$s is the type of the affected item; %2$d is the ID of the affected item.
         return $title ?: sprintf( __( '%1$s #%2$d', 'activity-log-for-admins' ), ucfirst( self::bbpress_kind_label( $kind ) ), $post->ID );
     }
 
@@ -1874,8 +1934,10 @@ final class Capture {
             if ( 'reply' === $kind ) {
                 $topic_id = function_exists( 'bbp_get_reply_topic_id' ) ? absint( bbp_get_reply_topic_id( $id ) ) : 0;
                 $topic_id = $topic_id ?: absint( $post->post_parent );
+                // translators: %1$d is the ID of the affected item; %2$s is the related topic name or ID.
                 $summary = sprintf( __( 'Added bbPress reply #%1$d to %2$s', 'activity-log-for-admins' ), $id, $topic_id ? self::bbpress_reference( $topic_id ) : __( 'a topic', 'activity-log-for-admins' ) );
             } else {
+                // translators: %1$s is the name or label of the affected record; %2$s is the name or label of the affected record.
                 $summary = sprintf( __( 'Created bbPress %1$s “%2$s”', 'activity-log-for-admins' ), self::bbpress_kind_label( $kind ), $name );
             }
             self::record( $action, $kind, $id, $name, $summary, [ 'changes' => $changes ], 'notice', self::bbpress_actor( $post, true ) );
@@ -1920,19 +1982,26 @@ final class Capture {
         if ( 'reply' === $kind ) {
             $topic_id = function_exists( 'bbp_get_reply_topic_id' ) ? absint( bbp_get_reply_topic_id( $id ) ) : 0;
             $topic_id = $topic_id ?: absint( $post->post_parent );
+            // translators: %1$d is the ID of the affected item; %2$s is the related topic name or ID.
             $subject = sprintf( __( 'bbPress reply #%1$d in %2$s', 'activity-log-for-admins' ), $id, $topic_id ? self::bbpress_reference( $topic_id ) : __( 'a topic', 'activity-log-for-admins' ) );
         } else {
+            // translators: %1$s is the name or label of the affected record; %2$s is the name or label of the affected record.
             $subject = sprintf( __( 'bbPress %1$s “%2$s”', 'activity-log-for-admins' ), self::bbpress_kind_label( $kind ), $name );
         }
         if ( 'forum_trashed' === $action || 'topic_trashed' === $action || 'reply_trashed' === $action ) {
+            // translators: %s is the name or label of the affected record.
             $summary = sprintf( __( 'Moved %s to Trash', 'activity-log-for-admins' ), $subject );
         } elseif ( 'forum_restored' === $action || 'topic_restored' === $action || 'reply_restored' === $action ) {
+            // translators: %s is the name or label of the affected record.
             $summary = sprintf( __( 'Restored %s from Trash', 'activity-log-for-admins' ), $subject );
         } elseif ( str_ends_with( $action, '_status_changed' ) ) {
+            // translators: %s is the name or label of the affected record.
             $summary = sprintf( __( 'Changed the status of %s', 'activity-log-for-admins' ), $subject );
         } elseif ( isset( $changes['Title'] ) && '' !== $changes['Title'][0] ) {
+            // translators: %1$s is the name or label of the affected record; %2$s is the name or label of the affected record; %3$s is the name or label of the affected record.
             $summary = sprintf( __( 'Renamed bbPress %1$s from “%2$s” to “%3$s”', 'activity-log-for-admins' ), self::bbpress_kind_label( $kind ), $changes['Title'][0], $changes['Title'][1] );
         } else {
+            // translators: %s is the name or label of the affected record.
             $summary = sprintf( __( 'Edited %s', 'activity-log-for-admins' ), $subject );
         }
         self::record( $action, $kind, $id, $name, $summary, [ 'changes' => $changes ], $severity );
@@ -2021,7 +2090,9 @@ final class Capture {
         }
         $action = $all ? 'sessions_ended' : 'session_ended';
         $summary = $all
-            ? sprintf( _n( 'Ended all %d session for “%s”', 'Ended all %d sessions for “%s”', $count, 'activity-log-for-admins' ), $count, $user->user_login )
+            // translators: %1$d is the number of sessions; %2$s is the account name.
+            ? sprintf( _n( 'Ended all %1$d session for “%2$s”', 'Ended all %1$d sessions for “%2$s”', $count, 'activity-log-for-admins' ), $count, $user->user_login )
+            // translators: %s is the name or label of the affected record.
             : sprintf( __( 'Ended a session for “%s”', 'activity-log-for-admins' ), $user->user_login );
         self::record( $action, 'user', (int) $user->ID, $user->user_login, $summary, [ 'session_count' => $count ], 'warning' );
     }
@@ -2031,6 +2102,7 @@ final class Capture {
             return;
         }
         $reason = 'idle' === $policy ? __( 'idle expiry', 'activity-log-for-admins' ) : __( 'session limit', 'activity-log-for-admins' );
+        // translators: %1$d is the number of sessions; %2$s is the name or label of the affected record.
         $summary = sprintf( __( 'Session policy ended %1$d session(s) for “%2$s”', 'activity-log-for-admins' ), $count, $user->user_login );
         self::record( 'session_policy_ended', 'user', (int) $user->ID, $user->user_login, $summary, [ 'session_count' => $count, 'policy' => $reason ], 'warning', [ 'system', 0, __( 'WordPress session policy', 'activity-log-for-admins' ) ] );
     }
@@ -2085,11 +2157,14 @@ final class Capture {
 
     private static function woocommerce_item_name( \WP_Post $post, string $kind ): string {
         if ( 'coupon' === $kind ) {
+            // translators: %d is the ID of the affected item.
             return sprintf( __( 'Coupon #%d', 'activity-log-for-admins' ), $post->ID );
         }
         if ( 'product_variation' === $post->post_type ) {
+            // translators: %d is the ID of the affected item.
             return sprintf( __( 'Product variation #%d', 'activity-log-for-admins' ), $post->ID );
         }
+        // translators: %d is the ID of the affected item.
         return self::redacted_text( $post->post_title ) ?: sprintf( __( 'Product #%d', 'activity-log-for-admins' ), $post->ID );
     }
 
@@ -2325,7 +2400,9 @@ final class Capture {
             $changes = array_merge( $changes, self::woocommerce_snapshot( $id, $kind ) );
             $action = 'coupon' === $kind ? 'coupon_created' : 'product_created';
             $summary = 'coupon' === $kind
+                // translators: %d is the ID of the affected item.
                 ? sprintf( __( 'Created WooCommerce coupon #%d', 'activity-log-for-admins' ), $id )
+                // translators: %s is the product name.
                 : sprintf( __( 'Created WooCommerce product “%s”', 'activity-log-for-admins' ), $name );
             self::record( $action, $kind, $id, $name, $summary, $changes ? [ 'changes' => $changes ] : [], 'notice' );
             return;
@@ -2341,28 +2418,37 @@ final class Capture {
         if ( 'trash' === $new_status && 'trash' !== $old_status ) {
             $action = $prefix . '_trashed';
             $summary = 'coupon' === $kind
+                // translators: %d is the ID of the affected item.
                 ? sprintf( __( 'Moved WooCommerce coupon #%d to Trash', 'activity-log-for-admins' ), $id )
+                // translators: %s is the product name.
                 : sprintf( __( 'Moved WooCommerce product “%s” to Trash', 'activity-log-for-admins' ), $name );
             $severity = 'warning';
         } elseif ( 'trash' === $old_status && 'trash' !== $new_status ) {
             $action = $prefix . '_restored';
             $summary = 'coupon' === $kind
+                // translators: %d is the ID of the affected item.
                 ? sprintf( __( 'Restored WooCommerce coupon #%d from Trash', 'activity-log-for-admins' ), $id )
+                // translators: %s is the product name.
                 : sprintf( __( 'Restored WooCommerce product “%s” from Trash', 'activity-log-for-admins' ), $name );
             $severity = 'notice';
         } elseif ( is_array( $status ) ) {
             $action = $prefix . '_status_changed';
             $summary = 'coupon' === $kind
+                // translators: %1$d is the ID of the affected item; %2$s is the previous status; %3$s is the new status.
                 ? sprintf( __( 'Changed WooCommerce coupon #%1$d status from %2$s to %3$s', 'activity-log-for-admins' ), $id, $old_status, $new_status )
+                // translators: %1$s is the product name; %2$s is the previous status; %3$s is the new status.
                 : sprintf( __( 'Changed WooCommerce product “%1$s” status from %2$s to %3$s', 'activity-log-for-admins' ), $name, $old_status, $new_status );
             $severity = 'notice';
         } else {
             $action = $prefix . '_edited';
             if ( 'coupon' === $kind ) {
+                // translators: %d is the ID of the affected item.
                 $summary = sprintf( __( 'Updated WooCommerce coupon #%d', 'activity-log-for-admins' ), $id );
             } elseif ( isset( $changes['Title'] ) ) {
+                // translators: %s is the product name.
                 $summary = sprintf( __( 'Renamed WooCommerce product to “%s”', 'activity-log-for-admins' ), $name );
             } else {
+                // translators: %s is the product name.
                 $summary = sprintf( __( 'Updated WooCommerce product “%s”', 'activity-log-for-admins' ), $name );
             }
             $severity = 'info';
@@ -2416,6 +2502,7 @@ final class Capture {
         }
         if ( in_array( $option, [ 'woocommerce_shop_page_id', 'woocommerce_cart_page_id', 'woocommerce_checkout_page_id', 'woocommerce_myaccount_page_id', 'woocommerce_terms_page_id' ], true ) ) {
             return is_numeric( $value ) && absint( $value ) > 0
+                // translators: %d is the ID or count described by the event summary.
                 ? sprintf( __( 'Page ID %d', 'activity-log-for-admins' ), absint( $value ) )
                 : __( 'Not selected', 'activity-log-for-admins' );
         }
@@ -2498,6 +2585,7 @@ final class Capture {
         $label = self::WOOCOMMERCE_SETTING_OPTIONS[ $option ];
         $name = __( 'WooCommerce', 'activity-log-for-admins' ) . ': ' . $label;
         self::record( 'woocommerce_setting_changed', 'setting', $option, $name,
+            // translators: %s is the name or label of the affected record.
             sprintf( __( 'Changed WooCommerce setting “%s”', 'activity-log-for-admins' ), $label ),
             [ 'changes' => [ $label => [ $before, $after ] ] ], 'notice' );
     }
@@ -2645,7 +2733,9 @@ final class Capture {
         $menu = wp_get_nav_menu_object( $menu_id );
         $menu_name = $menu && ! is_wp_error( $menu ) ? self::text( $menu->name, 180 ) : __( 'Navigation menu', 'activity-log-for-admins' );
         $summary = 'menu_item_added' === $pending['action']
+            // translators: %1$s is the menu or menu item name; %2$s is the menu or menu item name.
             ? sprintf( __( 'Added “%1$s” to navigation menu “%2$s”', 'activity-log-for-admins' ), $pending['title'], $menu_name )
+            // translators: %1$s is the menu or menu item name; %2$s is the menu or menu item name.
             : sprintf( __( 'Updated “%1$s” in navigation menu “%2$s”', 'activity-log-for-admins' ), $pending['title'], $menu_name );
         self::record( $pending['action'], 'menu', $menu_id, $menu_name, $summary,
             [ 'changes' => $pending['changes'] ], 'menu_item_added' === $pending['action'] ? 'notice' : 'info' );
@@ -2731,6 +2821,7 @@ final class Capture {
             $name = self::$deleting_wpforms_forms[ $id ];
             unset( self::$deleting_wpforms_forms[ $id ] );
             self::record( 'wpforms_form_deleted', 'wpforms_form', $id, $name,
+                // translators: %s is the form name.
                 sprintf( __( 'Deleted WPForms form “%s”', 'activity-log-for-admins' ), $name ),
                 [ 'changes' => [ 'Item' => [ __( 'Existing', 'activity-log-for-admins' ), __( 'Deleted', 'activity-log-for-admins' ) ] ] ], 'warning' );
             return;
@@ -2743,6 +2834,7 @@ final class Capture {
             $changes = (array) $item['changes'];
             $changes['Item'] = [ __( 'Existing', 'activity-log-for-admins' ), __( 'Deleted', 'activity-log-for-admins' ) ];
             self::record( $kind . '_deleted', $kind, $id, $name,
+                // translators: %1$s is the name or label of the affected record; %2$s is the name or label of the affected record.
                 sprintf( __( 'Deleted bbPress %1$s “%2$s”', 'activity-log-for-admins' ), self::bbpress_kind_label( $kind ), $name ),
                 [ 'changes' => $changes ], 'warning' );
             return;
@@ -2754,7 +2846,9 @@ final class Capture {
             $name = (string) $item['name'];
             $action = 'coupon' === $kind ? 'coupon_deleted' : 'product_deleted';
             $summary = 'coupon' === $kind
+                // translators: %d is the ID of the affected item.
                 ? sprintf( __( 'Deleted WooCommerce coupon #%d', 'activity-log-for-admins' ), $id )
+                // translators: %s is the product name.
                 : sprintf( __( 'Deleted WooCommerce product “%s”', 'activity-log-for-admins' ), $name );
             self::record( $action, $kind, $id, $name, $summary,
                 [ 'changes' => [ 'Item' => [ __( 'Existing', 'activity-log-for-admins' ), __( 'Deleted', 'activity-log-for-admins' ) ] ] ], 'warning' );
@@ -2767,6 +2861,7 @@ final class Capture {
         unset( self::$deleting_menu_items[ $id ] );
         $menu_id = $item['menu_id'] ?: $id;
         self::record( 'menu_item_deleted', 'menu', $menu_id, $item['menu_name'],
+            // translators: %1$s is the menu or menu item name; %2$s is the menu or menu item name.
             sprintf( __( 'Removed “%1$s” from navigation menu “%2$s”', 'activity-log-for-admins' ), $item['title'], $item['menu_name'] ),
             [ 'changes' => [ 'Menu item' => [ $item['title'], '' ] ] ], 'warning' );
     }
@@ -2955,6 +3050,7 @@ final class Capture {
         $menu_name = $menu && ! is_wp_error( $menu ) ? self::text( $menu->name, 180 ) : __( 'Navigation menu', 'activity-log-for-admins' );
         $title = self::text( $post->post_title, 180 ) ?: __( '(Untitled)', 'activity-log-for-admins' );
         self::record( 'menu_item_updated', 'menu', $menu_id, $menu_name,
+            // translators: %1$s is the menu or menu item name; %2$s is the menu or menu item name.
             sprintf( __( 'Updated the destination for “%1$s” in navigation menu “%2$s”', 'activity-log-for-admins' ), $title, $menu_name ),
             [ 'changes' => [ 'Link destination' => [ __( 'Previous destination', 'activity-log-for-admins' ), __( 'Updated destination', 'activity-log-for-admins' ) ] ] ], 'info' );
     }
@@ -3061,6 +3157,7 @@ final class Capture {
                 if ( $term instanceof \WP_Term && ! is_wp_error( $term ) ) {
                     $name = self::text( $term->name, 180 );
                     self::record( 'menu_created', 'menu', $term_id, $name,
+                        // translators: %s is the menu or menu item name.
                         sprintf( __( 'Created navigation menu “%s”', 'activity-log-for-admins' ), $name ),
                         [ 'changes' => [ 'Name' => [ '', $name ] ] ], 'notice' );
                 }
@@ -3073,6 +3170,7 @@ final class Capture {
         }
         $name = self::text( $term->name, 180 );
         self::record( 'term_created', 'term', $taxonomy . ':' . $term_id, $name,
+            // translators: %1$s is the name or label of the affected record; %2$s is the name or label of the affected record.
             sprintf( __( 'Created %1$s “%2$s”', 'activity-log-for-admins' ), self::taxonomy_label( $taxonomy ), $name ),
             [ 'taxonomy' => $taxonomy, 'changes' => [ 'Name' => [ '', $name ], 'Slug' => [ '', self::text( $term->slug, 180 ) ] ] ], 'notice' );
     }
@@ -3122,6 +3220,7 @@ final class Capture {
             if ( $changes ) {
                 $name = self::text( $term->name, 180 );
                 self::record( 'menu_updated', 'menu', $term_id, $name,
+                    // translators: %s is the menu or menu item name.
                     sprintf( __( 'Updated navigation menu “%s”', 'activity-log-for-admins' ), $name ),
                     [ 'changes' => $changes ], 'notice' );
             }
@@ -3153,6 +3252,7 @@ final class Capture {
         }
         $name = self::text( $term->name, 180 );
         self::record( 'term_edited', 'term', $key, $name,
+            // translators: %1$s is the name or label of the affected record; %2$s is the name or label of the affected record.
             sprintf( __( 'Updated %1$s “%2$s”', 'activity-log-for-admins' ), self::taxonomy_label( $taxonomy ), $name ),
             [ 'taxonomy' => $taxonomy, 'changes' => $changes ], 'notice' );
     }
@@ -3162,6 +3262,7 @@ final class Capture {
             if ( $deleted_term instanceof \WP_Term ) {
                 $name = self::text( $deleted_term->name, 180 );
                 self::record( 'menu_deleted', 'menu', $term_id, $name,
+                    // translators: %s is the menu or menu item name.
                     sprintf( __( 'Deleted navigation menu “%s”', 'activity-log-for-admins' ), $name ),
                     [ 'changes' => [ 'Name' => [ $name, '' ] ] ], 'warning' );
             }
@@ -3172,6 +3273,7 @@ final class Capture {
         }
         $name = self::text( $deleted_term->name, 180 );
         self::record( 'term_deleted', 'term', $taxonomy . ':' . $term_id, $name,
+            // translators: %1$s is the name or label of the affected record; %2$s is the name or label of the affected record.
             sprintf( __( 'Deleted %1$s “%2$s”', 'activity-log-for-admins' ), self::taxonomy_label( $taxonomy ), $name ),
             [ 'taxonomy' => $taxonomy, 'changes' => [ 'Name' => [ $name, '' ], 'Slug' => [ self::text( $deleted_term->slug, 180 ), '' ] ] ], 'warning' );
     }
@@ -3206,6 +3308,7 @@ final class Capture {
             $menu_name = $menu instanceof \WP_Term ? self::text( $menu->name, 180 ) : __( 'Navigation menu', 'activity-log-for-admins' );
             $title = self::text( $post->post_title, 180 ) ?: __( '(Untitled)', 'activity-log-for-admins' );
             self::record( 'menu_item_updated', 'menu', $menu_id, $menu_name,
+                // translators: %1$s is the menu or menu item name; %2$s is the menu or menu item name.
                 sprintf( __( 'Moved “%1$s” in navigation menu “%2$s”', 'activity-log-for-admins' ), $title, $menu_name ),
                 [ 'changes' => [ 'Navigation menu' => [ implode( ', ', $before ), implode( ', ', $after ) ] ] ], 'notice' );
             return;
@@ -3230,6 +3333,7 @@ final class Capture {
         }
         $name = self::text( $post->post_title, 180 ) ?: __( '(Untitled)', 'activity-log-for-admins' );
         self::record( 'terms_changed', $post->post_type, $object_id, $name,
+            // translators: %1$s is the taxonomy name; %2$s is the affected item name.
             sprintf( __( 'Changed %1$s for “%2$s”', 'activity-log-for-admins' ), self::taxonomy_label( $taxonomy ), $name ),
             [ 'taxonomy' => $taxonomy, 'changes' => [ self::taxonomy_label( $taxonomy ) => [ implode( ', ', $before ), implode( ', ', $after ) ] ] ], 'notice' );
     }
@@ -3238,7 +3342,9 @@ final class Capture {
         $post = get_post( (int) $comment->comment_post_ID );
         $title = $post instanceof \WP_Post ? self::text( $post->post_title, 160 ) : '';
         return $title
+            // translators: %s is the name or label of the affected record.
             ? sprintf( __( 'Comment on “%s”', 'activity-log-for-admins' ), $title )
+            // translators: %d is the ID or count described by the event summary.
             : sprintf( __( 'Comment %d', 'activity-log-for-admins' ), (int) $comment->comment_ID );
     }
 
@@ -3261,6 +3367,7 @@ final class Capture {
         }
         $name = self::comment_item_name( $comment );
         self::record( 'comment_created', 'comment', $comment_id, $name,
+            // translators: %s is the name or label of the affected record.
             sprintf( __( 'Added a comment on %s', 'activity-log-for-admins' ), $name ),
             [ 'changes' => [ 'Status' => [ '', self::comment_status_label( (string) wp_get_comment_status( $comment ) ) ] ] ], 'notice' );
     }
@@ -3288,6 +3395,7 @@ final class Capture {
         }
         $name = self::comment_item_name( $comment );
         self::record( 'comment_edited', 'comment', $comment_id, $name,
+            // translators: %s is the name or label of the affected record.
             sprintf( __( 'Edited a comment on %s', 'activity-log-for-admins' ), $name ),
             [ 'changes' => [ 'Comment content' => [ __( 'Previous text', 'activity-log-for-admins' ), __( 'Updated text', 'activity-log-for-admins' ) ] ] ], 'info' );
     }
@@ -3298,6 +3406,7 @@ final class Capture {
         }
         $name = self::comment_item_name( $comment );
         self::record( 'comment_status', 'comment', (int) $comment->comment_ID, $name,
+            // translators: %s is the name or label of the affected record.
             sprintf( __( 'Changed comment status on %s', 'activity-log-for-admins' ), $name ),
             [ 'changes' => [ 'Status' => [ self::comment_status_label( $old_status ), self::comment_status_label( $new_status ) ] ] ], 'notice' );
     }
@@ -3305,6 +3414,7 @@ final class Capture {
     public static function comment_deleted( int $comment_id, \WP_Comment $comment ): void {
         $name = self::comment_item_name( $comment );
         self::record( 'comment_deleted', 'comment', $comment_id, $name,
+            // translators: %s is the name or label of the affected record.
             sprintf( __( 'Deleted a comment on %s', 'activity-log-for-admins' ), $name ),
             [ 'changes' => [ 'Status' => [ self::comment_status_label( (string) wp_get_comment_status( $comment ) ), __( 'Deleted', 'activity-log-for-admins' ) ] ] ], 'warning' );
     }
@@ -3353,6 +3463,7 @@ final class Capture {
             $name = self::text( $factory->widgets[ $widget_id ]->name, 100 );
         }
         self::record( 'widget_changed', 'widget', $option, $name,
+            // translators: %s is the plugin or component name.
             sprintf( __( 'Updated %s settings', 'activity-log-for-admins' ), $name ), [], 'notice' );
     }
 
@@ -3397,6 +3508,7 @@ final class Capture {
         if ( $changes ) {
             $name = self::text( $user->user_login, 180 );
             self::record( 'user_profile_changed', 'user', $id, $name,
+                // translators: %s is the file path.
                 sprintf( __( 'Updated profile for account “%s”', 'activity-log-for-admins' ), $name ),
                 [ 'changes' => $changes ], 'notice' );
         }
@@ -3404,6 +3516,7 @@ final class Capture {
         $new_hash = (string) ( $user->data->user_pass ?? '' );
         if ( '' !== $old_hash && '' !== $new_hash && ! hash_equals( $old_hash, $new_hash ) ) {
             self::record( 'password_changed', 'user', $id, self::text( $user->user_login, 180 ),
+                // translators: %s is the account name.
                 sprintf( __( 'Changed password for account “%s”', 'activity-log-for-admins' ), self::text( $user->user_login, 180 ) ), [], 'warning' );
         }
     }
@@ -3411,6 +3524,7 @@ final class Capture {
     public static function password_reset( \WP_User $user ): void {
         $name = self::text( $user->user_login, 180 );
         self::record( 'password_changed', 'user', $user->ID, $name,
+            // translators: %s is the account name.
             sprintf( __( 'Reset password for account “%s”', 'activity-log-for-admins' ), $name ), [], 'warning' );
     }
 
@@ -3756,8 +3870,10 @@ final class Capture {
         if ( $order_id < 1 ) {
             return;
         }
+        // translators: %d is the ID of the affected item.
         $name = sprintf( __( 'Order #%d', 'activity-log-for-admins' ), $order_id );
         self::record( 'order_created', 'order', $order_id, $name,
+            // translators: %d is the ID of the affected item.
             sprintf( __( 'Created WooCommerce order #%d', 'activity-log-for-admins' ), $order_id ), [], 'notice' );
     }
 
@@ -3767,8 +3883,10 @@ final class Capture {
         }
         $from_label = function_exists( 'wc_get_order_status_name' ) ? wc_get_order_status_name( 'wc-' . sanitize_key( $from ) ) : sanitize_key( $from );
         $to_label = function_exists( 'wc_get_order_status_name' ) ? wc_get_order_status_name( 'wc-' . sanitize_key( $to ) ) : sanitize_key( $to );
+        // translators: %d is the ID of the affected item.
         $name = sprintf( __( 'Order #%d', 'activity-log-for-admins' ), $order_id );
         self::record( 'order_status_changed', 'order', $order_id, $name,
+            // translators: %1$d is the ID of the affected item; %2$s is the name or label of the affected record; %3$s is the name or label of the affected record.
             sprintf( __( 'Changed WooCommerce order #%1$d from %2$s to %3$s', 'activity-log-for-admins' ), $order_id, $from_label, $to_label ),
             [ 'changes' => [ 'Status' => [ self::text( (string) $from_label, 80 ), self::text( (string) $to_label, 80 ) ] ] ], 'notice' );
     }
@@ -3777,21 +3895,26 @@ final class Capture {
         if ( $order_id < 1 ) {
             return;
         }
+        // translators: %d is the ID of the affected item.
         $name = sprintf( __( 'Order #%d', 'activity-log-for-admins' ), $order_id );
         $details = $refund_id > 0 ? [ 'refund_id' => $refund_id ] : [];
         self::record( 'order_refunded', 'order', $order_id, $name,
+            // translators: %d is the ID of the affected item.
             sprintf( __( 'Refunded WooCommerce order #%d', 'activity-log-for-admins' ), $order_id ), $details, 'warning' );
     }
 
     public static function order_trashed( int $order_id ): void {
+        // translators: %d is the ID of the affected item.
         self::order_lifecycle_event( $order_id, 'order_trashed', __( 'Moved WooCommerce order #%d to Trash', 'activity-log-for-admins' ), 'warning' );
     }
 
     public static function order_restored( int $order_id ): void {
+        // translators: %d is the ID of the affected item.
         self::order_lifecycle_event( $order_id, 'order_restored', __( 'Restored WooCommerce order #%d from Trash', 'activity-log-for-admins' ), 'notice' );
     }
 
     public static function order_deleted( int $order_id ): void {
+        // translators: %d is the ID of the affected item.
         self::order_lifecycle_event( $order_id, 'order_deleted', __( 'Deleted WooCommerce order #%d', 'activity-log-for-admins' ), 'warning' );
     }
 
@@ -3799,6 +3922,7 @@ final class Capture {
         if ( $order_id < 1 ) {
             return;
         }
+        // translators: %d is the ID of the affected item.
         $name = sprintf( __( 'Order #%d', 'activity-log-for-admins' ), $order_id );
         self::record( $action, 'order', $order_id, $name, sprintf( $summary_template, $order_id ), [], $severity );
     }
@@ -3819,6 +3943,7 @@ final class Capture {
 
     private static function redirect_event( string $action, mixed $redirect ): void {
         $id = self::redirect_id( $redirect );
+        // translators: %d is the ID of the affected item.
         $name = $id ? sprintf( __( 'Redirect #%d', 'activity-log-for-admins' ), $id ) : __( 'Redirect', 'activity-log-for-admins' );
         $messages = [
             'redirect_updated' => __( 'Created or updated a Redirection rule', 'activity-log-for-admins' ),

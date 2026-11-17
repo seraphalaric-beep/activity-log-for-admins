@@ -531,42 +531,30 @@ final class Store {
         $statistics_outputs_clean = self::cleanup_statistics_outputs();
         $table = self::table();
         $cutoff = gmdate( 'Y-m-d H:i:s', time() - self::settings()['retention'] * DAY_IN_SECONDS );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Select a bounded batch of expired events before deleting related notes.
-        $expired_ids = $wpdb->get_col( $wpdb->prepare(
-            'SELECT id FROM %i WHERE occurred_at < %s ORDER BY occurred_at, id LIMIT %d',
+        $deleted = 0;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete related notes for a bounded batch of expired events.
+        $notes_deleted = $wpdb->query( $wpdb->prepare(
+            'DELETE FROM %i WHERE event_id IN (SELECT id FROM (SELECT id FROM %i WHERE occurred_at < %s ORDER BY occurred_at, id LIMIT %d) AS expired_events)',
+            self::notes_table(),
             $table,
             $cutoff,
             self::CLEANUP_SIZE
         ) );
-        if ( $wpdb->last_error || ! is_array( $expired_ids ) ) {
+        if ( false === $notes_deleted ) {
             self::record_failure( 'cleanup_error' );
             return;
         }
-
-        $deleted = 0;
-        if ( $expired_ids ) {
-            $ids = array_map( 'intval', $expired_ids );
-            $placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.NotPrepared -- Every dynamic event ID has its own integer placeholder.
-            $notes_deleted = $wpdb->query( $wpdb->prepare(
-                'DELETE FROM %i WHERE event_id IN (' . $placeholders . ')',
-                self::notes_table(),
-                ...$ids
-            ) );
-            if ( false === $notes_deleted ) {
-                self::record_failure( 'cleanup_error' );
-                return;
-            }
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.NotPrepared -- Every dynamic event ID has its own integer placeholder.
-            $deleted = $wpdb->query( $wpdb->prepare(
-                'DELETE FROM %i WHERE id IN (' . $placeholders . ')',
-                $table,
-                ...$ids
-            ) );
-            if ( false === $deleted ) {
-                self::record_failure( 'cleanup_error' );
-                return;
-            }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete the same bounded batch of expired events after their related notes.
+        $deleted = $wpdb->query( $wpdb->prepare(
+            'DELETE FROM %i WHERE id IN (SELECT id FROM (SELECT id FROM %i WHERE occurred_at < %s ORDER BY occurred_at, id LIMIT %d) AS expired_events)',
+            $table,
+            $table,
+            $cutoff,
+            self::CLEANUP_SIZE
+        ) );
+        if ( false === $deleted ) {
+            self::record_failure( 'cleanup_error' );
+            return;
         }
 
         $health = (array) get_option( self::HEALTH, [] );
@@ -934,6 +922,7 @@ final class Store {
                 $params = array_merge( $params, [ $site_id, $table ], $where_params, [ $limit ] );
                 $site = get_blog_details( $site_id );
                 $site_labels[ $site_id ] = [
+                    // translators: %d is the site ID.
                     'name' => $site instanceof \WP_Site ? sanitize_text_field( $site->blogname ) : sprintf( __( 'Site %d', 'activity-log-for-admins' ), $site_id ),
                     'timezone' => wp_timezone_string() ?: 'UTC',
                 ];
@@ -955,6 +944,7 @@ final class Store {
         foreach ( $rows as &$row ) {
             $site_id = (int) $row['network_site_id'];
             $row['network_site_id'] = (string) $site_id;
+            // translators: %d is the site ID.
             $row['network_site_name'] = $site_labels[ $site_id ]['name'] ?? sprintf( __( 'Site %d', 'activity-log-for-admins' ), $site_id );
             $row['network_site_timezone'] = $site_labels[ $site_id ]['timezone'] ?? 'UTC';
         }
@@ -999,7 +989,7 @@ final class Store {
         };
         [ $where, $filter_params ] = self::filter_where( $filters );
         $params = array_merge( [ self::table() ], $filter_params );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.NotPrepared -- The grouping expression is selected from a fixed allowlist and the filter values are prepared.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The grouping expression is selected from a fixed allowlist and the filter values are prepared.
         $total = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE $where", ...$params ) );
         if ( $wpdb->last_error ) {
             return self::unavailable();
@@ -1468,6 +1458,7 @@ final class Store {
         }
         $body .= __( 'This digest includes up to the configured number of event summaries. Review the Activity Log in WordPress for details.', 'activity-log-for-admins' );
         $site_name = sanitize_text_field( wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES ) );
+        // translators: %s is the name or label of the affected record.
         $subject = sprintf( __( '[%s] Activity Log warning digest', 'activity-log-for-admins' ), $site_name );
         if ( wp_mail( $recipients, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] ) ) {
             update_option( 'alfa_alert_digest_after_id', (int) $rows[0]['id'] + 1, false );

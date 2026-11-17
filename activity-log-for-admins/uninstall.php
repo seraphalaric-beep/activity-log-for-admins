@@ -12,6 +12,7 @@ $alfa_clear_site_data = static function (): void {
     if ( $alfa_erase ) {
         \ActivityLogForAdmins\Sessions::erase_all_activity_for_site();
         if ( ! \ActivityLogForAdmins\ScheduledReports::erase_history_files() ) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Leave a server side diagnostic if explicit uninstall cannot remove private report copies.
             error_log( 'Activity Log for Admins could not remove every private report copy during uninstall.' );
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Remove this site's plugin tables only after its admin opted in.

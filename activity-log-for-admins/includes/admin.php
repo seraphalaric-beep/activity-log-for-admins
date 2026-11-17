@@ -1647,13 +1647,11 @@ final class Admin {
         if ( ! isset( $payload['first'], $payload['filters'], $payload['ceiling'], $payload['title'], $payload['columns'], $payload['branding'] ) ) {
             return $served;
         }
-        $title = esc_html( (string) $payload['title'] );
-        $generated = esc_html( wp_date( 'j M Y, H:i:s T' ) );
-        echo '<!doctype html><html lang="' . esc_attr( str_replace( '_', '-', determine_locale() ) ) . '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . $title . '</title><style>body{font:14px/1.5 system-ui,sans-serif;color:#172033;margin:32px}h1{font-size:24px;margin:0 0 8px}p{color:#526078}.report-brand{font-weight:600;color:#172033}.report-meta{margin:24px 0;padding:16px;background:#f4f6fa;border-radius:8px}.report-meta dt{font-weight:700}.report-meta dd{margin:0 0 8px}.report-table{border-collapse:collapse;width:100%;font-size:12px}.report-table th,.report-table td{border:1px solid #d7dce5;padding:8px;text-align:left;vertical-align:top}.report-table th{background:#f4f6fa}.report-table tr:nth-child(even){background:#fafbfc}.report-details{white-space:pre-wrap;max-width:420px}</style></head><body><main>';
+        echo '<!doctype html><html lang="' . esc_attr( str_replace( '_', '-', determine_locale() ) ) . '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . esc_html( (string) $payload['title'] ) . '</title><style>body{font:14px/1.5 system-ui,sans-serif;color:#172033;margin:32px}h1{font-size:24px;margin:0 0 8px}p{color:#526078}.report-brand{font-weight:600;color:#172033}.report-meta{margin:24px 0;padding:16px;background:#f4f6fa;border-radius:8px}.report-meta dt{font-weight:700}.report-meta dd{margin:0 0 8px}.report-table{border-collapse:collapse;width:100%;font-size:12px}.report-table th,.report-table td{border:1px solid #d7dce5;padding:8px;text-align:left;vertical-align:top}.report-table th{background:#f4f6fa}.report-table tr:nth-child(even){background:#fafbfc}.report-details{white-space:pre-wrap;max-width:420px}</style></head><body><main>';
         if ( $payload['branding'] ) {
             echo '<p class="report-brand">' . esc_html( get_bloginfo( 'name' ) ) . '</p>';
         }
-        echo '<h1>' . $title . '</h1><p>' . esc_html__( 'Generated', 'activity-log-for-admins' ) . ': ' . $generated . '</p><dl class="report-meta">';
+        echo '<h1>' . esc_html( (string) $payload['title'] ) . '</h1><p>' . esc_html__( 'Generated', 'activity-log-for-admins' ) . ': ' . esc_html( wp_date( 'j M Y, H:i:s T' ) ) . '</p><dl class="report-meta">';
         $filter_labels = [
             'q' => __( 'Search', 'activity-log-for-admins' ),
             'from' => __( 'From', 'activity-log-for-admins' ),
@@ -1728,10 +1726,9 @@ final class Admin {
                     if ( ! array_key_exists( $column, $cells ) ) {
                         continue;
                     }
-                    $value = esc_html( $cells[ $column ] );
                     echo 'details' === $column
-                        ? '<td class="report-details">' . nl2br( $value, false ) . '</td>'
-                        : '<td>' . $value . '</td>';
+                        ? '<td class="report-details">' . nl2br( esc_html( $cells[ $column ] ), false ) . '</td>'
+                        : '<td>' . esc_html( $cells[ $column ] ) . '</td>';
                 }
                 echo '</tr>';
             }
@@ -1780,10 +1777,8 @@ final class Admin {
             return true;
         }
 
-        $title = esc_html( $report['name'] );
-        $generated = esc_html( wp_date( 'j M Y, H:i:s T' ) );
-        echo '<!doctype html><html lang="' . esc_attr( str_replace( '_', '-', determine_locale() ) ) . '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . $title . '</title><style>body{font:14px/1.5 system-ui,sans-serif;color:#172033;margin:32px}h1{font-size:24px;margin:0 0 8px}p{color:#526078}.report-meta{margin:24px 0;padding:16px;background:#f4f6fa;border-radius:8px}.report-meta dt{font-weight:700}.report-meta dd{margin:0 0 8px}.report-table{border-collapse:collapse;width:100%;font-size:13px}.report-table th,.report-table td{border:1px solid #d7dce5;padding:8px;text-align:left}.report-table th{background:#f4f6fa}.report-table tr:nth-child(even){background:#fafbfc}</style></head><body><main>';
-        echo '<h1>' . $title . '</h1><p>' . esc_html__( 'Generated', 'activity-log-for-admins' ) . ': ' . $generated . '</p><dl class="report-meta">';
+        echo '<!doctype html><html lang="' . esc_attr( str_replace( '_', '-', determine_locale() ) ) . '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . esc_html( (string) $report['name'] ) . '</title><style>body{font:14px/1.5 system-ui,sans-serif;color:#172033;margin:32px}h1{font-size:24px;margin:0 0 8px}p{color:#526078}.report-meta{margin:24px 0;padding:16px;background:#f4f6fa;border-radius:8px}.report-meta dt{font-weight:700}.report-meta dd{margin:0 0 8px}.report-table{border-collapse:collapse;width:100%;font-size:13px}.report-table th,.report-table td{border:1px solid #d7dce5;padding:8px;text-align:left}.report-table th{background:#f4f6fa}.report-table tr:nth-child(even){background:#fafbfc}</style></head><body><main>';
+        echo '<h1>' . esc_html( (string) $report['name'] ) . '</h1><p>' . esc_html__( 'Generated', 'activity-log-for-admins' ) . ': ' . esc_html( wp_date( 'j M Y, H:i:s T' ) ) . '</p><dl class="report-meta">';
         echo '<dt>' . esc_html__( 'Date range', 'activity-log-for-admins' ) . '</dt><dd>' . esc_html( $statistics['from'] . ' to ' . $statistics['to'] ) . '</dd>';
         echo '<dt>' . esc_html__( 'Grouped by', 'activity-log-for-admins' ) . '</dt><dd>' . esc_html( self::statistics_group_label( $statistics['group'] ) ) . '</dd>';
         if ( $report['tags'] ) {

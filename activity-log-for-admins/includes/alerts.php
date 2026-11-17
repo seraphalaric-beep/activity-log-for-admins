@@ -701,14 +701,22 @@ final class Alerts {
     private static function send( array $rule, array $event, array $delivered = [], int $budget = self::MAX_DELIVERIES_PER_RUN ): array {
         $timestamp = strtotime( (string) $event['occurred_at'] . ' UTC' );
         $site_name = sanitize_text_field( wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES ) );
+        // translators: %1$s is the site name; %2$s is the alert rule name.
         $subject = sprintf( __( '[%1$s] Activity alert: %2$s', 'activity-log-for-admins' ), $site_name, $rule['name'] );
         $lines = [
+            // translators: %s is the alert rule name.
             sprintf( __( 'Alert rule: %s', 'activity-log-for-admins' ), $rule['name'] ),
+            // translators: %s is the event time.
             sprintf( __( 'Time: %s', 'activity-log-for-admins' ), wp_date( 'j M Y, H:i:s T', $timestamp ) ),
+            // translators: %s is the event summary.
             sprintf( __( 'Event: %s', 'activity-log-for-admins' ), sanitize_text_field( (string) $event['summary'] ) ),
+            // translators: %s is the actor name.
             sprintf( __( 'Actor: %s', 'activity-log-for-admins' ), sanitize_text_field( (string) $event['actor_name'] ) ),
+            // translators: %s is the actor role.
             sprintf( __( 'Actor role: %s', 'activity-log-for-admins' ), sanitize_text_field( (string) $event['actor_role'] ) ),
+            // translators: %s is the affected item name.
             sprintf( __( 'Affected item: %s', 'activity-log-for-admins' ), sanitize_text_field( (string) $event['item_name'] ) ),
+            // translators: %s is the severity label.
             sprintf( __( 'Severity: %s', 'activity-log-for-admins' ), sanitize_text_field( (string) $event['severity'] ) ),
             __( 'Review the full event in the Activity Log in WordPress.', 'activity-log-for-admins' ),
         ];

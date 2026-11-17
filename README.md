@@ -4,9 +4,9 @@ A free activity history plugin for WordPress site administrators. Search changes
 
 The Activity Log menu sits near the top of the WordPress admin menu. The main Dashboard includes recent changes and activity counts. Authorized viewers can also open the five newest changes from the WordPress admin toolbar, with polling only on visible admin pages.
 
-The 1.2.0 release is an expanded pilot for disposable and staging sites while the project gathers feedback. It is licensed under GPL 2.0 or later.
+The 1.2.1 release is an expanded pilot for disposable and staging sites while the project gathers feedback. It is licensed under GPL 2.0 or later.
 
-Version 1.2.0 includes a Super Admin network activity center, session inventory and revocation, optional concurrent session limits and idle expiry, the live admin toolbar feed, expanded WooCommerce capture, optional Advanced Custom Fields field label events, optional bbPress activity, optional WPForms form and submission events, optional Yoast SEO and Rank Math change records, optional Paid Memberships Pro membership events, optional Termly setting events, optional MainWP Dashboard tracking with child event transfer, optional InfiniteWP source and backup tracking, configurable warning email digests, immediate email, Slack, and Twilio SMS alert rules with all or any condition matching, private HTML reports, activity statistics, saved report templates, and scheduled report delivery. External storage and archives, WordPress core checksum comparison, and several real connector checks remain on the roadmap.
+Version 1.2.1 includes the expanded pilot features from 1.2.0 and fixes findings from the WordPress automated review. These include a Super Admin network activity center, session inventory and revocation, optional concurrent session limits and idle expiry, the live admin toolbar feed, expanded WooCommerce capture, optional Advanced Custom Fields field label events, optional bbPress activity, optional WPForms form and submission events, optional Yoast SEO and Rank Math change records, optional Paid Memberships Pro membership events, optional Termly setting events, optional MainWP Dashboard tracking with child event transfer, optional InfiniteWP source and backup tracking, configurable warning email digests, immediate email, Slack, and Twilio SMS alert rules with all or any condition matching, private HTML reports, activity statistics, saved report templates, and scheduled report delivery. External storage and archives, WordPress core checksum comparison, and several real connector checks remain on the roadmap.
 
 Extension developers can register custom event types and record sanitized events through the versioned [developer API](docs/DEVELOPER-API.md), without writing to the plugin's tables.
 
@@ -32,7 +32,7 @@ See [the plugin readme](activity-log-for-admins/readme.txt) for the complete eve
 
 1. Use a disposable or staging WordPress site running WordPress 6.9 or later and PHP 8.3 or later.
 2. In the WordPress admin, open **Plugins**, then **Add New Plugin**, then **Upload Plugin**.
-3. Choose the [installable 1.2.0 ZIP](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/download/v1.2.0/activity-log-for-admins.1.2.0.zip), install it, and activate it.
+3. Choose the [installable 1.2.1 ZIP](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/download/v1.2.1/activity-log-for-admins.1.2.1.zip), install it, and activate it.
 4. Find the activity summary on the main Dashboard, or open **Activity Log** near the top of the admin menu.
 
 The plugin has not completed WordPress.org review. Do not use the pilot as the only record keeping system for a production site.
@@ -46,7 +46,7 @@ npm ci
 npm run package
 ```
 
-The build updates the bundled admin files and creates `release/activity-log-for-admins.1.2.0.zip`. The archive includes the plugin, frontend source, package lock, and third party license notices.
+The build updates the bundled admin files and creates `release/activity-log-for-admins.1.2.1.zip`. The archive includes the plugin, frontend source, package lock, and third party license notices.
 
 ## Run the local pilot
 
@@ -60,6 +60,6 @@ The browser and database pilot uses a disposable WordPress installation, MariaDB
 * [Security reporting](SECURITY.md)
 * [Contributing](CONTRIBUTING.md)
 * [WordPress.org assets and listing copy](docs/wordpress-org-assets.md)
-* [Verification results for 1.2.0](PILOT.md)
+* [Verification results for 1.2.1](PILOT.md)
 * [WordPress design standard](docs/WordPress%20Design%20Standard.md)
 

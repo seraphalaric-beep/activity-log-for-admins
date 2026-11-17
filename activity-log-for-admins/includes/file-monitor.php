@@ -250,6 +250,7 @@ final class FileMonitor {
                         return;
                     }
                     if ( ! $state['initial'] ) {
+                        // translators: %s is the file path.
                         Capture::file_event( 'file_deleted', $path, sprintf( __( 'Deleted file %s', 'activity-log-for-admins' ), $path ), [], 'warning' );
                     }
                 }
@@ -331,8 +332,10 @@ final class FileMonitor {
         $mode_change = $was_known && (int) $before['file_mode'] !== $mode;
         $fingerprint_change = $was_known && (string) $before['fingerprint'] !== $fingerprint;
         if ( ! $was_known ) {
+            // translators: %s is the file path.
             Capture::file_event( 'file_created', $path, sprintf( __( 'Created file %s', 'activity-log-for-admins' ), $path ), [ 'size' => $size, 'permissions' => self::mode_label( $mode ) ], 'notice' );
         } elseif ( $fingerprint_change || $size_change || $mtime_change ) {
+            // translators: %s is the file path.
             Capture::file_event( 'file_modified', $path, sprintf( __( 'Changed file %s', 'activity-log-for-admins' ), $path ), [
                 'changes' => [
                     'Size' => [ (int) $before['file_size'], $size ],
@@ -344,6 +347,7 @@ final class FileMonitor {
             ], 'notice' );
         }
         if ( $mode_change ) {
+            // translators: %s is the file path.
             Capture::file_event( 'file_permissions_changed', $path, sprintf( __( 'Changed permissions for %s', 'activity-log-for-admins' ), $path ), [
                 'changes' => [ 'Permissions' => [ self::mode_label( (int) $before['file_mode'] ), self::mode_label( $mode ) ] ],
             ], 'warning' );
@@ -363,6 +367,7 @@ final class FileMonitor {
         }
         update_option( Store::HEALTH, $health, false );
         if ( $state['size_skipped'] ) {
+            // translators: %d is the number of large files.
             Capture::file_event( 'file_scan_size_skipped', 'Site files', sprintf( __( 'Content checksums skipped for %d large files', 'activity-log-for-admins' ), (int) $state['size_skipped'] ), [ 'count' => (int) $state['size_skipped'], 'maximum_mb' => Store::settings()['file_max_size_mb'] ] );
         }
         Capture::file_event( 'file_scan_completed', 'Site files', __( 'Completed a file scan', 'activity-log-for-admins' ), [

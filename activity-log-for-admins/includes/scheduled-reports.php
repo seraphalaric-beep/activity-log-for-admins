@@ -10,6 +10,7 @@ final class ScheduledReports {
     public const SCHEDULES = 'alfa_report_schedules';
     public const JOB = 'alfa_report_job';
     private const CANCELLED_JOB = 'alfa_report_job_cancelled';
+    private const REPORT_LOCK_PREFIX = 'alfa_report_';
     public const HISTORY = 'alfa_report_history';
     private const MAX_SCHEDULES = 20;
     private const MAX_RECIPIENTS = 10;
@@ -180,7 +181,9 @@ final class ScheduledReports {
             }
             $format = in_array( $entry['format'] ?? '', [ 'csv', 'html' ], true ) ? $entry['format'] : '';
             $path = self::valid_archive_file( (string) ( $entry['file'] ?? '' ), $format );
-            if ( false === $path || ! is_readable( $path ) ) {
+            $filesystem = self::filesystem();
+            $contents = false === $path || is_wp_error( $filesystem ) ? false : $filesystem->get_contents( $path );
+            if ( false === $path || ! is_string( $contents ) ) {
                 break;
             }
             $extension = 'html' === $format ? 'html' : 'csv';
@@ -191,12 +194,13 @@ final class ScheduledReports {
             nocache_headers();
             header( 'Content-Type: ' . ( 'html' === $format ? 'text/html' : 'text/csv' ) . '; charset=utf-8' );
             header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-            header( 'Content-Length: ' . (string) filesize( $path ) );
+            header( 'Content-Length: ' . (string) strlen( $contents ) );
             header( 'X-Content-Type-Options: nosniff' );
             if ( 'html' === $format ) {
                 header( "Content-Security-Policy: sandbox; default-src 'none'; style-src 'unsafe-inline'" );
             }
-            readfile( $path );
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This plugin creates the report, escapes HTML cells, and protects CSV values before writing the file.
+            echo $contents;
             exit;
         }
         wp_die( esc_html__( 'The report copy is no longer available.', 'activity-log-for-admins' ), '', [ 'response' => 404 ] );
@@ -474,15 +478,9 @@ final class ScheduledReports {
             self::record_result( $schedule, 'failed', 0, __( 'A private temporary report file could not be created.', 'activity-log-for-admins' ) );
             return;
         }
-        $file = fopen( $path, 'xb' );
-        if ( false === $file ) {
+        $filesystem = self::filesystem();
+        if ( is_wp_error( $filesystem ) || $filesystem->exists( $path ) ) {
             self::record_result( $schedule, 'failed', 0, __( 'A private temporary report file could not be created.', 'activity-log-for-admins' ) );
-            return;
-        }
-        if ( ! self::set_private_permissions( $path, 0600 ) ) {
-            fclose( $file );
-            wp_delete_file( $path );
-            self::record_result( $schedule, 'failed', 0, __( 'Private temporary report storage could not be secured.', 'activity-log-for-admins' ) );
             return;
         }
         $today = new \DateTimeImmutable( 'today', wp_timezone() );
@@ -496,20 +494,20 @@ final class ScheduledReports {
         $header_rows[] = [ 'Generated', wp_date( 'j M Y, H:i:s T' ) ];
         $header_rows[] = array_map( [ self::class, 'column_label' ], $schedule['columns'] );
         if ( 'csv' === $format ) {
-            $written = false !== fwrite( $file, "\xEF\xBB\xBF" );
+            $contents = "\xEF\xBB\xBF";
             foreach ( $header_rows as $header_row ) {
-                $written = $written && self::write_csv_row( $file, $header_row );
+                $contents .= self::csv_row( $header_row );
             }
         } else {
-            $written = false !== fwrite( $file, self::html_report_start( $schedule, $from, $to ) );
+            $contents = self::html_report_start( $schedule, $from, $to );
         }
-        if ( ! $written ) {
-                fclose( $file );
-                wp_delete_file( $path );
-                self::record_result( $schedule, 'failed', 0, __( 'The report could not be written to private temporary storage.', 'activity-log-for-admins' ) );
-                return;
+        if ( strlen( $contents ) > self::MAX_REPORT_BYTES
+            || ! $filesystem->put_contents( $path, $contents, 0600 )
+            || ! self::set_private_permissions( $path, 0600 ) ) {
+            $filesystem->delete( $path );
+            self::record_result( $schedule, 'failed', 0, __( 'The report could not be written to private temporary storage.', 'activity-log-for-admins' ) );
+            return;
         }
-        fclose( $file );
 
         $now = time();
         $job = [
@@ -563,27 +561,16 @@ final class ScheduledReports {
             wp_clear_scheduled_hook( self::CONTINUE );
             return;
         }
-        $lock_path = $job['path'] . '.lock';
-        $lock = fopen( $lock_path, 'c' );
-        if ( false === $lock ) {
-            self::fail_job( $job, __( 'The private report job could not be locked.', 'activity-log-for-admins' ) );
+        $lock_name = self::acquire_report_lock();
+        if ( is_wp_error( $lock_name ) ) {
+            self::fail_job( $job, $lock_name->get_error_message() );
             self::remove_job_file( $job );
             self::clear_cancellation( $job );
             delete_option( self::JOB );
             wp_clear_scheduled_hook( self::CONTINUE );
             return;
         }
-        if ( ! self::set_private_permissions( $lock_path, 0600 ) ) {
-            fclose( $lock );
-            self::fail_job( $job, __( 'Private report job permissions could not be secured.', 'activity-log-for-admins' ) );
-            self::remove_job_file( $job );
-            self::clear_cancellation( $job );
-            delete_option( self::JOB );
-            wp_clear_scheduled_hook( self::CONTINUE );
-            return;
-        }
-        if ( ! flock( $lock, LOCK_EX | LOCK_NB ) ) {
-            fclose( $lock );
+        if ( false === $lock_name ) {
             return;
         }
         $finished = false;
@@ -607,12 +594,14 @@ final class ScheduledReports {
                 $finished = self::process_delivery_attempt( $job );
                 return;
             }
-            $file = fopen( $job['path'], 'ab' );
-            if ( false === $file ) {
+            $filesystem = self::filesystem();
+            $contents = is_wp_error( $filesystem ) ? false : $filesystem->get_contents( $job['path'] );
+            if ( ! is_string( $contents ) ) {
                 self::fail_job( $job, __( 'The temporary report file is unavailable.', 'activity-log-for-admins' ) );
                 $finished = true;
                 return;
             }
+            $append = '';
             $batch_count = 0;
             $done = false;
             while ( $batch_count < self::BATCHES_PER_RUN ) {
@@ -622,7 +611,6 @@ final class ScheduledReports {
                 }
                 $rows = Store::query( $job['filters'], self::BATCH_SIZE, (int) $job['cursor'], (int) $job['ceiling'], true );
                 if ( is_wp_error( $rows ) ) {
-                    fclose( $file );
                     self::fail_job( $job, __( 'Activity data became unavailable while the report was being prepared.', 'activity-log-for-admins' ) );
                     $finished = true;
                     return;
@@ -632,20 +620,12 @@ final class ScheduledReports {
                     foreach ( $job['columns'] as $column ) {
                         $cells[] = self::event_value( $column, $row );
                     }
-                    $row_written = 'html' === ( $job['format'] ?? 'csv' )
-                        ? self::write_html_row( $file, $cells )
-                        : self::write_csv_row( $file, $cells );
-                    if ( ! $row_written ) {
-                        fclose( $file );
-                        self::fail_job( $job, __( 'The report could not be written to private temporary storage.', 'activity-log-for-admins' ) );
-                        $finished = true;
-                        return;
-                    }
+                    $append .= 'html' === ( $job['format'] ?? 'csv' )
+                        ? self::html_row( $cells )
+                        : self::csv_row( $cells );
                     ++$job['rows'];
                 }
-                $file_size = filesize( $job['path'] );
-                if ( false === $file_size || $file_size > self::MAX_REPORT_BYTES ) {
-                    fclose( $file );
+                if ( strlen( $contents ) + strlen( $append ) > self::MAX_REPORT_BYTES ) {
                     self::fail_job( $job, __( 'The report exceeds the 10 MB email attachment limit. Narrow the date range or choose fewer fields.', 'activity-log-for-admins' ) );
                     $finished = true;
                     return;
@@ -658,28 +638,21 @@ final class ScheduledReports {
                 ++$batch_count;
             }
             if ( self::cancellation_requested( $job ) ) {
-                fclose( $file );
                 self::fail_job( $job, sanitize_text_field( (string) ( $job['cancel_message'] ?? __( 'The report was cancelled.', 'activity-log-for-admins' ) ) ) );
                 $finished = true;
                 return;
             }
-            if ( $done && 'html' === ( $job['format'] ?? 'csv' ) && false === fwrite( $file, "</tbody></table></main></body></html>" ) ) {
-                fclose( $file );
-                self::fail_job( $job, __( 'The report could not be written to private temporary storage.', 'activity-log-for-admins' ) );
-                $finished = true;
-                return;
+            if ( $done && 'html' === ( $job['format'] ?? 'csv' ) ) {
+                $append .= "</tbody></table></main></body></html>";
             }
-            $final_size = filesize( $job['path'] );
-            if ( false === $final_size || $final_size > self::MAX_REPORT_BYTES ) {
-                fclose( $file );
+            if ( strlen( $contents ) + strlen( $append ) > self::MAX_REPORT_BYTES ) {
                 self::fail_job( $job, __( 'The report exceeds the 10 MB email attachment limit. Narrow the date range or choose fewer fields.', 'activity-log-for-admins' ) );
                 $finished = true;
                 return;
             }
-            $flushed = fflush( $file );
-            fclose( $file );
-            if ( ! $flushed ) {
-                self::fail_job( $job, __( 'The report could not be flushed to private temporary storage.', 'activity-log-for-admins' ) );
+            if ( ! $filesystem->put_contents( $job['path'], $contents . $append, 0600 )
+                || ! self::set_private_permissions( $job['path'], 0600 ) ) {
+                self::fail_job( $job, __( 'The report could not be written to private temporary storage.', 'activity-log-for-admins' ) );
                 $finished = true;
                 return;
             }
@@ -705,8 +678,7 @@ final class ScheduledReports {
             }
             self::schedule_continue();
         } finally {
-            flock( $lock, LOCK_UN );
-            fclose( $lock );
+            self::release_report_lock( $lock_name );
             if ( $finished ) {
                 self::remove_job_file( $job );
                 delete_option( self::JOB );
@@ -761,6 +733,7 @@ final class ScheduledReports {
             if ( hash_equals( $current['id'], $schedule['id'] ) ) {
                 $current['last_status'] = 'pending';
                 $current['last_error'] = sprintf(
+                    // translators: %1$d is the current retry number; %2$d is the maximum retry number; %3$d is the wait time in minutes.
                     __( 'Email delivery failed. Retry %1$d of %2$d is queued in about %3$d minutes.', 'activity-log-for-admins' ),
                     $attempt,
                     self::MAX_DELIVERY_ATTEMPTS,
@@ -788,9 +761,11 @@ final class ScheduledReports {
         if ( ! $recipients ) {
             return false;
         }
+        // translators: %1$s is the site name; %2$s is the scheduled report name.
         $subject = sprintf( __( '[%1$s] Scheduled activity report: %2$s', 'activity-log-for-admins' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $job['name'] );
         $format_label = 'html' === ( $job['format'] ?? 'csv' ) ? 'HTML' : 'CSV';
         $body = sprintf(
+            // translators: %1$s is the report file format; %2$d is the number of matching events.
             __( 'Your scheduled activity report is attached as a %1$s file. It contains %2$d matching events for the selected date range. Manage report recipients and delivery in the Activity Log Reports page.', 'activity-log-for-admins' ),
             $format_label,
             (int) $job['rows']
@@ -882,20 +857,33 @@ final class ScheduledReports {
             return;
         }
         $job = get_option( self::JOB, [] );
-        foreach ( (array) glob( $directory . DIRECTORY_SEPARATOR . 'report-*.*' ) as $path ) {
+        $filesystem = self::filesystem();
+        if ( is_wp_error( $filesystem ) ) {
+            return;
+        }
+        $temporary_files = self::directory_files( $directory, $filesystem );
+        if ( is_wp_error( $temporary_files ) ) {
+            return;
+        }
+        foreach ( $temporary_files as $path ) {
             if ( ! preg_match( '/\Areport-[a-f0-9]{32}\.(?:csv|html)\z/', basename( $path ) ) || is_link( $path ) ) {
                 continue;
             }
             if ( is_array( $job ) && isset( $job['path'] ) && hash_equals( (string) $job['path'], $path ) ) {
                 continue;
             }
-            if ( filemtime( $path ) && filemtime( $path ) < time() - DAY_IN_SECONDS ) {
-                wp_delete_file( $path );
-                wp_delete_file( $path . '.lock' );
+            $modified = $filesystem->mtime( $path );
+            if ( $modified && $modified < time() - DAY_IN_SECONDS ) {
+                $filesystem->delete( $path );
+                $filesystem->delete( $path . '.lock' );
             }
         }
         $archive_directory = self::archive_directory();
         if ( ! is_wp_error( $archive_directory ) ) {
+            $archive_files = self::directory_files( $archive_directory, $filesystem );
+            if ( is_wp_error( $archive_files ) ) {
+                return;
+            }
             $known_files = [];
             foreach ( self::history() as $entry ) {
                 $filename = (string) ( $entry['file'] ?? '' );
@@ -904,14 +892,14 @@ final class ScheduledReports {
                 }
             }
             $archive_cutoff = time() - self::retention_days() * DAY_IN_SECONDS;
-            foreach ( (array) glob( $archive_directory . DIRECTORY_SEPARATOR . 'report-*.*' ) as $path ) {
+            foreach ( $archive_files as $path ) {
                 $filename = basename( $path );
                 if ( ! preg_match( '/\Areport-[a-f0-9]{32}\.(?:csv|html)\z/', $filename ) || is_link( $path ) ) {
                     continue;
                 }
-                $modified = filemtime( $path );
+                $modified = $filesystem->mtime( $path );
                 if ( ! isset( $known_files[ $filename ] ) || ( false !== $modified && $modified < $archive_cutoff ) ) {
-                    wp_delete_file( $path );
+                    $filesystem->delete( $path );
                 }
             }
         }
@@ -937,10 +925,59 @@ final class ScheduledReports {
         }
     }
 
+    private static function filesystem(): \WP_Filesystem_Base|\WP_Error {
+        global $wp_filesystem;
+        if ( ! function_exists( 'WP_Filesystem' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        if ( ! function_exists( 'WP_Filesystem' ) || ( ! $wp_filesystem && ! WP_Filesystem() )
+            || ! ( $wp_filesystem instanceof \WP_Filesystem_Base ) ) {
+            return new \WP_Error( 'alfa_report_filesystem', __( 'WordPress could not initialize private report storage.', 'activity-log-for-admins' ) );
+        }
+        return $wp_filesystem;
+    }
+
+    private static function directory_files( string $directory, \WP_Filesystem_Base $filesystem ): array|\WP_Error {
+        $entries = $filesystem->dirlist( $directory, false );
+        if ( ! is_array( $entries ) ) {
+            return new \WP_Error( 'alfa_report_filesystem_list', __( 'WordPress could not inspect private report storage.', 'activity-log-for-admins' ) );
+        }
+        $paths = [];
+        foreach ( $entries as $entry ) {
+            if ( is_array( $entry ) && 'f' === ( $entry['type'] ?? '' ) && is_string( $entry['name'] ?? null ) ) {
+                $paths[] = trailingslashit( $directory ) . $entry['name'];
+            }
+        }
+        return $paths;
+    }
+
+    private static function acquire_report_lock(): string|false|\WP_Error {
+        global $wpdb;
+        $site_key = substr( hash( 'sha256', (string) get_option( 'siteurl' ) . (string) $wpdb->prefix . (string) get_current_blog_id() ), 0, 32 );
+        $lock_name = self::REPORT_LOCK_PREFIX . $site_key;
+        $acquired = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock_name ) );
+        if ( '1' === (string) $acquired ) {
+            return $lock_name;
+        }
+        if ( null === $acquired ) {
+            return new \WP_Error( 'alfa_report_lock', __( 'The database could not secure the scheduled report job.', 'activity-log-for-admins' ) );
+        }
+        return false;
+    }
+
+    private static function release_report_lock( string $lock_name ): void {
+        global $wpdb;
+        $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+    }
+
     private static function temp_directory(): string|\WP_Error {
+        $filesystem = self::filesystem();
+        if ( is_wp_error( $filesystem ) ) {
+            return $filesystem;
+        }
         $root = realpath( sys_get_temp_dir() );
         $wordpress = realpath( ABSPATH );
-        if ( false === $root || ! is_writable( $root ) ) {
+        if ( false === $root || ! $filesystem->is_writable( $root ) ) {
             return new \WP_Error( 'alfa_report_temp', __( 'The server does not provide a private writable temporary directory.', 'activity-log-for-admins' ) );
         }
         $root_normal = trailingslashit( wp_normalize_path( $root ) );
@@ -951,14 +988,14 @@ final class ScheduledReports {
         global $wpdb;
         $site_hash = substr( hash( 'sha256', (string) get_option( 'siteurl' ) . (string) $wpdb->prefix . (string) get_current_blog_id() ), 0, 16 );
         $directory = $root . DIRECTORY_SEPARATOR . 'activity-log-for-admins-' . $site_hash;
-        if ( is_link( $directory ) || ( ! is_dir( $directory ) && ! wp_mkdir_p( $directory ) ) ) {
+        if ( is_link( $directory ) || ( ! $filesystem->is_dir( $directory ) && ! $filesystem->mkdir( $directory, 0700 ) ) ) {
             return new \WP_Error( 'alfa_report_temp', __( 'The private report directory could not be created.', 'activity-log-for-admins' ) );
         }
         if ( ! self::set_private_permissions( $directory, 0700 ) ) {
             return new \WP_Error( 'alfa_report_temp', __( 'Private report directory permissions could not be secured.', 'activity-log-for-admins' ) );
         }
         $resolved = realpath( $directory );
-        if ( false === $resolved || ! is_writable( $resolved ) || ! str_starts_with( strtolower( trailingslashit( wp_normalize_path( $resolved ) ) ), strtolower( $root_normal ) ) ) {
+        if ( false === $resolved || ! $filesystem->is_writable( $resolved ) || ! str_starts_with( strtolower( trailingslashit( wp_normalize_path( $resolved ) ) ), strtolower( $root_normal ) ) ) {
             return new \WP_Error( 'alfa_report_temp', __( 'The private report directory failed its location check.', 'activity-log-for-admins' ) );
         }
         return $resolved;
@@ -969,15 +1006,19 @@ final class ScheduledReports {
         if ( is_wp_error( $temporary ) ) {
             return $temporary;
         }
+        $filesystem = self::filesystem();
+        if ( is_wp_error( $filesystem ) ) {
+            return $filesystem;
+        }
         $directory = $temporary . DIRECTORY_SEPARATOR . 'history';
-        if ( is_link( $directory ) || ( ! is_dir( $directory ) && ! wp_mkdir_p( $directory ) ) ) {
+        if ( is_link( $directory ) || ( ! $filesystem->is_dir( $directory ) && ! $filesystem->mkdir( $directory, 0700 ) ) ) {
             return new \WP_Error( 'alfa_report_archive', __( 'The private report history directory could not be created.', 'activity-log-for-admins' ) );
         }
         if ( ! self::set_private_permissions( $directory, 0700 ) ) {
             return new \WP_Error( 'alfa_report_archive', __( 'Private report history permissions could not be secured.', 'activity-log-for-admins' ) );
         }
         $resolved = realpath( $directory );
-        if ( false === $resolved || ! is_writable( $resolved )
+        if ( false === $resolved || ! $filesystem->is_writable( $resolved )
             || strtolower( dirname( wp_normalize_path( $resolved ) ) ) !== strtolower( wp_normalize_path( $temporary ) ) ) {
             return new \WP_Error( 'alfa_report_archive', __( 'The private report history directory failed its location check.', 'activity-log-for-admins' ) );
         }
@@ -999,24 +1040,14 @@ final class ScheduledReports {
             return '';
         }
         $path = $directory . DIRECTORY_SEPARATOR . $filename;
-        $input = fopen( $job['path'], 'rb' );
-        $output = fopen( $path, 'xb' );
-        if ( false === $input || false === $output ) {
-            if ( is_resource( $input ) ) {
-                fclose( $input );
-            }
-            if ( is_resource( $output ) ) {
-                fclose( $output );
-            }
-            wp_delete_file( $path );
+        $filesystem = self::filesystem();
+        if ( is_wp_error( $filesystem ) ) {
             return '';
         }
-        $copied = stream_copy_to_stream( $input, $output );
-        $flushed = fflush( $output );
-        fclose( $input );
-        fclose( $output );
-        if ( false === $copied || ! $flushed || $copied > self::MAX_REPORT_BYTES || ! self::set_private_permissions( $path, 0600 ) ) {
-            wp_delete_file( $path );
+        $contents = $filesystem->get_contents( $job['path'] );
+        if ( ! is_string( $contents ) || strlen( $contents ) > self::MAX_REPORT_BYTES || $filesystem->exists( $path )
+            || ! $filesystem->put_contents( $path, $contents, 0600 ) || ! self::set_private_permissions( $path, 0600 ) ) {
+            $filesystem->delete( $path );
             return '';
         }
         return $filename;
@@ -1068,8 +1099,9 @@ final class ScheduledReports {
 
     private static function delete_archive_file( string $filename ): void {
         $path = self::valid_archive_file( $filename );
-        if ( false !== $path ) {
-            wp_delete_file( $path );
+        $filesystem = self::filesystem();
+        if ( false !== $path && ! is_wp_error( $filesystem ) ) {
+            $filesystem->delete( $path );
         }
     }
 
@@ -1080,12 +1112,20 @@ final class ScheduledReports {
         }
         $removed = false;
         $failed = false;
-        foreach ( (array) glob( $directory . DIRECTORY_SEPARATOR . 'report-*.*' ) as $path ) {
+        $filesystem = self::filesystem();
+        if ( is_wp_error( $filesystem ) ) {
+            return [ 'removed' => false, 'error' => __( 'Private report copies could not be checked during data erasure.', 'activity-log-for-admins' ) ];
+        }
+        $files = self::directory_files( $directory, $filesystem );
+        if ( is_wp_error( $files ) ) {
+            return [ 'removed' => false, 'error' => __( 'Private report copies could not be checked during data erasure.', 'activity-log-for-admins' ) ];
+        }
+        foreach ( $files as $path ) {
             if ( ! preg_match( '/\Areport-[a-f0-9]{32}\.(?:csv|html)\z/', basename( $path ) ) ) {
                 continue;
             }
-            wp_delete_file( $path );
-            if ( file_exists( $path ) || is_link( $path ) ) {
+            $filesystem->delete( $path );
+            if ( $filesystem->exists( $path ) || is_link( $path ) ) {
                 $failed = true;
             } else {
                 $removed = true;
@@ -1109,11 +1149,12 @@ final class ScheduledReports {
         if ( '\\' === DIRECTORY_SEPARATOR ) {
             return true;
         }
-        if ( ! chmod( $path, $mode ) ) {
+        $filesystem = self::filesystem();
+        if ( is_wp_error( $filesystem ) || ! $filesystem->chmod( $path, $mode ) ) {
             return false;
         }
-        $permissions = fileperms( $path );
-        return false !== $permissions && 0 === ( ( $permissions & 0777 ) & ~$mode );
+        $permissions = octdec( $filesystem->getchmod( $path ) );
+        return $permissions > 0 && 0 === ( ( $permissions & 0777 ) & ~$mode );
     }
 
     private static function contains_identifier( string $value, array $identifiers ): bool {
@@ -1134,6 +1175,10 @@ final class ScheduledReports {
         if ( is_wp_error( $directory ) ) {
             return false;
         }
+        $filesystem = self::filesystem();
+        if ( is_wp_error( $filesystem ) || ! $filesystem->is_file( $job['path'] ) ) {
+            return false;
+        }
         $path = realpath( $job['path'] );
         return false !== $path && ! is_link( $job['path'] )
             && strtolower( dirname( wp_normalize_path( $path ) ) ) === strtolower( wp_normalize_path( $directory ) );
@@ -1147,8 +1192,11 @@ final class ScheduledReports {
         if ( is_wp_error( $directory ) || ! self::valid_job_file( $job ) ) {
             return;
         }
-        wp_delete_file( $job['path'] );
-        wp_delete_file( $job['path'] . '.lock' );
+        $filesystem = self::filesystem();
+        if ( ! is_wp_error( $filesystem ) ) {
+            $filesystem->delete( $job['path'] );
+            $filesystem->delete( $job['path'] . '.lock' );
+        }
     }
 
     private static function save_job( array $job ): bool {
@@ -1193,9 +1241,10 @@ final class ScheduledReports {
         wp_schedule_single_event( time() + max( MINUTE_IN_SECONDS, $delay ), self::CONTINUE, [], true );
     }
 
-    private static function write_csv_row( $file, array $values ): bool {
+    private static function csv_row( array $values ): string {
         $safe = array_map( static fn( $value ): string => self::safe_csv_cell( (string) $value ), $values );
-        return false !== fputcsv( $file, $safe, ',', '"', '', "\r\n" );
+        $quoted = array_map( static fn( string $value ): string => '"' . str_replace( '"', '""', $value ) . '"', $safe );
+        return implode( ',', $quoted ) . "\r\n";
     }
 
     private static function html_report_start( array $schedule, string $from, string $to ): string {
@@ -1214,12 +1263,12 @@ final class ScheduledReports {
             . $title . '</h1>' . $metadata . '</header><table><thead><tr>' . $headers . '</tr></thead><tbody>';
     }
 
-    private static function write_html_row( $file, array $values ): bool {
+    private static function html_row( array $values ): string {
         $cells = '';
         foreach ( $values as $value ) {
             $cells .= '<td>' . esc_html( (string) $value ) . '</td>';
         }
-        return false !== fwrite( $file, '<tr>' . $cells . "</tr>\n" );
+        return '<tr>' . $cells . "</tr>\n";
     }
 
     private static function safe_csv_cell( string $value ): string {

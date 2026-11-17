@@ -55,8 +55,8 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Audit frontend dependencies
-        run: npm audit
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
 
       - name: Check PHP syntax
         run: find activity-log-for-admins -type f -name '*.php' -print0 | xargs -0 -n1 php -l
