@@ -3,7 +3,7 @@
 ## Install and investigate
 
 1. On a disposable or staging site running WordPress 6.9 or later and PHP 8.3 or later, open **Plugins**, then **Add New Plugin**, then **Upload Plugin**.
-2. Upload the installable ZIP from the [GitHub 1.1.0 release](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/tag/v1.1.0), install it, and activate it. Confirm Settings shows version 1.1.0. The main Dashboard shows activity counts and recent changes. Open **Activity Log** near the top of the admin menu to investigate.
+2. Upload the installable ZIP from the [GitHub 1.2.0 release](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/tag/v1.2.0), install it, and activate it. Confirm Settings shows version 1.2.0. The main Dashboard shows activity counts and recent changes. Open **Activity Log** near the top of the admin menu to investigate.
 3. Create a test page named **Housing Guide**, publish it, and move it back to Draft. Add a few unrelated edits to make the list realistic.
 4. Ask another administrator to start on the Activity screen with only the page name, without a date, user, or event hint. Record the elapsed time and whether they correctly find the unexpected change, identify the user, and verify the previous status without help. Pass if all are correct in under 30 seconds.
 5. Open an event, check the previous and new values, and try the actor and affected item links. Combine search with the Action and Severity filters, reload the URL, and verify that CSV export contains every matching row and any captured previous and new values.
@@ -25,7 +25,7 @@ Create or use an editor with a numeric username, make a page edit as that accoun
 
 Use a disposable site with WooCommerce and Redirection installed. Confirm their switches start off, enable each, and verify WooCommerce order creation, status, and refund events plus Redirection rule changes. Confirm event details and CSV contain no customer contact data or redirect URLs. Check that disabling an event category stops new events but leaves existing history until cleanup.
 
-On a disposable Multisite network, activate on a site and then network activate in a separate run. Make changes on two sites, confirm each site's activity is visible only in that site's admin, and set different retention periods. Create a new site while the plugin is network active and confirm its event table and cleanup task are ready when its admin loads. One combined network view is outside this release.
+On a disposable Multisite network, activate on a site and then network activate in a separate run. Make changes on two sites, confirm each site's activity is visible only in that site's admin, and set different retention periods. Use the Super Admin network view to check site filters, details, notes, export, and per site settings. Create a new site while the plugin is network active and confirm its event table and cleanup task are ready when its admin loads. A second network isolation check remains open.
 
 Reduce a site's retention period and confirm cleanup starts in bounded batches, then inspect the oldest retained event and cleanup status. The default remains 90 days, administrators choose their own period from 1 to 3650 days. Optional warning email digests are off by default. Verify scheduling and cancellation without sending test mail to a real inbox.
 
@@ -86,3 +86,13 @@ The [GitHub Actions run](https://github.com/seraphalaric-beep/activity-log-for-a
 The installable ZIP from that run is attached to the [GitHub 1.0.5 release](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/tag/v1.0.5). Its SHA256 is `032FAAC4CC7131A585326D8BB5CE14C49950434A66D159D4FDB9803792F74A77`. A copy downloaded from the release matched the CI artifact hash. The Settings preview shows version 1.0.5.
 
 The human 30 second investigation check remains pending. Install the GitHub release on a disposable or staging site, follow steps 3 and 4 above, and record the elapsed time, actor, previous status, and whether the administrator received any hints.
+
+## 1.2.0 release verification
+
+The actual 1.2.0 GitHub ZIP was installed on a clean WordPress 7.1.4 site with PHP 8.5.12 and MariaDB 11.4.9 on 17 November 2026. The production build passed, and PHP syntax checks passed for all 11 plugin PHP files.
+
+The security and interface suite passed. Anonymous reads and exports returned 401. Editor reads, exports, and settings changes returned 403. Requests without a REST nonce returned 401. Formula protection passed, injected markup rendered as text, and the browser reported no errors. Twelve axe scans reported no violations across Activity, filters, event details, and Settings at widths of 320, 390, 768, 1024, and 1440 pixels. The report is `docs/verification/security-ui-report-1.2.0.json`.
+
+The full automated activity pilot passed, including capture, filters, event details and notes, CSV export, permissions, cleanup failures, retention, uninstall behavior, and the 100000 event performance check. REST first page latency measured 180 milliseconds at the 95th percentile, and filtered REST results measured 353 milliseconds. Event capture measured 27 milliseconds with the plugin enabled and 35 milliseconds with it disabled. Public page requests measured 207 milliseconds with the plugin enabled and 194 milliseconds with it disabled. These measurements describe this local test environment.
+
+The scripted investigation completed in 1267 milliseconds. This does not replace the pending human check in step 4. The Dashboard comparison was skipped as requested. WordPress 6.9 with PHP 8.3, isolation between two separate networks, and remaining roadmap items still need verification. Structured results are in `docs/verification/pilot-report-1.2.0.json`.

@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const [base = "http://127.0.0.1:8092"] = process.argv.slice(2);
+const { version } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 const password = process.env.PILOT_PASSWORD ?? (process.env.PILOT_PASSWORD_FILE
   ? (await readFile(process.env.PILOT_PASSWORD_FILE, "utf8")).trim()
   : "");
@@ -86,7 +87,7 @@ try {
   await nav.getByRole("link", { name: "Sessions", exact: true }).click();
   await page.getByRole("heading", { name: "User sessions", exact: true }).waitFor();
   assert.match(page.url(), /[?&]view=sessions/);
-  await page.getByText("Activity Log for Admins, Version 1.1.0", { exact: true }).waitFor();
+  await page.getByText(`Activity Log for Admins, Version ${version}`, { exact: true }).waitFor();
 
   const defaultSettings = await api("sessions/settings");
   assert.equal(defaultSettings.status, 200);

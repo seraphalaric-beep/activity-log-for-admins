@@ -25,10 +25,13 @@ const events = [
     actor_kind: "user",
     actor_id: 2,
     actor_name: "morgan.admin",
+    actor_role: "administrator",
+    source: "admin",
     item_kind: "page",
     item_key: "84",
     item_name: "Housing Guide",
     action_key: "content_status",
+    category: "content",
     severity: "notice",
     summary: "Changed “Housing Guide” from Published to Draft",
   },
@@ -40,10 +43,13 @@ const events = [
     actor_kind: "user",
     actor_id: 2,
     actor_name: "morgan.admin",
+    actor_role: "administrator",
+    source: "admin",
     item_kind: "page",
     item_key: "84",
     item_name: "Housing Guide",
     action_key: "content_edited",
+    category: "content",
     severity: "info",
     summary: "Edited “Housing Guide”",
   },
@@ -55,10 +61,13 @@ const events = [
     actor_kind: "user",
     actor_id: 5,
     actor_name: "alex.editor",
+    actor_role: "editor",
+    source: "admin",
     item_kind: "page",
     item_key: "84",
     item_name: "Housing Guide",
     action_key: "content_created",
+    category: "content",
     severity: "info",
     summary: "Created “Housing Guide”",
   },
@@ -67,6 +76,7 @@ const events = [
 const detail = {
   ...events[0],
   details: { changes: { Status: ["publish", "draft"] } },
+  notes: [],
 };
 
 const previewSettings = {
@@ -75,6 +85,10 @@ const previewSettings = {
   woocommerce: false,
   redirection: false,
   email_alerts: false,
+  email_alert_recipients: [],
+  email_alert_include_events: true,
+  email_alert_event_limit: 10,
+  email_alert_categories: ["content", "accounts", "comments", "taxonomies", "appearance", "components", "settings", "woocommerce", "redirection", "acf", "bbpress", "wpforms", "yoast", "rank_math", "pmpro", "termly", "mainwp", "infinitewp", "database", "files"],
   capture_content: true,
   capture_accounts: true,
   capture_comments: true,
@@ -82,6 +96,24 @@ const previewSettings = {
   capture_appearance: true,
   capture_components: true,
   capture_settings: true,
+  capture_database: true,
+  capture_files: false,
+  capture_network: true,
+  monitor_uploads: false,
+  file_max_size_mb: 10,
+  file_scan_interval: "daily",
+  file_excluded_paths: [],
+  disabled_actions: [],
+  excluded_users: [],
+  excluded_roles: [],
+  excluded_item_kinds: [],
+  excluded_items: [],
+  excluded_post_statuses: [],
+  viewer_roles: [],
+  manager_roles: [],
+  viewer_users: [],
+  manager_users: [],
+  exclude_system_activity: false,
 };
 
 const html = `<!doctype html>
@@ -139,10 +171,10 @@ const server = createServer((request, response) => {
   const pathname = new URL(request.url, "http://127.0.0.1").pathname;
   const files = {
     "/": ["text/html; charset=utf-8", `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Activity Log</title><style>html,body{margin:0}body{background:#f4f5f7}</style><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/admin.css"></head><body><div id="alfa-root"></div><script>
-      window.alfaSettings={base:location.origin+'/wp-json/activity-log-for-admins/v1/',nonce:'preview',actions:${JSON.stringify(actions)},severities:['info','notice','warning'],version:'${version}'};
+      window.alfaSettings={base:location.origin+'/wp-json/activity-log-for-admins/v1/',nonce:'preview',actions:${JSON.stringify(actions)},severities:['info','notice','warning'],version:'${version}',canManage:true,sessionsAllowed:true,roles:{administrator:'Administrator',editor:'Editor',author:'Author',contributor:'Contributor',subscriber:'Subscriber'},timezone:'UTC'};
       const activityEvents=${JSON.stringify(events)};
       const activityDetail=${JSON.stringify(detail)};
-      window.fetch=async input=>{const raw=typeof input==='string'?input:(input instanceof URL?input.href:input.url);const url=new URL(raw,location.href);const path=url.pathname.replace(/\\/+$/,'');let value;if(path.endsWith('/events/42'))value=activityDetail;else if(path.endsWith('/events'))value={events:activityEvents,next:null};else if(path.endsWith('/settings'))value={settings:${JSON.stringify(previewSettings)},health:{available:true,write_error:null,cleanup_error:null,next_cleanup:'16 Nov 2026, 11:30',oldest:'16 Nov 2026, 08:42',space:'1.24 MB',last_cleanup:'16 Nov 2026, 10:30'}};else value={};return new Response(JSON.stringify(value),{status:200,headers:{'Content-Type':'application/json'}})};
+      window.fetch=async input=>{const raw=typeof input==='string'?input:(input instanceof URL?input.href:input.url);const url=new URL(raw,location.href);const path=url.pathname.replace(/\\/+$/,'');let value;if(path.endsWith('/events/42'))value=activityDetail;else if(path.endsWith('/events'))value={events:activityEvents,next:null};else if(path.endsWith('/settings'))value={settings:${JSON.stringify(previewSettings)},health:{available:true,write_error:null,cleanup_error:null,next_cleanup:'16 Nov 2026, 11:30',oldest:'16 Nov 2026, 08:42',space:'1.24 MB',last_cleanup:'16 Nov 2026, 10:30'}};else if(path.endsWith('/alerts/channels'))value={channels:{slack_configured:false,sms_configured:false,sms_recipient_count:0}};else if(path.endsWith('/alerts/rules'))value={rules:[],presets:[],fields:[]};else if(path.endsWith('/users'))value={matches:[],selected:[]};else value={};return new Response(JSON.stringify(value),{status:200,headers:{'Content-Type':'application/json'}})};
     </script><script src="/admin.js"></script></body></html>`],
     "/admin.css": ["text/css; charset=utf-8", adminCss],
     "/admin.js": ["text/javascript; charset=utf-8", adminJs],
@@ -200,6 +232,7 @@ async function capture() {
     await dashboard.close();
 
     const settings = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+    settings.setDefaultTimeout(6000);
     await settings.goto(`${base}/?page=activity-log-for-admins&view=settings`);
     await settings.getByRole("heading", { name: "Log health", exact: true }).waitFor();
     await settings.getByText(`Activity Log for Admins · Version ${version}`).waitFor();

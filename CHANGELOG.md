@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.2.0
+
 * Save generated statistics results with their report name or tag, exact date range, grouping, interval, total, and bounded result rows. Add permission checked viewing and private CSV and HTML downloads, with formula protection, escaped output, site retention cleanup, and privacy export and erasure.
 * Add exact event ID, affected item type, and exact item ID filters to Activity queries and shared links. Keep registered event type validation and reuse the filters for exports and saved report templates. Do not add session ID collection to routine event records.
 * Add bulk selection actions to exclude accounts and exact items, or stop selected event types, with confirmation, preserved history, and audit records containing count changes only. Keep exact item exclusions local to the site and available for removal in Settings.
