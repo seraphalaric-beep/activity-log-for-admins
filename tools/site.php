@@ -10,7 +10,7 @@ require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 if ( ! is_blog_installed() ) {
-    wp_install( 'Activity Log Pilot', 'pilotadmin', 'admin@example.test', false, '', $password );
+    wp_install( 'Change Vigil Pilot', 'pilotadmin', 'admin@example.test', false, '', $password );
     update_option( 'siteurl', $url );
     update_option( 'home', $url );
     update_option( 'timezone_string', 'Europe/Dublin' );
@@ -22,10 +22,10 @@ if ( true !== $archive->open( $zip ) || ! $archive->extractTo( WP_PLUGIN_DIR ) )
 }
 $archive->close();
 $mu_plugin_dir = WP_CONTENT_DIR . '/mu-plugins';
-if ( ! wp_mkdir_p( $mu_plugin_dir ) || ! copy( __DIR__ . '/alfa-pilot-content.php', $mu_plugin_dir . '/alfa-pilot-content.php' ) ) {
+if ( ! wp_mkdir_p( $mu_plugin_dir ) || ! copy( __DIR__ . '/cvsj-pilot-content.php', $mu_plugin_dir . '/cvsj-pilot-content.php' ) ) {
     throw new RuntimeException( 'Unable to install pilot content types.' );
 }
-if ( ! copy( __DIR__ . '/alfa-fixture.php', $root . '/alfa-fixture.php' ) ) {
+if ( ! copy( __DIR__ . '/cvsj-fixture.php', $root . '/cvsj-fixture.php' ) ) {
     throw new RuntimeException( 'Unable to install the current pilot fixture.' );
 }
 if ( ! copy( __DIR__ . '/privacy-fixture.php', $root . '/privacy-fixture.php' ) ) {

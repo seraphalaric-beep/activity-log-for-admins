@@ -1,19 +1,19 @@
 <?php
 
-namespace ActivityLogForAdmins;
+namespace ChangeVigilSiteJournal;
 
 defined( 'ABSPATH' ) || exit;
 
 final class Store {
     public const REPORT_COLUMNS = [ 'event_id', 'time', 'actor', 'actor_role', 'source', 'item', 'action', 'severity', 'summary', 'details' ];
-    public const SETTINGS = 'alfa_settings';
-    public const HEALTH = 'alfa_health';
-    public const SCHEMA = 'alfa_schema';
-    public const CLEANUP = 'alfa_cleanup';
-    public const CONTINUE_CLEANUP = 'alfa_continue_cleanup';
-    public const ALERT_DIGEST = 'alfa_alert_digest';
-    public const FILE_SCAN_STATE = 'alfa_file_scan_state';
-    public const SAVED_REPORTS = 'alfa_saved_reports';
+    public const SETTINGS = 'cvsj_settings';
+    public const HEALTH = 'cvsj_health';
+    public const SCHEMA = 'cvsj_schema';
+    public const CLEANUP = 'cvsj_cleanup';
+    public const CONTINUE_CLEANUP = 'cvsj_continue_cleanup';
+    public const ALERT_DIGEST = 'cvsj_alert_digest';
+    public const FILE_SCAN_STATE = 'cvsj_file_scan_state';
+    public const SAVED_REPORTS = 'cvsj_saved_reports';
     public const PAGE_SIZE = 50;
     private const SCHEMA_VERSION = 6;
     private const CLEANUP_SIZE = 1000;
@@ -29,17 +29,17 @@ final class Store {
 
     public static function table(): string {
         global $wpdb;
-        return $wpdb->prefix . 'alfa_events';
+        return $wpdb->prefix . 'cvsj_events';
     }
 
     public static function notes_table(): string {
         global $wpdb;
-        return $wpdb->prefix . 'alfa_event_notes';
+        return $wpdb->prefix . 'cvsj_event_notes';
     }
 
     public static function file_index_table(): string {
         global $wpdb;
-        return $wpdb->prefix . 'alfa_file_index';
+        return $wpdb->prefix . 'cvsj_file_index';
     }
 
     public static function install(): bool {
@@ -349,7 +349,7 @@ final class Store {
             [ 'post', 'page', 'user', 'plugin', 'theme', 'setting', 'login', 'term', 'comment', 'menu', 'widget', 'order', 'product', 'coupon', 'forum', 'topic', 'reply', 'redirect', 'site', 'mainwp_site', 'mainwp_client', 'backup', 'table', 'file' ],
             $content_types
         );
-        $filtered = apply_filters( 'alfa_activity_log_item_kinds', $item_kinds );
+        $filtered = apply_filters( 'cvsj_activity_log_item_kinds', $item_kinds );
         if ( ! is_array( $filtered ) ) {
             return array_values( array_unique( $item_kinds ) );
         }
@@ -483,7 +483,7 @@ final class Store {
     }
 
     public static function external_event_types(): array {
-        $registered = apply_filters( 'alfa_activity_log_external_event_types', [] );
+        $registered = apply_filters( 'cvsj_activity_log_external_event_types', [] );
         if ( ! is_array( $registered ) ) {
             return [];
         }
@@ -870,7 +870,7 @@ final class Store {
     public static function network_query( array $filters, int $limit, ?array $cursor = null, bool $include_details = false, ?string $ceiling = null ): array|\WP_Error {
         global $wpdb;
         if ( ! is_multisite() || ! is_super_admin() ) {
-            return new \WP_Error( 'alfa_network_forbidden', __( 'Network activity is available to network administrators only.', 'activity-log-for-admins' ), [ 'status' => 403 ] );
+            return new \WP_Error( 'cvsj_network_forbidden', __( 'Network activity is available to network administrators only.', 'change-vigil-site-journal' ), [ 'status' => 403 ] );
         }
 
         $network_groups = self::event_groups();
@@ -882,13 +882,13 @@ final class Store {
             $site = get_site( $selected_site );
             if ( ! $site instanceof \WP_Site || (int) $site->site_id !== get_current_network_id()
                 || (int) $site->deleted || (int) $site->archived || (int) $site->spam ) {
-                return new \WP_Error( 'alfa_network_site', __( 'Choose a site in this network.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                return new \WP_Error( 'cvsj_network_site', __( 'Choose a site in this network.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
             }
             $site_ids = [ $selected_site ];
         } else {
             $site_ids = self::network_site_ids( get_current_network_id() );
             if ( count( $site_ids ) > 1000 ) {
-                return new \WP_Error( 'alfa_network_size', __( 'This network has more than 1000 sites. Filter by a site ID to search its activity.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                return new \WP_Error( 'cvsj_network_size', __( 'This network has more than 1000 sites. Filter by a site ID to search its activity.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
             }
         }
 
@@ -923,7 +923,7 @@ final class Store {
                 $site = get_blog_details( $site_id );
                 $site_labels[ $site_id ] = [
                     // translators: %d is the site ID.
-                    'name' => $site instanceof \WP_Site ? sanitize_text_field( $site->blogname ) : sprintf( __( 'Site %d', 'activity-log-for-admins' ), $site_id ),
+                    'name' => $site instanceof \WP_Site ? sanitize_text_field( $site->blogname ) : sprintf( __( 'Site %d', 'change-vigil-site-journal' ), $site_id ),
                     'timezone' => wp_timezone_string() ?: 'UTC',
                 ];
             } finally {
@@ -945,7 +945,7 @@ final class Store {
             $site_id = (int) $row['network_site_id'];
             $row['network_site_id'] = (string) $site_id;
             // translators: %d is the site ID.
-            $row['network_site_name'] = $site_labels[ $site_id ]['name'] ?? sprintf( __( 'Site %d', 'activity-log-for-admins' ), $site_id );
+            $row['network_site_name'] = $site_labels[ $site_id ]['name'] ?? sprintf( __( 'Site %d', 'change-vigil-site-journal' ), $site_id );
             $row['network_site_timezone'] = $site_labels[ $site_id ]['timezone'] ?? 'UTC';
         }
         unset( $row );
@@ -1172,7 +1172,7 @@ final class Store {
     public static function save_report_template( array $report ): array|\WP_Error {
         $reports = self::saved_reports();
         if ( count( $reports ) >= 20 ) {
-            return new \WP_Error( 'alfa_saved_report_limit', __( 'Delete a saved report before adding another. A site can keep up to 20 report templates.', 'activity-log-for-admins' ), [ 'status' => 409 ] );
+            return new \WP_Error( 'cvsj_saved_report_limit', __( 'Delete a saved report before adding another. A site can keep up to 20 report templates.', 'change-vigil-site-journal' ), [ 'status' => 409 ] );
         }
         $saved = [
             'id' => wp_generate_uuid4(),
@@ -1192,7 +1192,7 @@ final class Store {
         }
         $reports[] = $saved;
         if ( ! update_option( self::SAVED_REPORTS, $reports, false ) && $reports !== self::saved_reports() ) {
-            return new \WP_Error( 'alfa_saved_report_storage', __( 'The report template could not be saved.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+            return new \WP_Error( 'cvsj_saved_report_storage', __( 'The report template could not be saved.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
         }
         return $saved;
     }
@@ -1201,10 +1201,10 @@ final class Store {
         $reports = self::saved_reports();
         $remaining = array_values( array_filter( $reports, static fn( array $report ): bool => ! hash_equals( $report['id'], $id ) ) );
         if ( count( $remaining ) === count( $reports ) ) {
-            return new \WP_Error( 'alfa_saved_report_missing', __( 'The saved report was not found.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+            return new \WP_Error( 'cvsj_saved_report_missing', __( 'The saved report was not found.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
         }
         if ( ! update_option( self::SAVED_REPORTS, $remaining, false ) && $remaining !== self::saved_reports() ) {
-            return new \WP_Error( 'alfa_saved_report_storage', __( 'The saved report could not be deleted.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+            return new \WP_Error( 'cvsj_saved_report_storage', __( 'The saved report could not be deleted.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
         }
         return true;
     }
@@ -1251,7 +1251,7 @@ final class Store {
             return self::unavailable();
         }
         if ( ! $row ) {
-            return new \WP_Error( 'alfa_not_found', __( 'This event is no longer available.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+            return new \WP_Error( 'cvsj_not_found', __( 'This event is no longer available.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
         }
         $row['details'] = json_decode( $row['details'], true ) ?: [];
         $row['notes'] = self::notes_for_event( $id );
@@ -1276,7 +1276,7 @@ final class Store {
             $user = get_userdata( (int) $row['user_id'] );
             $row['id'] = (string) $row['id'];
             $row['user_id'] = (string) $row['user_id'];
-            $row['author_name'] = $user instanceof \WP_User ? $user->display_name : __( 'Deleted user', 'activity-log-for-admins' );
+            $row['author_name'] = $user instanceof \WP_User ? $user->display_name : __( 'Deleted user', 'change-vigil-site-journal' );
             $timestamp = strtotime( $row['created_at'] . ' UTC' );
             $row['created_iso'] = gmdate( DATE_ATOM, $timestamp );
             $row['created_label'] = wp_date( 'j M Y, H:i:s T', $timestamp );
@@ -1299,7 +1299,7 @@ final class Store {
             $length = false === $length ? PHP_INT_MAX : $length;
         }
         if ( '' === $note || $length > 2000 ) {
-            return new \WP_Error( 'alfa_note_invalid', __( 'Enter a note with 1 to 2000 characters.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+            return new \WP_Error( 'cvsj_note_invalid', __( 'Enter a note with 1 to 2000 characters.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Keep event notes bounded for predictable detail reads and cleanup.
         $note_count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE event_id = %d', self::notes_table(), $event_id ) );
@@ -1307,7 +1307,7 @@ final class Store {
             return self::unavailable();
         }
         if ( (int) $note_count >= self::MAX_EVENT_NOTES ) {
-            return new \WP_Error( 'alfa_note_limit', __( 'This event has reached its 50 note limit.', 'activity-log-for-admins' ), [ 'status' => 409 ] );
+            return new \WP_Error( 'cvsj_note_limit', __( 'This event has reached its 50 note limit.', 'change-vigil-site-journal' ), [ 'status' => 409 ] );
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Store an administrator note for one plugin event.
         if ( false === $wpdb->insert( self::notes_table(), [
@@ -1322,7 +1322,7 @@ final class Store {
         if ( is_wp_error( $notes ) ) {
             return $notes;
         }
-        return $notes ? end( $notes ) : new \WP_Error( 'alfa_note_storage', __( 'The note was saved, but could not be loaded.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+        return $notes ? end( $notes ) : new \WP_Error( 'cvsj_note_storage', __( 'The note was saved, but could not be loaded.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
     }
 
     private static function event_exists( int $event_id ): bool|\WP_Error {
@@ -1333,7 +1333,7 @@ final class Store {
             return self::unavailable();
         }
         if ( ! $exists ) {
-            return new \WP_Error( 'alfa_not_found', __( 'This event is no longer available.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+            return new \WP_Error( 'cvsj_not_found', __( 'This event is no longer available.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
         }
         return true;
     }
@@ -1394,7 +1394,7 @@ final class Store {
         if ( wp_next_scheduled( self::ALERT_DIGEST ) ) {
             return;
         }
-        update_option( 'alfa_alert_digest_after_id', max( 0, $first_event_id ), false );
+        update_option( 'cvsj_alert_digest_after_id', max( 0, $first_event_id ), false );
         $scheduled = wp_schedule_single_event( time() + 900, self::ALERT_DIGEST, [], true );
         if ( false === $scheduled || ( is_wp_error( $scheduled ) && 'duplicate_event' !== $scheduled->get_error_code() ) ) {
             self::record_failure( 'alert_schedule_error' );
@@ -1424,12 +1424,12 @@ final class Store {
         }
         $actions = array_values( array_unique( $actions ) );
         if ( ! $actions ) {
-            delete_option( 'alfa_alert_digest_after_id' );
+            delete_option( 'cvsj_alert_digest_after_id' );
             return;
         }
 
         global $wpdb;
-        $after_id = (int) get_option( 'alfa_alert_digest_after_id', 0 );
+        $after_id = (int) get_option( 'cvsj_alert_digest_after_id', 0 );
         $placeholders = implode( ', ', array_fill( 0, count( $actions ), '%s' ) );
         $query = 'SELECT id, occurred_at, summary FROM %i WHERE severity = %s AND id >= %d AND action_key IN (' . $placeholders . ') ORDER BY id DESC LIMIT %d';
         $params = array_merge( [ self::table(), 'warning', $after_id ], $actions, [ $settings['email_alert_event_limit'] ] );
@@ -1450,18 +1450,18 @@ final class Store {
             },
             $rows
         );
-        $body = __( 'Activity Log recorded warning events on your site.', 'activity-log-for-admins' ) . "\n\n";
+        $body = __( 'Change Vigil recorded warning events on your site.', 'change-vigil-site-journal' ) . "\n\n";
         if ( $settings['email_alert_include_events'] ) {
             $body .= implode( "\n", $lines ) . "\n\n";
         } else {
-            $body .= __( 'Event summaries were omitted by your notification settings.', 'activity-log-for-admins' ) . "\n\n";
+            $body .= __( 'Event summaries were omitted by your notification settings.', 'change-vigil-site-journal' ) . "\n\n";
         }
-        $body .= __( 'This digest includes up to the configured number of event summaries. Review the Activity Log in WordPress for details.', 'activity-log-for-admins' );
+        $body .= __( 'This digest includes up to the configured number of event summaries. Review the Change Vigil in WordPress for details.', 'change-vigil-site-journal' );
         $site_name = sanitize_text_field( wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES ) );
         // translators: %s is the name or label of the affected record.
-        $subject = sprintf( __( '[%s] Activity Log warning digest', 'activity-log-for-admins' ), $site_name );
+        $subject = sprintf( __( '[%s] Change Vigil warning digest', 'change-vigil-site-journal' ), $site_name );
         if ( wp_mail( $recipients, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] ) ) {
-            update_option( 'alfa_alert_digest_after_id', (int) $rows[0]['id'] + 1, false );
+            update_option( 'cvsj_alert_digest_after_id', (int) $rows[0]['id'] + 1, false );
             self::clear_failure( 'alert_error' );
         } else {
             self::record_failure( 'alert_error' );
@@ -1487,6 +1487,6 @@ final class Store {
     }
 
     private static function unavailable(): \WP_Error {
-        return new \WP_Error( 'alfa_storage', __( 'The activity log database is unavailable. Check Settings for diagnostics.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+        return new \WP_Error( 'cvsj_storage', __( 'The activity log database is unavailable. Check Settings for diagnostics.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
     }
 }

@@ -55,7 +55,7 @@ const actions = {
   plugin_installed: "Plugin installed", plugin_activated: "Plugin activated", plugin_deactivated: "Plugin deactivated",
   plugin_updated: "Plugin updated", plugin_deleted: "Plugin deleted", theme_installed: "Theme installed",
   theme_switched: "Theme switched", theme_updated: "Theme updated", theme_deleted: "Theme deleted",
-  setting_changed: "Setting changed", plugin_settings_changed: "Activity Log settings changed", recording_rules_changed: "Recording rules changed",
+  setting_changed: "Setting changed", plugin_settings_changed: "Change Vigil settings changed", recording_rules_changed: "Recording rules changed",
 };
 const eventGroupLabels = {
   content: "Posts and pages", accounts: "Accounts and sign ins", comments: "Comments",
@@ -116,28 +116,28 @@ function useResource(path, query, refresh = 0) {
 }
 
 function Alert({ children }) {
-  return <div role="alert" className="alfa-alert"><CircleAlert aria-hidden="true" size={18} /><span>{children}</span></div>;
+  return <div role="alert" className="cvsj-alert"><CircleAlert aria-hidden="true" size={18} /><span>{children}</span></div>;
 }
 
 function Severity({ value }) {
-  return <Badge variant="outline" className={`alfa-severity alfa-${value}`}>
+  return <Badge variant="outline" className={`cvsj-severity cvsj-${value}`}>
     {value === "warning" && <ShieldAlert aria-hidden="true" size={13} />}
     {severities[value] ?? value}
   </Badge>;
 }
 
 function SeverityLegend() {
-  return <div className="alfa-severity-legend" role="group" aria-label="Severity legend">
-    <span className="alfa-severity-legend-title">Severity legend</span>
-    <span className="alfa-severity-legend-item"><Severity value="info" /><span>Routine activity</span></span>
-    <span className="alfa-severity-legend-item"><Severity value="notice" /><span>Noteworthy change</span></span>
-    <span className="alfa-severity-legend-item"><Severity value="warning" /><span>Needs attention</span></span>
+  return <div className="cvsj-severity-legend" role="group" aria-label="Severity legend">
+    <span className="cvsj-severity-legend-title">Severity legend</span>
+    <span className="cvsj-severity-legend-item"><Severity value="info" /><span>Routine activity</span></span>
+    <span className="cvsj-severity-legend-item"><Severity value="notice" /><span>Noteworthy change</span></span>
+    <span className="cvsj-severity-legend-item"><Severity value="warning" /><span>Needs attention</span></span>
   </div>;
 }
 
 function FilterField({ label, children }) {
   const id = useId();
-  return <div className="alfa-field"><label htmlFor={id}>{label}</label>{cloneElement(children, { id })}</div>;
+  return <div className="cvsj-field"><label htmlFor={id}>{label}</label>{cloneElement(children, { id })}</div>;
 }
 
 function Filters({ filters, apply, exportUrl, reportUrl }) {
@@ -160,25 +160,25 @@ function Filters({ filters, apply, exportUrl, reportUrl }) {
     }),
   });
   const clear = () => apply({});
-  return <form className="alfa-filters" onSubmit={event => { event.preventDefault(); apply(draft); }}>
-    <div className="alfa-toolbar">
-      <div className="alfa-search">
+  return <form className="cvsj-filters" onSubmit={event => { event.preventDefault(); apply(draft); }}>
+    <div className="cvsj-toolbar">
+      <div className="cvsj-search">
         <Search size={18} aria-hidden="true" />
         <Input aria-label="Search activity" placeholder="Search by item, actor, or change" maxLength={255} {...field("q")} />
       </div>
       <Button type="submit">Search</Button>
-      <Button type="button" variant="outline" aria-expanded={open} aria-controls="alfa-filter-fields" onClick={() => setOpen(!open)}>
-        <ListFilter aria-hidden="true" /> Filters{count > 0 && <span className="alfa-filter-count">{count}</span>}
+      <Button type="button" variant="outline" aria-expanded={open} aria-controls="cvsj-filter-fields" onClick={() => setOpen(!open)}>
+        <ListFilter aria-hidden="true" /> Filters{count > 0 && <span className="cvsj-filter-count">{count}</span>}
       </Button>
-      <Button variant="outline" asChild className="alfa-export">
+      <Button variant="outline" asChild className="cvsj-export">
         <a href={exportUrl}><ArrowDownToLine aria-hidden="true" /> Export CSV</a>
       </Button>
       {!config.networkMode && <Button variant="outline" asChild>
         <a href={reportUrl}><FileText aria-hidden="true" /> Download HTML report</a>
       </Button>}
     </div>
-    <div id="alfa-filter-fields" hidden={!open}>
-      <div className="alfa-filter-grid">
+    <div id="cvsj-filter-fields" hidden={!open}>
+      <div className="cvsj-filter-grid">
         <FilterField label="Exact event ID"><Input type="number" min="1" step="1" placeholder="For example, 8421" {...field("event_id")} /></FilterField>
         <FilterField label="From"><Input type="date" {...field("from")} /></FilterField>
         <FilterField label="Through"><Input type="date" {...field("to")} /></FilterField>
@@ -198,15 +198,15 @@ function Filters({ filters, apply, exportUrl, reportUrl }) {
         <FilterField label="Event category"><select {...field("category")}><option value="">All categories</option>{Object.keys(config.actionGroups ?? {}).map(category => <option key={category} value={category}>{eventGroupLabels[category] ?? category}</option>)}</select></FilterField>
         <FilterField label="Severity"><select {...field("severity")}><option value="">All severities</option>{config.severities.map(key => <option key={key} value={key}>{severities[key]}</option>)}</select></FilterField>
       </div>
-      {config.networkMode && <p className="alfa-filter-help">Event IDs and item identifiers are local to each site. Add Network site ID to narrow a result to one site.</p>}
-      <div className="alfa-filter-actions"><Button type="submit">Apply filters</Button></div>
+      {config.networkMode && <p className="cvsj-filter-help">Event IDs and item identifiers are local to each site. Add Network site ID to narrow a result to one site.</p>}
+      <div className="cvsj-filter-actions"><Button type="submit">Apply filters</Button></div>
     </div>
-    {active && <div className="alfa-applied">
+    {active && <div className="cvsj-applied">
       <span>Filtered activity</span>
       {Object.entries(filters).filter(([, value]) => value).map(([key, value]) =>
-        <span className="alfa-chip" key={key}>{({ from: "From ", to: "Through ", event_id: "Event ID: ", actor: "Actor: ", actor_id: "Actor: ", actor_kind: "Actor type: ", actor_role: "Actor role: ", source: "Source: ", category: "Category: ", item: "Item: ", item_kind: "Item type: ", item_id: "Item ID: ", site_id: "MainWP child site: ", network_site_id: "Network site: " })[key] ?? ""}{key === "actor_id" ? `User ID ${value}` : key === "event_id" ? `#${value}` : key === "actor_kind" ? value === "user" ? "User account" : actorKinds[value] ?? value : key === "actor_role" ? config.roles?.[value] ?? value : key === "source" ? sourceLabels[value] ?? value : key === "category" ? eventGroupLabels[value] ?? value : key === "item_kind" ? kindLabels[value] ?? value : actions[value] ?? severities[value] ?? value}</span>
+        <span className="cvsj-chip" key={key}>{({ from: "From ", to: "Through ", event_id: "Event ID: ", actor: "Actor: ", actor_id: "Actor: ", actor_kind: "Actor type: ", actor_role: "Actor role: ", source: "Source: ", category: "Category: ", item: "Item: ", item_kind: "Item type: ", item_id: "Item ID: ", site_id: "MainWP child site: ", network_site_id: "Network site: " })[key] ?? ""}{key === "actor_id" ? `User ID ${value}` : key === "event_id" ? `#${value}` : key === "actor_kind" ? value === "user" ? "User account" : actorKinds[value] ?? value : key === "actor_role" ? config.roles?.[value] ?? value : key === "source" ? sourceLabels[value] ?? value : key === "category" ? eventGroupLabels[value] ?? value : key === "item_kind" ? kindLabels[value] ?? value : actions[value] ?? severities[value] ?? value}</span>
       )}
-      <button className="alfa-text-button" type="button" onClick={clear}><X size={14} aria-hidden="true" /> Clear all</button>
+      <button className="cvsj-text-button" type="button" onClick={clear}><X size={14} aria-hidden="true" /> Clear all</button>
     </div>}
   </form>;
 }
@@ -215,34 +215,34 @@ function EventTable({ events, select, selectedIds = [], toggleSelected = () => {
   const allSelected = config.canManage && events.length > 0 && events.every(event => selectedIds.includes(event.id));
   return <Table aria-label="Activity events">
     <TableHeader><TableRow>
-      {config.canManage && <TableHead className="alfa-select-col"><input type="checkbox" aria-label="Select all events on this page" checked={allSelected} onChange={event => selectPage(event.target.checked)} /></TableHead>}
-      <TableHead>Change</TableHead><TableHead className="alfa-actor-col">Actor</TableHead>
-      <TableHead className="alfa-time-col" aria-sort="descending">When <ArrowDown size={13} aria-hidden="true" /></TableHead>
-      <TableHead className="alfa-severity-col">Severity</TableHead>
+      {config.canManage && <TableHead className="cvsj-select-col"><input type="checkbox" aria-label="Select all events on this page" checked={allSelected} onChange={event => selectPage(event.target.checked)} /></TableHead>}
+      <TableHead>Change</TableHead><TableHead className="cvsj-actor-col">Actor</TableHead>
+      <TableHead className="cvsj-time-col" aria-sort="descending">When <ArrowDown size={13} aria-hidden="true" /></TableHead>
+      <TableHead className="cvsj-severity-col">Severity</TableHead>
     </TableRow></TableHeader>
     <TableBody>
       {events.map(row => {
         const Icon = icons[row.item_kind] ?? (config.contentTypes?.includes(row.item_kind) ? FileText : Activity);
         return <TableRow key={config.networkMode ? `${row.network_site_id}:${row.id}` : row.id}>
-          {config.canManage && <TableCell className="alfa-select-col"><input type="checkbox" aria-label={`Select event ${row.id}`} checked={selectedIds.includes(row.id)} onChange={() => toggleSelected(row.id)} /></TableCell>}
+          {config.canManage && <TableCell className="cvsj-select-col"><input type="checkbox" aria-label={`Select event ${row.id}`} checked={selectedIds.includes(row.id)} onChange={() => toggleSelected(row.id)} /></TableCell>}
           <TableCell>
-            <div className="alfa-event">
-              <span className={`alfa-event-icon alfa-kind-${row.item_kind}`}><Icon size={18} aria-hidden="true" /></span>
-              <div className="alfa-event-copy">
-                <button className="alfa-event-link" type="button" onClick={event => select(row, event.currentTarget)}>
+            <div className="cvsj-event">
+              <span className={`cvsj-event-icon cvsj-kind-${row.item_kind}`}><Icon size={18} aria-hidden="true" /></span>
+              <div className="cvsj-event-copy">
+                <button className="cvsj-event-link" type="button" onClick={event => select(row, event.currentTarget)}>
                   <span>{row.summary}</span>
-                  <span className="alfa-event-meta">{kindLabels[row.item_kind]} <span aria-hidden="true">·</span> {actions[row.action_key] ?? eventLabel(row.action_key)}</span>
-                  {Number(row.origin_site_id) > 0 && <span className="alfa-event-meta">MainWP child site #{row.origin_site_id}</span>}
-                  {config.networkMode && <span className="alfa-event-meta">{row.network_site_name} <span aria-hidden="true">·</span> Site #{row.network_site_id}</span>}
+                  <span className="cvsj-event-meta">{kindLabels[row.item_kind]} <span aria-hidden="true">·</span> {actions[row.action_key] ?? eventLabel(row.action_key)}</span>
+                  {Number(row.origin_site_id) > 0 && <span className="cvsj-event-meta">MainWP child site #{row.origin_site_id}</span>}
+                  {config.networkMode && <span className="cvsj-event-meta">{row.network_site_name} <span aria-hidden="true">·</span> Site #{row.network_site_id}</span>}
                   <ChevronRight size={15} aria-hidden="true" />
                 </button>
-                <div className="alfa-mobile-meta">{actorName(row)} <span aria-hidden="true">·</span> <time dateTime={row.time_iso}>{row.time_short}</time> <Severity value={row.severity} /></div>
+                <div className="cvsj-mobile-meta">{actorName(row)} <span aria-hidden="true">·</span> <time dateTime={row.time_iso}>{row.time_short}</time> <Severity value={row.severity} /></div>
               </div>
             </div>
           </TableCell>
-          <TableCell className="alfa-actor-col">{actorName(row)}</TableCell>
-          <TableCell className="alfa-time-col"><time dateTime={row.time_iso} title={row.time_exact}>{row.time_short}</time></TableCell>
-          <TableCell className="alfa-severity-col"><Severity value={row.severity} /></TableCell>
+          <TableCell className="cvsj-actor-col">{actorName(row)}</TableCell>
+          <TableCell className="cvsj-time-col"><time dateTime={row.time_iso} title={row.time_exact}>{row.time_short}</time></TableCell>
+          <TableCell className="cvsj-severity-col"><Severity value={row.severity} /></TableCell>
         </TableRow>;
       })}
     </TableBody>
@@ -279,7 +279,7 @@ function EventDetails({ row, close, related, trigger, fallback }) {
     }
   }
   return <Sheet open={Boolean(row)} onOpenChange={next => { if (!next) close(); }}>
-    {label && <SheetContent className="alfa-sheet" portalContainer={document.getElementById("alfa-root")} onCloseAutoFocus={event => {
+    {label && <SheetContent className="cvsj-sheet" portalContainer={document.getElementById("cvsj-root")} onCloseAutoFocus={event => {
       event.preventDefault();
       if (trigger.current?.isConnected) trigger.current.focus();
       else fallback.current?.focus();
@@ -289,45 +289,45 @@ function EventDetails({ row, close, related, trigger, fallback }) {
         <SheetTitle>{label.summary}</SheetTitle>
         <SheetDescription>Event {label.id} · {actions[label.action_key]}</SheetDescription>
       </SheetHeader>
-      <div className="alfa-sheet-body">
-        <dl className="alfa-details">
-          <div><dt>Actor</dt><dd><button type="button" className="alfa-text-button" onClick={() => related(actorFilterKey, actorFilterValue)}>{actorName(label)} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
-          {config.networkMode && <div><dt>Network site</dt><dd><button type="button" className="alfa-text-button" onClick={() => related("network_site_id", label.network_site_id)}>{label.network_site_name}, Site #{label.network_site_id} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>}
+      <div className="cvsj-sheet-body">
+        <dl className="cvsj-details">
+          <div><dt>Actor</dt><dd><button type="button" className="cvsj-text-button" onClick={() => related(actorFilterKey, actorFilterValue)}>{actorName(label)} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
+          {config.networkMode && <div><dt>Network site</dt><dd><button type="button" className="cvsj-text-button" onClick={() => related("network_site_id", label.network_site_id)}>{label.network_site_name}, Site #{label.network_site_id} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>}
           <div><dt>Actor role</dt><dd>{label.actor_role
-            ? <button type="button" className="alfa-text-button" onClick={() => related("actor_role", label.actor_role)}>{config.roles?.[label.actor_role] ?? label.actor_role} <ArrowRight size={14} aria-hidden="true" /></button>
+            ? <button type="button" className="cvsj-text-button" onClick={() => related("actor_role", label.actor_role)}>{config.roles?.[label.actor_role] ?? label.actor_role} <ArrowRight size={14} aria-hidden="true" /></button>
             : "Unknown"}</dd></div>
-          <div><dt>Affected item</dt><dd><button type="button" className="alfa-text-button" onClick={() => related("item", `${label.item_kind}:${label.item_key}`)}>{label.item_name} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
+          <div><dt>Affected item</dt><dd><button type="button" className="cvsj-text-button" onClick={() => related("item", `${label.item_kind}:${label.item_key}`)}>{label.item_name} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
           <div><dt>Item identifier</dt><dd><code>{label.item_key}</code></dd></div>
-          {Number(label.origin_site_id) > 0 && <div><dt>MainWP child site</dt><dd><button type="button" className="alfa-text-button" onClick={() => related("site_id", label.origin_site_id)}>Site #{label.origin_site_id} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>}
+          {Number(label.origin_site_id) > 0 && <div><dt>MainWP child site</dt><dd><button type="button" className="cvsj-text-button" onClick={() => related("site_id", label.origin_site_id)}>Site #{label.origin_site_id} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>}
           <div><dt>Event type</dt><dd><code>{label.action_key}</code></dd></div>
-          <div><dt>Category</dt><dd><button type="button" className="alfa-text-button" onClick={() => related("category", label.category)}>{eventGroupLabels[label.category] ?? label.category} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
-          <div><dt>Source</dt><dd><button type="button" className="alfa-text-button" onClick={() => related("source", label.source || "unknown")}>{(sourceLabels[label.source] ?? label.source) || "Unknown"} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
+          <div><dt>Category</dt><dd><button type="button" className="cvsj-text-button" onClick={() => related("category", label.category)}>{eventGroupLabels[label.category] ?? label.category} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
+          <div><dt>Source</dt><dd><button type="button" className="cvsj-text-button" onClick={() => related("source", label.source || "unknown")}>{(sourceLabels[label.source] ?? label.source) || "Unknown"} <ArrowRight size={14} aria-hidden="true" /></button></dd></div>
           <div><dt>Time</dt><dd><time dateTime={label.time_iso}>{label.time_exact}</time></dd></div>
           {data?.details?.version && <div><dt>Component version</dt><dd>{data.details.version}</dd></div>}
         </dl>
         {error && <Alert>{error}</Alert>}
         {!data && !error && <p role="status">Loading event details…</p>}
-        {compare && <section className="alfa-changes">
+        {compare && <section className="cvsj-changes">
           <h3>What changed</h3>
-          {Object.entries(compare).map(([field, values]) => <div className="alfa-change" key={field}>
+          {Object.entries(compare).map(([field, values]) => <div className="cvsj-change" key={field}>
             <h4>{field}</h4>
             <dl>{values.map((value, index) => <div key={index}><dt>{index === 0 ? "Previous" : "New"}</dt>
               <dd>{(field === "Status" ? statusNames[value] ?? value : value) || "(Empty)"}</dd></div>)}</dl>
           </div>)}
         </section>}
-        {fileFacts.length > 0 && <section className="alfa-changes alfa-file-facts">
+        {fileFacts.length > 0 && <section className="cvsj-changes cvsj-file-facts">
           <h3>Recorded details</h3>
           <dl>{fileFacts.map(([key, value]) => <div key={key}><dt>{fileDetailLabels[key]}</dt><dd>{typeof value === "boolean" ? value ? "Yes" : "No" : value}</dd></div>)}</dl>
         </section>}
         {data?.details?.content_changed && (data.revision_url
           ? <Button variant="outline" asChild><a href={data.revision_url}>Compare WordPress revisions <ArrowRight aria-hidden="true" /></a></Button>
           : <p>Content changed. The WordPress revisions needed for a comparison are unavailable.</p>)}
-        <section className="alfa-notes" aria-labelledby="alfa-notes-heading">
-          <h3 id="alfa-notes-heading">Investigation notes</h3>
+        <section className="cvsj-notes" aria-labelledby="cvsj-notes-heading">
+          <h3 id="cvsj-notes-heading">Investigation notes</h3>
           {!data && !error && <p role="status">Loading notes…</p>}
           {data && data.notes.length === 0 && <p>No notes yet. Add context for the next administrator investigating this event.</p>}
           {data?.notes?.length > 0 && <ol aria-live="polite">{data.notes.map(entry => <li key={entry.id}>
-            <div className="alfa-note-meta"><strong>{entry.author_name}</strong><time dateTime={entry.created_iso}>{entry.created_label}</time></div>
+            <div className="cvsj-note-meta"><strong>{entry.author_name}</strong><time dateTime={entry.created_iso}>{entry.created_label}</time></div>
             <p>{entry.note}</p>
           </li>)}</ol>}
           {config.canManage && <form onSubmit={addNote}>
@@ -401,8 +401,8 @@ function Settings() {
     }
     try {
       const payload = JSON.parse(await file.text());
-      if (payload?.plugin !== "activity-log-for-admins" || payload?.format !== "activity-log-for-admins-settings" || payload?.schema_version !== 1 || !payload.settings) {
-        throw new Error("Choose a supported Activity Log settings export.");
+      if (payload?.plugin !== "change-vigil-site-journal" || payload?.format !== "change-vigil-site-journal-settings" || payload?.schema_version !== 1 || !payload.settings) {
+        throw new Error("Choose a supported Change Vigil settings export.");
       }
       setTransfer({ busy: false, error: "", message: "", file: { name: file.name, payload }, confirmPrune: false, confirmErase: false });
     } catch (error) {
@@ -454,11 +454,11 @@ function Settings() {
   const importedSettings = transfer.file?.payload.settings;
   const requiresPruneConfirmation = Boolean(importedSettings && current?.settings && importedSettings.retention < current.settings.retention);
   const requiresEraseConfirmation = Boolean(importedSettings?.erase && current?.settings && !current.settings.erase);
-  return <div className="alfa-settings">
+  return <div className="cvsj-settings">
     {(error || state.error) && <Alert>{error || state.error}</Alert>}
     {!current && !error && <p role="status">Loading settings…</p>}
-    {current && <div className="alfa-panel alfa-settings-content">
-      <section className="alfa-settings-panel">
+    {current && <div className="cvsj-panel cvsj-settings-content">
+      <section className="cvsj-settings-panel">
         <h2>Log health</h2>
         {!health.available && <Alert>The activity log table is unavailable. Check the database connection.</Alert>}
         {health.write_error && <Alert>Last event recording failure: {health.write_error}. Some activity may be missing.</Alert>}
@@ -472,7 +472,7 @@ function Settings() {
         {values.capture_files && health.file_scan_error && <Alert>The last file scan skipped one or more locations. Review directory permissions and scan exclusions. {health.file_scan_error}</Alert>}
         {values.capture_files && health.file_schedule_error && <Alert>File scan scheduling failed. Save these settings to try scheduling it again. {health.file_schedule_error}</Alert>}
         {!health.next_cleanup && <Alert>Automatic cleanup is unscheduled. Save the settings to try scheduling it again.</Alert>}
-        <dl className="alfa-health">
+        <dl className="cvsj-health">
           <div><dt>Oldest event</dt><dd>{health.oldest || (health.available ? "No events recorded" : "Unavailable")}</dd></div>
           <div><dt>Estimated database space</dt><dd>{health.space ?? "Unavailable"}</dd></div>
           <div><dt>Last cleanup</dt><dd>{health.last_cleanup ?? "Has yet to run"}</dd></div>
@@ -482,18 +482,18 @@ function Settings() {
           <div><dt>Next file scan</dt><dd>{values.capture_files ? health.next_file_scan ?? "Unscheduled" : "Not enabled"}</dd></div>
         </dl>
       </section>
-      <form className="alfa-settings-panel" onSubmit={save}>
+      <form className="cvsj-settings-panel" onSubmit={save}>
         <h2>Retention</h2>
         <p>Choose a period that fits your site’s audit needs and privacy obligations. The default is 90 days. Keep the period as short as your purpose allows.</p>
-        <label className="alfa-field alfa-retention"><span>Keep events for (days)</span>
+        <label className="cvsj-field cvsj-retention"><span>Keep events for (days)</span>
           <Input type="number" required min="1" max="3650" value={values.retention} onChange={event => setDraft({ ...values, retention: event.target.value })} />
         </label>
         <p>Automatic cleanup deletes events older than this limit. Shortening this period starts cleanup immediately in bounded batches. Scheduled cleanup may run later on quiet sites.</p>
         <p>WordPress privacy tools can export activity linked to a person and erase their notes, access settings, report filters, and email recipients. Matching activity stays for site audit context with account identifiers and personal change details removed.</p>
-        <label className="alfa-check"><input type="checkbox" checked={values.erase} onChange={event => setDraft({ ...values, erase: event.target.checked })} />
+        <label className="cvsj-check"><input type="checkbox" checked={values.erase} onChange={event => setDraft({ ...values, erase: event.target.checked })} />
           <span><strong>Erase all activity when deleting the plugin</strong><small>Deactivating the plugin preserves your history.</small></span>
         </label>
-        <fieldset className="alfa-settings-group">
+        <fieldset className="cvsj-settings-group">
           <legend>Event recording</legend>
           <p>Turn off categories you do not need. This affects new events only, existing events remain until cleanup.</p>
           {[
@@ -507,18 +507,18 @@ function Settings() {
             ...(config.isMultisite ? [["capture_network", "Network sites", "Site creation, deletion, visibility, and network status changes"]] : []),
             ["capture_database", "Database tables", "Table creation and removal by WordPress and plugins"],
             ["capture_files", "File changes", "New, changed, removed, and permission changes found during scans"],
-          ].map(([key, title, description]) => <label className="alfa-check" key={key}>
+          ].map(([key, title, description]) => <label className="cvsj-check" key={key}>
             <input type="checkbox" checked={values[key]} onChange={event => setDraft({ ...values, [key]: event.target.checked })} />
             <span><strong>{title}</strong><small>{description}</small></span>
           </label>)}
-          <details className="alfa-event-controls">
+          <details className="cvsj-event-controls">
             <summary>Choose individual event types</summary>
             <p>Turn off a specific event while keeping other events in its category. Category controls above still apply to every event in that category.</p>
             {Object.entries(config.actionGroups ?? {}).filter(([group]) => group !== "network" || config.isMultisite).map(([group, eventTypes]) => {
               const groupEnabled = Boolean(values[eventGroupSettings[group]]);
-              return <fieldset className="alfa-event-group" key={group} disabled={!groupEnabled}>
+              return <fieldset className="cvsj-event-group" key={group} disabled={!groupEnabled}>
                 <legend>{eventGroupLabels[group] ?? group}</legend>
-                {eventTypes.map(action => <label className="alfa-check" key={action}>
+                {eventTypes.map(action => <label className="cvsj-check" key={action}>
                   <input type="checkbox" checked={!(values.disabled_actions ?? []).includes(action)} onChange={event => setEventEnabled(action, event.target.checked)} />
                   <span><strong>{eventLabel(action)}</strong></span>
                 </label>)}
@@ -527,75 +527,75 @@ function Settings() {
             })}
           </details>
         </fieldset>
-        <fieldset className="alfa-settings-group">
+        <fieldset className="cvsj-settings-group">
           <legend>File monitoring</legend>
           <p>Monitoring is off until enabled. The first scan sets a baseline and creates no file change events. File contents and absolute paths are never stored. Relative file names remain in the local baseline while monitoring is enabled so removals can be detected. Disabling monitoring clears that baseline, existing events follow your retention period.</p>
-          <label className="alfa-check"><input type="checkbox" checked={values.monitor_uploads} onChange={event => setDraft({ ...values, monitor_uploads: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.monitor_uploads} onChange={event => setDraft({ ...values, monitor_uploads: event.target.checked })} />
             <span><strong>Include uploads</strong><small>Uploads can contain personal or customer files. Review your privacy obligations before including them.</small></span>
           </label>
-          <label className="alfa-field"><span>Maximum file size for content checksums, in megabytes</span>
+          <label className="cvsj-field"><span>Maximum file size for content checksums, in megabytes</span>
             <Input type="number" required min="1" max="50" value={values.file_max_size_mb} disabled={!values.capture_files} onChange={event => setDraft({ ...values, file_max_size_mb: event.target.value })} />
           </label>
-          <label className="alfa-field"><span>Scan frequency</span>
+          <label className="cvsj-field"><span>Scan frequency</span>
             <select value={values.file_scan_interval} disabled={!values.capture_files} onChange={event => setDraft({ ...values, file_scan_interval: event.target.value })}>
               <option value="daily">Daily</option><option value="weekly">Weekly</option>
             </select>
           </label>
-          <label className="alfa-field"><span>Additional excluded paths</span>
-            <textarea rows={4} maxLength={6400} disabled={!values.capture_files} value={(values.file_excluded_paths ?? []).join("\n")} onChange={event => setDraft({ ...values, file_excluded_paths: event.target.value.split("\n").map(path => path.trim()).filter(Boolean).slice(0, 25) })} aria-describedby="alfa-file-exclusions-help" />
+          <label className="cvsj-field"><span>Additional excluded paths</span>
+            <textarea rows={4} maxLength={6400} disabled={!values.capture_files} value={(values.file_excluded_paths ?? []).join("\n")} onChange={event => setDraft({ ...values, file_excluded_paths: event.target.value.split("\n").map(path => path.trim()).filter(Boolean).slice(0, 25) })} aria-describedby="cvsj-file-exclusions-help" />
           </label>
-          <small id="alfa-file-exclusions-help">Enter one path relative to the WordPress folder per line, up to 25 paths. Paths cannot contain wildcards or parent folder references. Common cache, backup, dependency, and version control folders are skipped automatically.</small>
+          <small id="cvsj-file-exclusions-help">Enter one path relative to the WordPress folder per line, up to 25 paths. Paths cannot contain wildcards or parent folder references. Common cache, backup, dependency, and version control folders are skipped automatically.</small>
           <p>Files up to the selected size are checked with a local SHA 256 checksum. Larger files use size, modified time, and permissions only. Scans process bounded batches. Uploaded file monitoring is separately opt in.</p>
         </fieldset>
-        <fieldset className="alfa-settings-group">
+        <fieldset className="cvsj-settings-group">
           <legend>Optional integrations</legend>
           <p>These integrations are off until you enable one. Order records contain order numbers and status only. Redirect records contain rule identifiers only, no source or destination addresses.</p>
-          <label className="alfa-check"><input type="checkbox" checked={values.woocommerce} onChange={event => setDraft({ ...values, woocommerce: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.woocommerce} onChange={event => setDraft({ ...values, woocommerce: event.target.checked })} />
             <span><strong>WooCommerce</strong><small>Record products, coupons, order creation, status changes, refunds, and removal, plus selected store settings. Product descriptions are not stored. Customer names, emails, addresses, coupon codes, coupon email restrictions, payment details, and order contents are not recorded.</small></span>
           </label>
-          <label className="alfa-check"><input type="checkbox" checked={values.redirection} onChange={event => setDraft({ ...values, redirection: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.redirection} onChange={event => setDraft({ ...values, redirection: event.target.checked })} />
             <span><strong>Redirection</strong><small>Record redirect rule changes without storing the URLs.</small></span>
           </label>
-          <label className="alfa-check"><input type="checkbox" checked={values.bbpress} onChange={event => setDraft({ ...values, bbpress: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.bbpress} onChange={event => setDraft({ ...values, bbpress: event.target.checked })} />
             <span><strong>bbPress</strong><small>Record forum, topic, and reply changes. Forum and reply text, guest contact details, and IP addresses are never stored.</small></span>
           </label>
-          <label className="alfa-check"><input type="checkbox" checked={values.wpforms} onChange={event => setDraft({ ...values, wpforms: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.wpforms} onChange={event => setDraft({ ...values, wpforms: event.target.checked })} />
             <span><strong>WPForms</strong><small>Record form changes and successful stored submissions by form. Form definitions, submitted answers, and individual submission identifiers are never stored. Submission events require WPForms entry storage.</small></span>
           </label>
-          <label className="alfa-check"><input type="checkbox" checked={values.yoast} onChange={event => setDraft({ ...values, yoast: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.yoast} onChange={event => setDraft({ ...values, yoast: event.target.checked })} />
             <span><strong>Yoast SEO</strong><small>Record changes to selected SEO fields and titles, metadata, and taxonomy settings. SEO text, keyphrases, canonical addresses, image addresses, and setting values are never stored.</small></span>
           </label>
-          <label className="alfa-check"><input type="checkbox" checked={values.rank_math} onChange={event => setDraft({ ...values, rank_math: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.rank_math} onChange={event => setDraft({ ...values, rank_math: event.target.checked })} />
             <span><strong>Rank Math</strong><small>Record changes to selected SEO fields and titles, metadata, and sitemap settings. SEO text, keyphrases, canonical addresses, image addresses, and setting values are never stored.</small></span>
           </label>
-          <label className="alfa-check"><input type="checkbox" checked={values.pmpro} onChange={event => setDraft({ ...values, pmpro: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.pmpro} onChange={event => setDraft({ ...values, pmpro: event.target.checked })} />
             <span><strong>Paid Memberships Pro</strong><small>Record account membership access and level changes using account and level identifiers only. Level names, contact details, subscription details, and payment data are never stored. Membership access can reveal personal information. Enable this only if needed and choose a retention period that fits its purpose.</small></span>
           </label>
-          <label className="alfa-check"><input type="checkbox" checked={values.termly} onChange={event => setDraft({ ...values, termly: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.termly} onChange={event => setDraft({ ...values, termly: event.target.checked })} />
             <span><strong>Termly</strong><small>Record consent banner, automatic blocker, scan schedule, scanner allow list, and connection state changes. API keys, account details, cookie maps, scan results, and site addresses are never stored.</small></span>
           </label>
-          <label className="alfa-check"><input type="checkbox" checked={values.mainwp} onChange={event => setDraft({ ...values, mainwp: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.mainwp} onChange={event => setDraft({ ...values, mainwp: event.target.checked })} />
             <span><strong>MainWP</strong><small>Record Dashboard changes and transfer child site activity during normal MainWP sync. Enable this on both the Dashboard and each child site. Child event records include the MainWP site ID, but site addresses, connection credentials, and sync payloads are never stored.</small></span>
           </label>
-          <label className="alfa-check"><input type="checkbox" checked={values.infinitewp} onChange={event => setDraft({ ...values, infinitewp: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.infinitewp} onChange={event => setDraft({ ...values, infinitewp: event.target.checked })} />
             <span><strong>InfiniteWP</strong><small>Label changes made through signed InfiniteWP requests. Record completed backup operations when InfiniteWP's own activity log is enabled. Only the backup scope is stored, never paths, storage details, or file contents.</small></span>
           </label>
-          <label className="alfa-check"><input type="checkbox" checked={values.acf} onChange={event => setDraft({ ...values, acf: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.acf} onChange={event => setDraft({ ...values, acf: event.target.checked })} />
             <span><strong>Advanced Custom Fields</strong><small>Record changed field labels on posts, products, and supported custom content. Values are never stored. Labels suggesting personal or secret data are shown as Sensitive custom field. Up to 40 labels appear in each event.</small></span>
           </label>
         </fieldset>
-        <fieldset className="alfa-settings-group">
+        <fieldset className="cvsj-settings-group">
           <legend>Recording exclusions</legend>
           <p>Any matching rule suppresses a new event. Existing events stay in the log until retention cleanup. User exclusions are site specific and are kept when importing settings.</p>
-          <label className="alfa-field"><span>Find users to exclude</span><Input aria-label="Find users to exclude" value={userSearch} maxLength={80} onChange={event => setUserSearch(event.target.value)} placeholder="Search by name or username" /></label>
+          <label className="cvsj-field"><span>Find users to exclude</span><Input aria-label="Find users to exclude" value={userSearch} maxLength={80} onChange={event => setUserSearch(event.target.value)} placeholder="Search by name or username" /></label>
           {userOptionsError && <Alert>{userOptionsError}</Alert>}
-          {userSearch.trim().length < 2 && <small className="alfa-muted">Enter at least two characters to search accounts.</small>}
+          {userSearch.trim().length < 2 && <small className="cvsj-muted">Enter at least two characters to search accounts.</small>}
           {userSearch.trim().length >= 2 && userOptions && userOptions.matches.length === 0 && <p>No accounts match this search.</p>}
-          {userOptions?.matches?.length > 0 && <div className="alfa-exclusion-grid">{userOptions.matches.map(user => <label className="alfa-check" key={user.id}>
+          {userOptions?.matches?.length > 0 && <div className="cvsj-exclusion-grid">{userOptions.matches.map(user => <label className="cvsj-check" key={user.id}>
             <input type="checkbox" checked={(values.excluded_users ?? []).includes(user.id)} onChange={event => setExcludedUser(user.id, event.target.checked)} />
             <span><strong>{user.name}</strong><small>@{user.login}</small></span>
           </label>)}</div>}
-          {(values.excluded_users ?? []).length > 0 && <div className="alfa-selected-exclusions">
+          {(values.excluded_users ?? []).length > 0 && <div className="cvsj-selected-exclusions">
             <strong>Excluded accounts</strong>
             <ul>{values.excluded_users.map(userId => {
               const user = userOptions?.selected?.find(entry => entry.id === userId);
@@ -603,7 +603,7 @@ function Settings() {
               return <li key={userId}><span>{label}</span><Button type="button" variant="ghost" onClick={() => setExcludedUser(userId, false)}>Remove</Button></li>;
             })}</ul>
           </div>}
-          {(values.excluded_items ?? []).length > 0 && <div className="alfa-selected-exclusions">
+          {(values.excluded_items ?? []).length > 0 && <div className="cvsj-selected-exclusions">
             <strong>Excluded items</strong>
             <p>These exact items will not create new events. Existing history is kept.</p>
             <ul>{values.excluded_items.map(item => {
@@ -612,58 +612,58 @@ function Settings() {
               return <li key={item}><span>{config.itemLabels?.[kind] ?? kind}, identifier {key}</span><Button type="button" variant="ghost" onClick={() => setExcludedItem(item, false)}>Remove</Button></li>;
             })}</ul>
           </div>}
-          <div className="alfa-exclusion-grid">{Object.entries(config.roles ?? {}).filter(([role]) => role !== "administrator").map(([role, label]) => <label className="alfa-check" key={role}>
+          <div className="cvsj-exclusion-grid">{Object.entries(config.roles ?? {}).filter(([role]) => role !== "administrator").map(([role, label]) => <label className="cvsj-check" key={role}>
             <input type="checkbox" checked={(values.excluded_roles ?? []).includes(role)} onChange={event => setRoleEnabled("excluded_roles", role, event.target.checked)} />
             <span><strong>{label}</strong><small>Ignore activity performed by this role.</small></span>
           </label>)}</div>
-          <div className="alfa-exclusion-grid">{Object.entries(config.itemLabels ?? {}).map(([kind, label]) => <label className="alfa-check" key={kind}>
+          <div className="cvsj-exclusion-grid">{Object.entries(config.itemLabels ?? {}).map(([kind, label]) => <label className="cvsj-check" key={kind}>
             <input type="checkbox" checked={(values.excluded_item_kinds ?? []).includes(kind)} onChange={event => setRoleEnabled("excluded_item_kinds", kind, event.target.checked)} />
             <span>{label}</span>
           </label>)}</div>
-          <div className="alfa-exclusion-grid">{(config.postStatuses ?? []).map(status => <label className="alfa-check" key={status}>
+          <div className="cvsj-exclusion-grid">{(config.postStatuses ?? []).map(status => <label className="cvsj-check" key={status}>
             <input type="checkbox" checked={(values.excluded_post_statuses ?? []).includes(status)} onChange={event => setRoleEnabled("excluded_post_statuses", status, event.target.checked)} />
             <span>{statusNames[status] ?? status}</span>
           </label>)}</div>
-          <label className="alfa-check"><input type="checkbox" checked={values.exclude_system_activity} onChange={event => setDraft({ ...values, exclude_system_activity: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.exclude_system_activity} onChange={event => setDraft({ ...values, exclude_system_activity: event.target.checked })} />
             <span><strong>Ignore WordPress background tasks</strong><small>Do not record events without a signed in user when WordPress cron is running.</small></span>
           </label>
         </fieldset>
-        <fieldset className="alfa-settings-group">
+        <fieldset className="cvsj-settings-group">
           <legend>Activity log access</legend>
           <p>Administrators always have full access. Viewer roles or users can read and export activity. Manager roles or users can also add investigation notes and change plugin settings.</p>
-          {Object.entries(config.roles ?? {}).filter(([role]) => role !== "administrator").map(([role, label]) => <div className="alfa-role-access" key={role}>
+          {Object.entries(config.roles ?? {}).filter(([role]) => role !== "administrator").map(([role, label]) => <div className="cvsj-role-access" key={role}>
             <strong>{label}</strong>
-            <label className="alfa-check"><input type="checkbox" checked={(values.viewer_roles ?? []).includes(role)} onChange={event => setRoleEnabled("viewer_roles", role, event.target.checked)} /><span>{label} can view and export activity</span></label>
-            <label className="alfa-check"><input type="checkbox" checked={(values.manager_roles ?? []).includes(role)} onChange={event => setRoleEnabled("manager_roles", role, event.target.checked)} /><span>{label} can add notes and manage settings</span></label>
+            <label className="cvsj-check"><input type="checkbox" checked={(values.viewer_roles ?? []).includes(role)} onChange={event => setRoleEnabled("viewer_roles", role, event.target.checked)} /><span>{label} can view and export activity</span></label>
+            <label className="cvsj-check"><input type="checkbox" checked={(values.manager_roles ?? []).includes(role)} onChange={event => setRoleEnabled("manager_roles", role, event.target.checked)} /><span>{label} can add notes and manage settings</span></label>
           </div>)}
-          <label className="alfa-field"><span>Find users to grant access</span><Input aria-label="Find users to grant access" value={accessSearch} maxLength={80} onChange={event => setAccessSearch(event.target.value)} placeholder="Search by name or username" /></label>
+          <label className="cvsj-field"><span>Find users to grant access</span><Input aria-label="Find users to grant access" value={accessSearch} maxLength={80} onChange={event => setAccessSearch(event.target.value)} placeholder="Search by name or username" /></label>
           {accessUserError && <Alert>{accessUserError}</Alert>}
-          {accessSearch.trim().length < 2 && <small className="alfa-muted">Enter at least two characters to search accounts.</small>}
+          {accessSearch.trim().length < 2 && <small className="cvsj-muted">Enter at least two characters to search accounts.</small>}
           {accessSearch.trim().length >= 2 && accessUserOptions && accessUserOptions.matches.length === 0 && <p>No accounts match this search.</p>}
-          {accessUsers.length > 0 && <div className="alfa-access-user-list" aria-label="Users with direct access">{accessUsers.map(user => <div className="alfa-access-user" key={user.id}>
+          {accessUsers.length > 0 && <div className="cvsj-access-user-list" aria-label="Users with direct access">{accessUsers.map(user => <div className="cvsj-access-user" key={user.id}>
             <strong>{user.name} <span>@{user.login}</span></strong>
-            <label className="alfa-check"><input type="checkbox" checked={(values.viewer_users ?? []).includes(user.id)} onChange={event => setRoleEnabled("viewer_users", user.id, event.target.checked)} /><span>{user.name} can view and export activity</span></label>
-            <label className="alfa-check"><input type="checkbox" checked={(values.manager_users ?? []).includes(user.id)} onChange={event => setRoleEnabled("manager_users", user.id, event.target.checked)} /><span>{user.name} can add notes and manage settings</span></label>
+            <label className="cvsj-check"><input type="checkbox" checked={(values.viewer_users ?? []).includes(user.id)} onChange={event => setRoleEnabled("viewer_users", user.id, event.target.checked)} /><span>{user.name} can view and export activity</span></label>
+            <label className="cvsj-check"><input type="checkbox" checked={(values.manager_users ?? []).includes(user.id)} onChange={event => setRoleEnabled("manager_users", user.id, event.target.checked)} /><span>{user.name} can add notes and manage settings</span></label>
           </div>)}</div>}
         </fieldset>
-        <fieldset className="alfa-settings-group">
+        <fieldset className="cvsj-settings-group">
           <legend>Notifications</legend>
-          <label className="alfa-check"><input type="checkbox" checked={values.email_alerts} onChange={event => setDraft({ ...values, email_alerts: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.email_alerts} onChange={event => setDraft({ ...values, email_alerts: event.target.checked })} />
             <span><strong>Email warning digests</strong><small>Send selected warning activity no more often than once every 15 minutes. WordPress must be able to send email.</small></span>
           </label>
-          <label className="alfa-field"><span>Digest recipients</span>
+          <label className="cvsj-field"><span>Digest recipients</span>
             <Input aria-label="Digest recipients" type="text" maxLength={2540} placeholder="Use the WordPress admin email" value={(values.email_alert_recipients ?? []).join(", ")} disabled={!values.email_alerts} onChange={event => setDraft({ ...values, email_alert_recipients: event.target.value.split(",").map(email => email.trim()).filter(Boolean).slice(0, 10) })} />
           </label>
           <small>Enter up to ten email addresses separated by commas. Leave this empty to use the WordPress admin email. Recipients stay on this site and are not included in settings downloads.</small>
-          <label className="alfa-field"><span>Maximum event summaries per digest</span>
+          <label className="cvsj-field"><span>Maximum event summaries per digest</span>
             <Input aria-label="Maximum event summaries per digest" type="number" required min="1" max="20" value={values.email_alert_event_limit} disabled={!values.email_alerts} onChange={event => setDraft({ ...values, email_alert_event_limit: event.target.value })} />
           </label>
-          <label className="alfa-check"><input type="checkbox" checked={values.email_alert_include_events} disabled={!values.email_alerts} onChange={event => setDraft({ ...values, email_alert_include_events: event.target.checked })} />
+          <label className="cvsj-check"><input type="checkbox" checked={values.email_alert_include_events} disabled={!values.email_alerts} onChange={event => setDraft({ ...values, email_alert_include_events: event.target.checked })} />
             <span><strong>Include event summaries</strong><small>Turn this off to send a warning notice without event summaries.</small></span>
           </label>
-          <fieldset className="alfa-event-group" disabled={!values.email_alerts}>
+          <fieldset className="cvsj-event-group" disabled={!values.email_alerts}>
             <legend>Include warning categories</legend>
-            <div className="alfa-exclusion-grid">{Object.keys(config.actionGroups ?? {}).map(category => <label className="alfa-check" key={category}>
+            <div className="cvsj-exclusion-grid">{Object.keys(config.actionGroups ?? {}).map(category => <label className="cvsj-check" key={category}>
               <input type="checkbox" checked={(values.email_alert_categories ?? []).includes(category)} onChange={event => {
                 const selected = new Set(values.email_alert_categories ?? []);
                 if (event.target.checked) selected.add(category);
@@ -674,30 +674,30 @@ function Settings() {
             </label>)}</div>
           </fieldset>
         </fieldset>
-        <fieldset className="alfa-settings-group alfa-transfer">
+        <fieldset className="cvsj-settings-group cvsj-transfer">
           <legend>Settings transfer</legend>
           <p>Move configuration between sites. Activity records, saved reports, notification recipients, and sensitive credentials are not included. User exclusions and direct user access stay on this site because account IDs differ. Importing a shorter retention period or enabling erase on uninstall requires an extra confirmation.</p>
-          <div className="alfa-transfer-actions">
+          <div className="cvsj-transfer-actions">
             <Button type="button" variant="outline" disabled={transfer.busy} onClick={exportSettings}>{transfer.busy ? "Working…" : "Download settings"}</Button>
-            <label className="alfa-file-field"><span>Choose a settings file</span><input type="file" accept="application/json,.json" onChange={readSettingsFile} /></label>
+            <label className="cvsj-file-field"><span>Choose a settings file</span><input type="file" accept="application/json,.json" onChange={readSettingsFile} /></label>
           </div>
-          {transfer.file && <div className="alfa-import-preview" aria-live="polite">
+          {transfer.file && <div className="cvsj-import-preview" aria-live="polite">
             <strong>{transfer.file.name}</strong>
             <p>Import configuration with a retention period of {importedSettings.retention} days. This replaces the current plugin settings.</p>
-            {requiresPruneConfirmation && <label className="alfa-check"><input type="checkbox" checked={transfer.confirmPrune} onChange={event => setTransfer({ ...transfer, confirmPrune: event.target.checked })} /><span><strong>Confirm shorter retention</strong><small>Older activity may be deleted as cleanup runs.</small></span></label>}
-            {requiresEraseConfirmation && <label className="alfa-check"><input type="checkbox" checked={transfer.confirmErase} onChange={event => setTransfer({ ...transfer, confirmErase: event.target.checked })} /><span><strong>Confirm erase on uninstall</strong><small>Deleting the plugin will remove this site’s stored activity and settings.</small></span></label>}
+            {requiresPruneConfirmation && <label className="cvsj-check"><input type="checkbox" checked={transfer.confirmPrune} onChange={event => setTransfer({ ...transfer, confirmPrune: event.target.checked })} /><span><strong>Confirm shorter retention</strong><small>Older activity may be deleted as cleanup runs.</small></span></label>}
+            {requiresEraseConfirmation && <label className="cvsj-check"><input type="checkbox" checked={transfer.confirmErase} onChange={event => setTransfer({ ...transfer, confirmErase: event.target.checked })} /><span><strong>Confirm erase on uninstall</strong><small>Deleting the plugin will remove this site’s stored activity and settings.</small></span></label>}
             <Button type="button" disabled={transfer.busy || (requiresPruneConfirmation && !transfer.confirmPrune) || (requiresEraseConfirmation && !transfer.confirmErase)} onClick={importSettings}>{transfer.busy ? "Importing…" : "Apply imported settings"}</Button>
           </div>}
           {transfer.error && <Alert>{transfer.error}</Alert>}
           {transfer.message && <p role="status">{transfer.message}</p>}
         </fieldset>
-        <div className="alfa-save"><Button disabled={state.busy}>{state.busy ? "Saving…" : "Save settings"}</Button>
+        <div className="cvsj-save"><Button disabled={state.busy}>{state.busy ? "Saving…" : "Save settings"}</Button>
           <span role="status">{state.message}</span></div>
       </form>
     </div>}
     <AlertChannelManager />
     <AlertRuleManager />
-    <div className="alfa-version">Activity Log for Admins · Version {config.version}</div>
+    <div className="cvsj-version">Change Vigil Site Journal · Version {config.version}</div>
   </div>;
 }
 
@@ -766,18 +766,18 @@ function AlertChannelManager() {
   }
 
   const channels = resource.data?.channels;
-  return <section className="alfa-channel-manager" aria-labelledby="alfa-alert-channels-heading">
-    <h2 id="alfa-alert-channels-heading">Notification channels</h2>
+  return <section className="cvsj-channel-manager" aria-labelledby="cvsj-alert-channels-heading">
+    <h2 id="cvsj-alert-channels-heading">Notification channels</h2>
     <p>Send selected event summaries, actor names, and affected item names to services you configure. Slack and Twilio credentials and SMS numbers are encrypted with this site’s WordPress keys and are excluded from settings downloads. They remain until removed here, and SMS numbers cannot be matched to a WordPress email address in a privacy request. If those keys change, enter the credentials again.</p>
     {error && <Alert>{error}</Alert>}{message && <p role="status">{message}</p>}
     {resource.error && <Alert>{resource.error}</Alert>}
     {channels?.needs_reentry && <Alert>Saved channel credentials could not be unlocked. Enter them again to reconnect the services.</Alert>}
     {channels?.delivery_paused && <Alert>Custom alert delivery is paused while a privacy erasure is incomplete. Retry the erasure to safely resume notifications.</Alert>}
-    <form className="alfa-alert-channel-form" onSubmit={saveChannels}>
+    <form className="cvsj-alert-channel-form" onSubmit={saveChannels}>
       <fieldset>
         <legend>Slack</legend>
-        <label className="alfa-field"><span>Incoming webhook URL</span><Input type="url" autoComplete="off" value={slackWebhook} onChange={event => setSlackWebhook(event.target.value)} placeholder={channels?.slack_configured ? "A webhook is already saved, leave blank to keep it" : "https://hooks.slack.com/services/…"} /></label>
-        <div className="alfa-alert-channel-actions">
+        <label className="cvsj-field"><span>Incoming webhook URL</span><Input type="url" autoComplete="off" value={slackWebhook} onChange={event => setSlackWebhook(event.target.value)} placeholder={channels?.slack_configured ? "A webhook is already saved, leave blank to keep it" : "https://hooks.slack.com/services/…"} /></label>
+        <div className="cvsj-alert-channel-actions">
           <Button type="button" variant="outline" disabled={busy || !channels?.slack_configured} onClick={() => testChannel("slack")}>Send Slack test</Button>
           {channels?.slack_configured && <label><input type="checkbox" checked={clearSlack} onChange={event => setClearSlack(event.target.checked)} /> Remove saved Slack webhook</label>}
         </div>
@@ -785,12 +785,12 @@ function AlertChannelManager() {
       <fieldset>
         <legend>SMS through Twilio</legend>
         <p className="description">SMS sends the test to the first configured number. Message and carrier fees may apply.</p>
-        <label className="alfa-field"><span>Account SID</span><Input autoComplete="off" value={accountSid} onChange={event => setAccountSid(event.target.value)} placeholder={channels?.sms_configured ? "A SID is already saved, leave blank to keep it" : "AC followed by 32 characters"} /></label>
-        <label className="alfa-field"><span>Authentication token</span><Input type="password" autoComplete="new-password" value={authToken} onChange={event => setAuthToken(event.target.value)} placeholder={channels?.sms_configured ? "A token is already saved, leave blank to keep it" : "Enter the Twilio token"} /></label>
-        <label className="alfa-field"><span>Sender number or Messaging Service SID</span><Input value={smsFrom} onChange={event => setSmsFrom(event.target.value)} placeholder={channels?.sms_configured ? "A sender is already saved, leave blank to keep it" : "+353123456789 or MG SID"} /></label>
-        <label className="alfa-field"><span>SMS recipient numbers</span><Input value={smsRecipients} onChange={event => setSmsRecipients(event.target.value)} placeholder={channels?.sms_configured ? String(channels.sms_recipient_count) + " saved, enter numbers to replace" : "+353123456789"} /><small>Use E.164 format, separate up to ten numbers with commas.</small></label>
+        <label className="cvsj-field"><span>Account SID</span><Input autoComplete="off" value={accountSid} onChange={event => setAccountSid(event.target.value)} placeholder={channels?.sms_configured ? "A SID is already saved, leave blank to keep it" : "AC followed by 32 characters"} /></label>
+        <label className="cvsj-field"><span>Authentication token</span><Input type="password" autoComplete="new-password" value={authToken} onChange={event => setAuthToken(event.target.value)} placeholder={channels?.sms_configured ? "A token is already saved, leave blank to keep it" : "Enter the Twilio token"} /></label>
+        <label className="cvsj-field"><span>Sender number or Messaging Service SID</span><Input value={smsFrom} onChange={event => setSmsFrom(event.target.value)} placeholder={channels?.sms_configured ? "A sender is already saved, leave blank to keep it" : "+353123456789 or MG SID"} /></label>
+        <label className="cvsj-field"><span>SMS recipient numbers</span><Input value={smsRecipients} onChange={event => setSmsRecipients(event.target.value)} placeholder={channels?.sms_configured ? String(channels.sms_recipient_count) + " saved, enter numbers to replace" : "+353123456789"} /><small>Use E.164 format, separate up to ten numbers with commas.</small></label>
         {channels?.sms_recipient_count > 0 && <label><input type="checkbox" checked={clearSmsRecipients} onChange={event => setClearSmsRecipients(event.target.checked)} /> Remove saved recipient numbers only</label>}
-        <div className="alfa-alert-channel-actions">
+        <div className="cvsj-alert-channel-actions">
           <Button type="button" variant="outline" disabled={busy || !channels?.sms_configured} onClick={() => testChannel("sms")}>Send SMS test</Button>
           {channels?.sms_configured && <label><input type="checkbox" checked={clearSms} onChange={event => setClearSms(event.target.checked)} /> Remove saved Twilio settings and numbers</label>}
         </div>
@@ -818,7 +818,7 @@ function AlertRuleManager() {
     setName(preset.name);
     setLogic(preset.logic);
     setConditions(preset.conditions.map(condition => ({ ...condition })));
-    document.getElementById("alfa-alert-rule-name")?.focus();
+    document.getElementById("cvsj-alert-rule-name")?.focus();
   }
 
   function updateCondition(index, key, value) {
@@ -882,38 +882,38 @@ function AlertRuleManager() {
     }
   }
 
-  return <section className="alfa-alert-rules" aria-labelledby="alfa-alert-rules-heading">
-    <h2 id="alfa-alert-rules-heading">Immediate alerts</h2>
+  return <section className="cvsj-alert-rules" aria-labelledby="cvsj-alert-rules-heading">
+    <h2 id="cvsj-alert-rules-heading">Immediate alerts</h2>
     <p>Build rules that match every condition or any condition. Choose one or more configured channels. Messages include the event summary and actor details. Email recipients stay on this site and are excluded from settings downloads. Failed delivery is retried twice.</p>
     {error && <Alert>{error}</Alert>}{message && <p role="status">{message}</p>}
     {resource.error && <Alert>{resource.error}</Alert>}
     {!resource.data && !resource.error && <p role="status">Loading alert rules…</p>}
     {resource.data?.rules.length === 0 && <p>No immediate email rules are configured.</p>}
-    {resource.data?.rules.length > 0 && <ul className="alfa-alert-rule-list">{resource.data.rules.map(rule => <li key={rule.id}>
+    {resource.data?.rules.length > 0 && <ul className="cvsj-alert-rule-list">{resource.data.rules.map(rule => <li key={rule.id}>
       <div><strong>{rule.name}</strong><small>{rule.enabled ? "Enabled" : "Paused"}, {rule.logic === "all" ? "all conditions" : "any condition"}, {rule.conditions.length} conditions</small><small>Channels: {rule.channels.join(", ")}{rule.channels.includes("email") ? ", to " + rule.recipients.join(", ") : ""}</small></div>
-      <div className="alfa-alert-rule-actions"><Button type="button" variant="outline" disabled={busy} onClick={() => toggleRule(rule)}>{rule.enabled ? "Pause" : "Enable"}</Button><Button type="button" variant="ghost" disabled={busy} onClick={() => deleteRule(rule)}>Delete</Button></div>
+      <div className="cvsj-alert-rule-actions"><Button type="button" variant="outline" disabled={busy} onClick={() => toggleRule(rule)}>{rule.enabled ? "Pause" : "Enable"}</Button><Button type="button" variant="ghost" disabled={busy} onClick={() => deleteRule(rule)}>Delete</Button></div>
     </li>)}</ul>}
-    {resource.data?.presets.length > 0 && <div className="alfa-alert-presets" aria-label="Recommended alert rules">
+    {resource.data?.presets.length > 0 && <div className="cvsj-alert-presets" aria-label="Recommended alert rules">
       <strong>Start from a recommended rule</strong>
       <div>{resource.data.presets.map(preset => <Button key={preset.id} type="button" variant="outline" disabled={busy} onClick={() => usePreset(preset)}>Use {preset.name}</Button>)}</div>
     </div>}
-    <form className="alfa-alert-rule-form" onSubmit={createRule}>
+    <form className="cvsj-alert-rule-form" onSubmit={createRule}>
       <h3>Create an alert rule</h3>
-      <label className="alfa-field"><span>Rule name</span><Input id="alfa-alert-rule-name" required maxLength={80} value={name} onChange={event => setName(event.target.value)} /></label>
-      <label className="alfa-field"><span>Match</span><select value={logic} onChange={event => setLogic(event.target.value)}><option value="all">Every condition</option><option value="any">Any condition</option></select></label>
-      <fieldset className="alfa-alert-channel-choice"><legend>Send through</legend>
+      <label className="cvsj-field"><span>Rule name</span><Input id="cvsj-alert-rule-name" required maxLength={80} value={name} onChange={event => setName(event.target.value)} /></label>
+      <label className="cvsj-field"><span>Match</span><select value={logic} onChange={event => setLogic(event.target.value)}><option value="all">Every condition</option><option value="any">Any condition</option></select></label>
+      <fieldset className="cvsj-alert-channel-choice"><legend>Send through</legend>
         <label><input type="checkbox" checked={channels.includes("email")} onChange={() => toggleChannel("email")} /> Email</label>
         <label><input type="checkbox" checked={channels.includes("slack")} disabled={!channelResource.data?.channels.slack_configured} onChange={() => toggleChannel("slack")} /> Slack {!channelResource.data?.channels.slack_configured && "(configure above first)"}</label>
         <label><input type="checkbox" checked={channels.includes("sms")} disabled={!channelResource.data?.channels.sms_configured} onChange={() => toggleChannel("sms")} /> SMS {!channelResource.data?.channels.sms_configured && "(configure above first)"}</label>
       </fieldset>
-      <div className="alfa-alert-condition-list" aria-label="Alert conditions">{conditions.map((condition, index) => <div className="alfa-alert-condition" key={index}>
-        <label className="alfa-field"><span>Event field</span><select value={condition.field} onChange={event => updateCondition(index, "field", event.target.value)}>{(resource.data?.fields ?? []).map(field => <option key={field.id} value={field.id}>{field.label}</option>)}</select></label>
-        <label className="alfa-field"><span>Comparison</span><select value={condition.operator} onChange={event => updateCondition(index, "operator", event.target.value)}><option value="equals">Is</option><option value="contains">Contains</option><option value="starts_with">Starts with</option></select></label>
-        <label className="alfa-field"><span>Value</span><Input required maxLength={120} value={condition.value} onChange={event => updateCondition(index, "value", event.target.value)} /></label>
+      <div className="cvsj-alert-condition-list" aria-label="Alert conditions">{conditions.map((condition, index) => <div className="cvsj-alert-condition" key={index}>
+        <label className="cvsj-field"><span>Event field</span><select value={condition.field} onChange={event => updateCondition(index, "field", event.target.value)}>{(resource.data?.fields ?? []).map(field => <option key={field.id} value={field.id}>{field.label}</option>)}</select></label>
+        <label className="cvsj-field"><span>Comparison</span><select value={condition.operator} onChange={event => updateCondition(index, "operator", event.target.value)}><option value="equals">Is</option><option value="contains">Contains</option><option value="starts_with">Starts with</option></select></label>
+        <label className="cvsj-field"><span>Value</span><Input required maxLength={120} value={condition.value} onChange={event => updateCondition(index, "value", event.target.value)} /></label>
         <Button type="button" variant="ghost" disabled={busy || conditions.length === 1} onClick={() => setConditions(previous => previous.filter((_, position) => position !== index))}>Remove condition</Button>
       </div>)}</div>
       <Button type="button" variant="outline" disabled={busy || conditions.length >= 8} onClick={() => setConditions(previous => [...previous, { field: "action_key", operator: "equals", value: "" }])}>Add condition</Button>
-      {channels.includes("email") && <label className="alfa-field"><span>Email recipients</span><Input required maxLength={2550} value={recipients} onChange={event => setRecipients(event.target.value)} placeholder="admin@example.com, security@example.com" /><small>Enter up to ten addresses separated by commas. These people will receive matching activity summaries.</small></label>}
+      {channels.includes("email") && <label className="cvsj-field"><span>Email recipients</span><Input required maxLength={2550} value={recipients} onChange={event => setRecipients(event.target.value)} placeholder="admin@example.com, security@example.com" /><small>Enter up to ten addresses separated by commas. These people will receive matching activity summaries.</small></label>}
       <Button disabled={busy || channels.length === 0}>{busy ? "Saving…" : "Save alert rule"}</Button>
     </form>
   </section>;
@@ -990,12 +990,12 @@ function ActivityView({ filters, apply, heading, initialEventId }) {
     }
   }
   return <>
-    <section className="alfa-panel" aria-label="Activity log">
+    <section className="cvsj-panel" aria-label="Activity log">
       <Filters key={JSON.stringify(filters)} filters={filters} apply={apply} exportUrl={exportUrl} reportUrl={reportUrl} />
-      {config.canManage && selectedIds.length > 0 && <div className="alfa-bulk-actions" aria-label="Selected event actions">
+      {config.canManage && selectedIds.length > 0 && <div className="cvsj-bulk-actions" aria-label="Selected event actions">
         <span>{selectedIds.length} {selectedIds.length === 1 ? "event" : "events"} selected</span>
-        <label htmlFor="alfa-bulk-action">Apply to selection</label>
-        <select id="alfa-bulk-action" value={bulkAction} onChange={event => setBulkAction(event.target.value)}>
+        <label htmlFor="cvsj-bulk-action">Apply to selection</label>
+        <select id="cvsj-bulk-action" value={bulkAction} onChange={event => setBulkAction(event.target.value)}>
           <option value="">Choose an action</option>
           <option value="exclude_accounts">Exclude selected accounts</option>
           <option value="exclude_items">Exclude selected items</option>
@@ -1005,7 +1005,7 @@ function ActivityView({ filters, apply, heading, initialEventId }) {
       </div>}
       {bulkState.error && <Alert>{bulkState.error}</Alert>}
       {bulkState.message && <p role="status">{bulkState.message}</p>}
-      <div className="alfa-results">
+      <div className="cvsj-results">
         <p aria-live="polite">{data ? `${data.events.length} ${data.events.length === 1 ? "event" : "events"} on this page` : "Activity events"}</p>
         <Button variant="ghost" onClick={() => setRefresh(value => value + 1)}><RefreshCw aria-hidden="true" /> Refresh</Button>
       </div>
@@ -1013,14 +1013,14 @@ function ActivityView({ filters, apply, heading, initialEventId }) {
         ? <EventTable events={data.events} select={(event, button) => { trigger.current = button; setRow(event); }} selectedIds={selectedIds}
           toggleSelected={id => setSelectedIds(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id])}
           selectPage={selected => setSelectedIds(selected ? data.events.map(event => event.id) : [])} />
-        : <div className="alfa-empty">
+        : <div className="cvsj-empty">
           {data ? <CircleHelp size={25} aria-hidden="true" /> : <Clock3 size={25} aria-hidden="true" />}
           <h2 role={data ? undefined : "status"}>{data ? (active ? "No matching events" : "No activity recorded yet") : "Loading activity…"}</h2>
           {data && <p>{active ? "Try a different search or clear the filters." : "New events will appear here as changes happen in WordPress."}</p>}
           {data && active && <Button variant="outline" onClick={() => apply({})}>Clear filters</Button>}
         </div>}
       {data && <SeverityLegend />}
-      {data && (cursors.length > 1 || data.next) && <div className="alfa-pagination" aria-label="Activity pages">
+      {data && (cursors.length > 1 || data.next) && <div className="cvsj-pagination" aria-label="Activity pages">
         <span>Page {cursors.length}</span>
         <Button variant="outline" disabled={cursors.length === 1} onClick={() => setCursors(previous => previous.slice(0, -1))}><ArrowLeft aria-hidden="true" /> Newer</Button>
         <Button variant="outline" disabled={!data.next} onClick={() => setCursors(previous => [...previous, { before: data.next }])}>Older <ArrowRight aria-hidden="true" /></Button>
@@ -1158,39 +1158,39 @@ function Reports({ filters, apply, initialGroup, initialInterval }) {
     setReportTags((report.tags ?? []).join(", "));
   }
 
-  return <section className="alfa-panel alfa-report-page" aria-label="Activity reports">
-    <section className="alfa-report-download" aria-labelledby="alfa-event-report-heading">
-      <h2 id="alfa-event-report-heading">Event report</h2>
+  return <section className="cvsj-panel cvsj-report-page" aria-label="Activity reports">
+    <section className="cvsj-report-download" aria-labelledby="cvsj-event-report-heading">
+      <h2 id="cvsj-event-report-heading">Event report</h2>
       <p>Download every event matching the current filters as a private HTML file. This report is generated for you and is not stored by the plugin.</p>
-      <label className="alfa-field"><span>Report title</span><Input maxLength={120} value={reportTitle} onChange={event => setReportTitle(event.target.value)} /></label>
-      <fieldset className="alfa-settings-group">
+      <label className="cvsj-field"><span>Report title</span><Input maxLength={120} value={reportTitle} onChange={event => setReportTitle(event.target.value)} /></label>
+      <fieldset className="cvsj-settings-group">
         <legend>Include fields</legend>
-        <div className="alfa-report-columns">{reportFields.map(([key, label]) => <label className="alfa-check" key={key}>
+        <div className="cvsj-report-columns">{reportFields.map(([key, label]) => <label className="cvsj-check" key={key}>
           <input type="checkbox" checked={reportColumns.includes(key)} onChange={event => setReportColumns(current => event.target.checked
             ? [...current, key]
             : current.filter(column => column !== key))} />
           <span>{label}</span>
         </label>)}</div>
       </fieldset>
-      <label className="alfa-check"><input type="checkbox" checked={reportBranding} onChange={event => setReportBranding(event.target.checked)} /><span><strong>Include site name</strong><small>Add this site’s name at the top of the downloaded report.</small></span></label>
+      <label className="cvsj-check"><input type="checkbox" checked={reportBranding} onChange={event => setReportBranding(event.target.checked)} /><span><strong>Include site name</strong><small>Add this site’s name at the top of the downloaded report.</small></span></label>
       {reportColumns.length > 0
         ? <Button variant="outline" asChild><a href={eventReportUrl.href}><FileText aria-hidden="true" /> Download HTML report</a></Button>
         : <Button variant="outline" disabled>Select at least one field</Button>}
     </section>
-    <form className="alfa-report-builder" onSubmit={run}>
+    <form className="cvsj-report-builder" onSubmit={run}>
       <h2>Activity statistics</h2>
       <p>Compare activity within the date range allowed by this site’s retention setting. Date buckets use the site timezone.</p>
-      <div className="alfa-report-controls">
-        <label className="alfa-field"><span>From</span><Input type="date" required value={from} max={to} onChange={event => setFrom(event.target.value)} /></label>
-        <label className="alfa-field"><span>Through</span><Input type="date" required value={to} min={from} max={today} onChange={event => setTo(event.target.value)} /></label>
-        <label className="alfa-field"><span>Group activity by</span>
+      <div className="cvsj-report-controls">
+        <label className="cvsj-field"><span>From</span><Input type="date" required value={from} max={to} onChange={event => setFrom(event.target.value)} /></label>
+        <label className="cvsj-field"><span>Through</span><Input type="date" required value={to} min={from} max={today} onChange={event => setTo(event.target.value)} /></label>
+        <label className="cvsj-field"><span>Group activity by</span>
           <select value={group} onChange={event => setGroup(event.target.value)}>
             <option value="category">Event category</option><option value="action">Event type</option>
             <option value="severity">Severity</option><option value="actor_role">Actor role</option>
             <option value="source">Request source</option><option value="day">Date</option>
           </select>
         </label>
-        <label className="alfa-field"><span>Date interval</span>
+        <label className="cvsj-field"><span>Date interval</span>
           <select value={interval} disabled={group !== "day"} onChange={event => setInterval(event.target.value)}>
             <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option>
           </select>
@@ -1198,32 +1198,32 @@ function Reports({ filters, apply, initialGroup, initialInterval }) {
       </div>
       <Button type="submit">Run statistics</Button>
     </form>
-    <div className="alfa-report-results">
-      <div className="alfa-results"><p aria-live="polite">{data ? `${data.total.toLocaleString()} matching events` : "Activity totals"}</p></div>
+    <div className="cvsj-report-results">
+      <div className="cvsj-results"><p aria-live="polite">{data ? `${data.total.toLocaleString()} matching events` : "Activity totals"}</p></div>
       {error ? <Alert>{error}</Alert> : data?.rows.length
         ? <Table aria-label="Activity statistics">
           <TableHeader><TableRow><TableHead>{group === "day" ? "Date" : "Group"}</TableHead><TableHead>Events</TableHead></TableRow></TableHeader>
           <TableBody>{data.rows.map(row => <TableRow key={row.label}><TableCell>{statisticLabel(row, group, interval)}</TableCell><TableCell>{row.total.toLocaleString()}</TableCell></TableRow>)}</TableBody>
         </Table>
-        : <div className="alfa-empty"><h3 role={data ? undefined : "status"}>{data ? "No activity in this range" : "Loading statistics…"}</h3>{data && <p>Try a different date range or grouping.</p>}</div>}
+        : <div className="cvsj-empty"><h3 role={data ? undefined : "status"}>{data ? "No activity in this range" : "Loading statistics…"}</h3>{data && <p>Try a different date range or grouping.</p>}</div>}
       {savedError && <Alert>{savedError}</Alert>}
       {savedMessage && <p role="status">{savedMessage}</p>}
-      {config.canManage && <form className="alfa-save-report" onSubmit={saveTemplate}>
+      {config.canManage && <form className="cvsj-save-report" onSubmit={saveTemplate}>
         <h3>Save this report</h3>
         <p>Save the filters, grouping, and a snapshot of the statistics shown above. The snapshot contains aggregated counts, not event records, and stays on this site.</p>
-        <label className="alfa-field"><span>Report name</span><Input required maxLength={100} value={savedName} onChange={event => setSavedName(event.target.value)} /></label>
-        <label className="alfa-field"><span>Tags, optional</span><Input maxLength={154} placeholder="Access review, quarterly" value={reportTags} onChange={event => setReportTags(event.target.value)} /><small>Separate up to five tags with commas. Avoid personal information.</small></label>
+        <label className="cvsj-field"><span>Report name</span><Input required maxLength={100} value={savedName} onChange={event => setSavedName(event.target.value)} /></label>
+        <label className="cvsj-field"><span>Tags, optional</span><Input maxLength={154} placeholder="Access review, quarterly" value={reportTags} onChange={event => setReportTags(event.target.value)} /><small>Separate up to five tags with commas. Avoid personal information.</small></label>
         <Button type="submit" variant="outline" disabled={savedBusy || !savedName.trim()}>{savedBusy ? "Saving…" : "Save report"}</Button>
       </form>}
-      <section className="alfa-saved-reports" aria-labelledby="alfa-saved-reports-heading">
-        <h3 id="alfa-saved-reports-heading">Saved reports</h3>
+      <section className="cvsj-saved-reports" aria-labelledby="cvsj-saved-reports-heading">
+        <h3 id="cvsj-saved-reports-heading">Saved reports</h3>
         {!savedResource.data && !savedResource.error && <p role="status">Loading saved reports…</p>}
         {savedResource.error && <Alert>{savedResource.error}</Alert>}
         {savedResource.data?.reports.length === 0 && <p>No report templates have been saved.</p>}
-        {savedResource.data?.reports.length > 0 && <ul>{savedResource.data.reports.map(report => <li className={expandedSnapshot === report.id ? "alfa-has-statistics" : ""} key={report.id}>
-          <div><strong>{report.name}</strong><small>{({ category: "Event category", action: "Event type", severity: "Severity", actor_role: "Actor role", source: "Request source", day: "Date" })[report.group] ?? report.group}, past {report.range_days} {report.range_days === 1 ? "day" : "days"}, {report.interval}, {report.columns?.length ?? allReportColumns.length} fields{report.branding ? ", site name included" : ""}</small>{report.tags?.length > 0 && <div className="alfa-report-tags">{report.tags.map(tag => <Badge variant="outline" key={tag}>{tag}</Badge>)}</div>}</div>
-          <div className="alfa-saved-report-actions"><Button type="button" variant="outline" onClick={() => loadTemplate(report)}>Load</Button>{report.statistics && <><Button type="button" variant="outline" aria-expanded={expandedSnapshot === report.id} aria-controls={`alfa-statistics-${report.id}`} onClick={() => setExpandedSnapshot(current => current === report.id ? "" : report.id)}>{expandedSnapshot === report.id ? "Hide result" : "View saved result"}</Button><Button type="button" variant="outline" asChild><a href={apiUrl(`reports/saved/${report.id}/statistics/download`, { format: "csv", _wpnonce: config.nonce }).href}><ArrowDownToLine size={14} aria-hidden="true" /> Download CSV</a></Button><Button type="button" variant="outline" asChild><a href={apiUrl(`reports/saved/${report.id}/statistics/download`, { format: "html", _wpnonce: config.nonce }).href}><ArrowDownToLine size={14} aria-hidden="true" /> Download HTML</a></Button></>}{config.canManage && <><Button type="button" variant="outline" onClick={() => window.dispatchEvent(new CustomEvent("alfa-schedule-report", { detail: report.id }))}>Schedule email</Button><Button type="button" variant="ghost" disabled={savedBusy} onClick={() => deleteTemplate(report)}>Delete</Button></>}</div>
-          {expandedSnapshot === report.id && report.statistics && <div className="alfa-statistics-snapshot" id={`alfa-statistics-${report.id}`}>
+        {savedResource.data?.reports.length > 0 && <ul>{savedResource.data.reports.map(report => <li className={expandedSnapshot === report.id ? "cvsj-has-statistics" : ""} key={report.id}>
+          <div><strong>{report.name}</strong><small>{({ category: "Event category", action: "Event type", severity: "Severity", actor_role: "Actor role", source: "Request source", day: "Date" })[report.group] ?? report.group}, past {report.range_days} {report.range_days === 1 ? "day" : "days"}, {report.interval}, {report.columns?.length ?? allReportColumns.length} fields{report.branding ? ", site name included" : ""}</small>{report.tags?.length > 0 && <div className="cvsj-report-tags">{report.tags.map(tag => <Badge variant="outline" key={tag}>{tag}</Badge>)}</div>}</div>
+          <div className="cvsj-saved-report-actions"><Button type="button" variant="outline" onClick={() => loadTemplate(report)}>Load</Button>{report.statistics && <><Button type="button" variant="outline" aria-expanded={expandedSnapshot === report.id} aria-controls={`cvsj-statistics-${report.id}`} onClick={() => setExpandedSnapshot(current => current === report.id ? "" : report.id)}>{expandedSnapshot === report.id ? "Hide result" : "View saved result"}</Button><Button type="button" variant="outline" asChild><a href={apiUrl(`reports/saved/${report.id}/statistics/download`, { format: "csv", _wpnonce: config.nonce }).href}><ArrowDownToLine size={14} aria-hidden="true" /> Download CSV</a></Button><Button type="button" variant="outline" asChild><a href={apiUrl(`reports/saved/${report.id}/statistics/download`, { format: "html", _wpnonce: config.nonce }).href}><ArrowDownToLine size={14} aria-hidden="true" /> Download HTML</a></Button></>}{config.canManage && <><Button type="button" variant="outline" onClick={() => window.dispatchEvent(new CustomEvent("cvsj-schedule-report", { detail: report.id }))}>Schedule email</Button><Button type="button" variant="ghost" disabled={savedBusy} onClick={() => deleteTemplate(report)}>Delete</Button></>}</div>
+          {expandedSnapshot === report.id && report.statistics && <div className="cvsj-statistics-snapshot" id={`cvsj-statistics-${report.id}`}>
             <p>{report.statistics.total.toLocaleString()} events from {report.statistics.from} through {report.statistics.to}</p>
             <Table aria-label={`Saved statistics for ${report.name}`}>
               <TableHeader><TableRow><TableHead>{report.statistics.group === "day" ? "Date" : "Group"}</TableHead><TableHead>Events</TableHead></TableRow></TableHeader>
@@ -1251,8 +1251,8 @@ function ScheduledReportManager({ templates }) {
   const resource = useResource("reports/schedules", null, refresh);
   useEffect(() => {
     const selectTemplate = event => setTemplateId(event.detail);
-    window.addEventListener("alfa-schedule-report", selectTemplate);
-    return () => window.removeEventListener("alfa-schedule-report", selectTemplate);
+    window.addEventListener("cvsj-schedule-report", selectTemplate);
+    return () => window.removeEventListener("cvsj-schedule-report", selectTemplate);
   }, []);
   useEffect(() => {
     if (templateId) {
@@ -1316,28 +1316,28 @@ function ScheduledReportManager({ templates }) {
 
   const cadenceNames = { daily: "Daily", weekly: "Weekly on Monday", monthly: "Monthly on the first", quarterly: "Quarterly on the first day of the quarter" };
   const when = value => value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short", timeZone: config.timezone || undefined }).format(new Date(value * 1000)) : "Not sent yet";
-  return <section className="alfa-scheduled-reports" aria-labelledby="alfa-scheduled-reports-heading">
-    <h3 id="alfa-scheduled-reports-heading">Scheduled email reports</h3>
+  return <section className="cvsj-scheduled-reports" aria-labelledby="cvsj-scheduled-reports-heading">
+    <h3 id="cvsj-scheduled-reports-heading">Scheduled email reports</h3>
     <p>Reports are prepared in background batches and sent as CSV or HTML attachments. Failed email delivery is retried twice, after about five minutes and fifteen minutes. Recipients stay on this site. Private report copies follow this site’s retention setting, with up to ten copies stored at once.</p>
     {error && <Alert>{error}</Alert>}{message && <p role="status">{message}</p>}
     {resource.error && <Alert>{resource.error}</Alert>}
     {!resource.data && !resource.error && <p role="status">Loading scheduled reports…</p>}
     {resource.data?.schedules.length === 0 && <p>No email reports are scheduled.</p>}
-    {resource.data?.schedules.length > 0 && <ul className="alfa-schedule-list">{resource.data.schedules.map(schedule => <li key={schedule.id}>
+    {resource.data?.schedules.length > 0 && <ul className="cvsj-schedule-list">{resource.data.schedules.map(schedule => <li key={schedule.id}>
       <div><strong>{schedule.name}</strong><small>{schedule.format === "html" ? "HTML attachment" : "CSV attachment"}, {cadenceNames[schedule.cadence]}, next {when(schedule.next_run)} in {config.timezone}</small><small>To {schedule.recipients.join(", ")}{schedule.last_run ? `, last delivery ${when(schedule.last_run)}` : ""}{schedule.last_status ? `, status ${schedule.last_status}` : ""}</small>{schedule.last_error && <small role="status">{schedule.last_error}</small>}</div>
       <Button type="button" variant="ghost" disabled={busy} onClick={() => removeSchedule(schedule)}>Delete</Button>
     </li>)}</ul>}
-    {templateId && <form className="alfa-schedule-form" onSubmit={createSchedule}>
+    {templateId && <form className="cvsj-schedule-form" onSubmit={createSchedule}>
       <h4 ref={scheduleHeading} tabIndex={-1}>Schedule {selectedTemplate?.name ?? "saved report"}</h4>
-      <label className="alfa-field"><span>Frequency</span><select value={cadence} onChange={event => setCadence(event.target.value)}>
+      <label className="cvsj-field"><span>Frequency</span><select value={cadence} onChange={event => setCadence(event.target.value)}>
         <option value="daily">Daily</option><option value="weekly">Weekly, Monday</option><option value="monthly">Monthly, first day</option><option value="quarterly">Quarterly, first day of the quarter</option>
       </select></label>
-      <label className="alfa-field"><span>Send at, site time</span><select value={hour} onChange={event => setHour(event.target.value)}>{Array.from({ length: 24 }, (_, value) => <option key={value} value={value}>{String(value).padStart(2, "0")}:00</option>)}</select></label>
-      <label className="alfa-field"><span>Attachment format</span><select value={format} onChange={event => setFormat(event.target.value)}><option value="csv">CSV, for spreadsheets</option><option value="html">HTML, for reading and printing</option></select></label>
-      <label className="alfa-field"><span>Email recipients</span><Input required maxLength={2550} placeholder="admin@example.com, security@example.com" value={recipients} onChange={event => setRecipients(event.target.value)} /><small>Enter up to ten addresses separated by commas. Emails include activity details, use only intended recipients.</small></label>
-      <div className="alfa-schedule-actions"><Button type="submit" disabled={busy}>{busy ? "Saving…" : "Create schedule"}</Button><Button type="button" variant="ghost" onClick={() => setTemplateId("")}>Cancel</Button></div>
+      <label className="cvsj-field"><span>Send at, site time</span><select value={hour} onChange={event => setHour(event.target.value)}>{Array.from({ length: 24 }, (_, value) => <option key={value} value={value}>{String(value).padStart(2, "0")}:00</option>)}</select></label>
+      <label className="cvsj-field"><span>Attachment format</span><select value={format} onChange={event => setFormat(event.target.value)}><option value="csv">CSV, for spreadsheets</option><option value="html">HTML, for reading and printing</option></select></label>
+      <label className="cvsj-field"><span>Email recipients</span><Input required maxLength={2550} placeholder="admin@example.com, security@example.com" value={recipients} onChange={event => setRecipients(event.target.value)} /><small>Enter up to ten addresses separated by commas. Emails include activity details, use only intended recipients.</small></label>
+      <div className="cvsj-schedule-actions"><Button type="submit" disabled={busy}>{busy ? "Saving…" : "Create schedule"}</Button><Button type="button" variant="ghost" onClick={() => setTemplateId("")}>Cancel</Button></div>
     </form>}
-    {resource.data?.history.length > 0 && <details className="alfa-report-history"><summary>Report history</summary><ul>{resource.data.history.map(entry => <li key={entry.id}><strong>{entry.name}</strong><span>{entry.format === "html" ? "HTML" : "CSV"}, {cadenceNames[entry.cadence] ?? entry.cadence}, {when(entry.occurred_at)}, {entry.status}, {entry.event_count} events</span>{entry.message && <small>{entry.message}</small>}<div className="alfa-report-history-actions">{entry.download_url && <a href={entry.download_url}>Download copy</a>}<Button type="button" variant="ghost" disabled={busy} onClick={() => removeHistory(entry)}>Delete</Button></div></li>)}</ul></details>}
+    {resource.data?.history.length > 0 && <details className="cvsj-report-history"><summary>Report history</summary><ul>{resource.data.history.map(entry => <li key={entry.id}><strong>{entry.name}</strong><span>{entry.format === "html" ? "HTML" : "CSV"}, {cadenceNames[entry.cadence] ?? entry.cadence}, {when(entry.occurred_at)}, {entry.status}, {entry.event_count} events</span>{entry.message && <small>{entry.message}</small>}<div className="cvsj-report-history-actions">{entry.download_url && <a href={entry.download_url}>Download copy</a>}<Button type="button" variant="ghost" disabled={busy} onClick={() => removeHistory(entry)}>Delete</Button></div></li>)}</ul></details>}
   </section>;
 }
 
@@ -1385,39 +1385,39 @@ function NetworkSites() {
     }
   }
 
-  return <section className="alfa-panel alfa-network-sites" aria-label="Network site settings">
-    <div className="alfa-network-sites-intro">
+  return <section className="cvsj-panel cvsj-network-sites" aria-label="Network site settings">
+    <div className="cvsj-network-sites-intro">
       <h2>Network sites</h2>
       <p>Review each site’s storage and retention. Category choices stay local to each site.</p>
     </div>
-    <form className="alfa-network-site-search" onSubmit={runSearch}>
+    <form className="cvsj-network-site-search" onSubmit={runSearch}>
       <Input aria-label="Search network sites" maxLength={160} placeholder="Search by site ID, domain, or path" value={searchInput} onChange={event => setSearchInput(event.target.value)} />
       <Button type="submit"><Search aria-hidden="true" /> Search sites</Button>
       {search && <Button type="button" variant="ghost" onClick={() => { setSearchInput(""); setSearch(""); setPage(1); }}>Clear search</Button>}
     </form>
     {error && <Alert>{error}</Alert>}
     {!data && !error && <p role="status">Loading network sites…</p>}
-    {data && data.sites.length === 0 && <div className="alfa-empty"><Globe size={24} aria-hidden="true" /><h3>No matching sites</h3><p>Check the site ID or address and try again.</p></div>}
+    {data && data.sites.length === 0 && <div className="cvsj-empty"><Globe size={24} aria-hidden="true" /><h3>No matching sites</h3><p>Check the site ID or address and try again.</p></div>}
     {data?.sites.length > 0 && <>
-      <div className="alfa-network-site-table-wrap" role="region" aria-label="Network site settings table" tabIndex={0}>
+      <div className="cvsj-network-site-table-wrap" role="region" aria-label="Network site settings table" tabIndex={0}>
         <Table aria-label="Network sites and activity settings">
           <TableHeader><TableRow><TableHead>Site</TableHead><TableHead>Retention</TableHead><TableHead>Event categories</TableHead><TableHead>Storage</TableHead><TableHead><span className="screen-reader-text">Save changes</span></TableHead></TableRow></TableHeader>
           <TableBody>{data.sites.map(site => {
             const draft = drafts[site.id];
             const message = messages[site.id];
             return <TableRow key={site.id}>
-              <TableCell><div className="alfa-network-site-name"><a href={site.dashboard_url}>{site.name || `Site ${site.id}`}</a><small>Site #{site.id}</small><small>{site.address}</small></div></TableCell>
-              <TableCell><label className="alfa-field alfa-retention-field"><span>Days</span><Input aria-label={`Retention days for ${site.name}`} type="number" min="1" max="3650" step="1" value={draft?.retention ?? site.retention} onChange={event => setDrafts(current => ({ ...current, [site.id]: { ...current[site.id], retention: event.target.value } }))} /></label></TableCell>
-              <TableCell><details className="alfa-network-category-details"><summary>Manage {Object.keys(site.categories).length} categories</summary><div className="alfa-network-category-list">{Object.entries(site.categories).map(([key, category]) => <label className="alfa-check" key={key}><input type="checkbox" checked={Boolean(draft?.categories?.[key])} onChange={event => setDrafts(current => ({ ...current, [site.id]: { ...current[site.id], categories: { ...current[site.id]?.categories, [key]: event.target.checked } } }))} /><span>{category.label}</span></label>)}</div></details></TableCell>
-              <TableCell><div className="alfa-network-storage-status">{site.storage_available ? <Badge variant="outline">Available</Badge> : <Badge variant="outline" className="alfa-warning">Unavailable</Badge>}{site.recording_failure && <small>Recording issue</small>}{site.cleanup_failure && <small>Cleanup issue</small>}</div></TableCell>
-              <TableCell><Button type="button" disabled={busy === site.id || !draft} onClick={() => save(site)}>{busy === site.id ? "Saving…" : "Save"}</Button>{message?.error && <small role="alert" className="alfa-network-row-message is-error">{message.error}</small>}{message?.success && <small role="status" className="alfa-network-row-message">{message.success}</small>}</TableCell>
+              <TableCell><div className="cvsj-network-site-name"><a href={site.dashboard_url}>{site.name || `Site ${site.id}`}</a><small>Site #{site.id}</small><small>{site.address}</small></div></TableCell>
+              <TableCell><label className="cvsj-field cvsj-retention-field"><span>Days</span><Input aria-label={`Retention days for ${site.name}`} type="number" min="1" max="3650" step="1" value={draft?.retention ?? site.retention} onChange={event => setDrafts(current => ({ ...current, [site.id]: { ...current[site.id], retention: event.target.value } }))} /></label></TableCell>
+              <TableCell><details className="cvsj-network-category-details"><summary>Manage {Object.keys(site.categories).length} categories</summary><div className="cvsj-network-category-list">{Object.entries(site.categories).map(([key, category]) => <label className="cvsj-check" key={key}><input type="checkbox" checked={Boolean(draft?.categories?.[key])} onChange={event => setDrafts(current => ({ ...current, [site.id]: { ...current[site.id], categories: { ...current[site.id]?.categories, [key]: event.target.checked } } }))} /><span>{category.label}</span></label>)}</div></details></TableCell>
+              <TableCell><div className="cvsj-network-storage-status">{site.storage_available ? <Badge variant="outline">Available</Badge> : <Badge variant="outline" className="cvsj-warning">Unavailable</Badge>}{site.recording_failure && <small>Recording issue</small>}{site.cleanup_failure && <small>Cleanup issue</small>}</div></TableCell>
+              <TableCell><Button type="button" disabled={busy === site.id || !draft} onClick={() => save(site)}>{busy === site.id ? "Saving…" : "Save"}</Button>{message?.error && <small role="alert" className="cvsj-network-row-message is-error">{message.error}</small>}{message?.success && <small role="status" className="cvsj-network-row-message">{message.success}</small>}</TableCell>
             </TableRow>;
           })}</TableBody>
         </Table>
       </div>
-      <div className="alfa-pagination" aria-label="Network site pages"><span>{data.total} sites, page {data.page}</span><Button variant="outline" disabled={data.page <= 1} onClick={() => setPage(value => Math.max(1, value - 1))}><ArrowLeft aria-hidden="true" /> Previous</Button><Button variant="outline" disabled={!data.has_more} onClick={() => setPage(value => value + 1)}>Next <ArrowRight aria-hidden="true" /></Button></div>
+      <div className="cvsj-pagination" aria-label="Network site pages"><span>{data.total} sites, page {data.page}</span><Button variant="outline" disabled={data.page <= 1} onClick={() => setPage(value => Math.max(1, value - 1))}><ArrowLeft aria-hidden="true" /> Previous</Button><Button variant="outline" disabled={!data.has_more} onClick={() => setPage(value => value + 1)}>Next <ArrowRight aria-hidden="true" /></Button></div>
     </>}
-    <p className="alfa-settings-version">Activity Log for Admins, Version {config.version}</p>
+    <p className="cvsj-settings-version">Change Vigil Site Journal, Version {config.version}</p>
   </section>;
 }
 
@@ -1490,64 +1490,64 @@ function SessionsView() {
 
   const sessions = data?.users.flatMap(user => user.sessions.map(session => ({ user, session }))) ?? [];
   const emptyAccounts = data?.users.filter(user => user.sessions.length === 0) ?? [];
-  return <section className="alfa-sessions" aria-labelledby="alfa-sessions-title">
-    <div className="alfa-section-heading">
-      <div><h2 id="alfa-sessions-title">User sessions</h2><p>Review active WordPress logins and end a session if an account looks unexpected.</p></div>
+  return <section className="cvsj-sessions" aria-labelledby="cvsj-sessions-title">
+    <div className="cvsj-section-heading">
+      <div><h2 id="cvsj-sessions-title">User sessions</h2><p>Review active WordPress logins and end a session if an account looks unexpected.</p></div>
     </div>
-    <div className="alfa-session-privacy-note"><ShieldAlert aria-hidden="true" size={17} /><p>WordPress stores login time, expiry, browser data, and IP address in its session records. Activity Log hides browser and IP details by default. On Multisite, sessions apply to the account across the network.</p></div>
-    {settings && <form className="alfa-session-settings" onSubmit={saveSettings}>
+    <div className="cvsj-session-privacy-note"><ShieldAlert aria-hidden="true" size={17} /><p>WordPress stores login time, expiry, browser data, and IP address in its session records. Change Vigil hides browser and IP details by default. On Multisite, sessions apply to the account across the network.</p></div>
+    {settings && <form className="cvsj-session-settings" onSubmit={saveSettings}>
       <div><h3>Session privacy</h3><p>Choose which session details this screen can show.</p></div>
-      <label className="alfa-check"><input type="checkbox" checked={settings.track_activity} onChange={event => setSettings(current => ({ ...current, track_activity: event.target.checked }))} /><span>Track last activity on this site</span></label>
+      <label className="cvsj-check"><input type="checkbox" checked={settings.track_activity} onChange={event => setSettings(current => ({ ...current, track_activity: event.target.checked }))} /><span>Track last activity on this site</span></label>
       <small>When enabled, a one way session reference and time are kept in a site transient for up to 30 days. Turning this off stops updates and clears saved timestamps in background batches. WordPress background tasks can run late on quiet sites.</small>
-      <label className="alfa-check"><input type="checkbox" checked={settings.show_browser} onChange={event => setSettings(current => ({ ...current, show_browser: event.target.checked }))} /><span>Show browser and device type</span></label>
-      <label className="alfa-check"><input type="checkbox" checked={settings.show_ip} onChange={event => setSettings(current => ({ ...current, show_ip: event.target.checked }))} /><span>Show IP addresses</span></label>
-      <div className="alfa-session-policy-group">
+      <label className="cvsj-check"><input type="checkbox" checked={settings.show_browser} onChange={event => setSettings(current => ({ ...current, show_browser: event.target.checked }))} /><span>Show browser and device type</span></label>
+      <label className="cvsj-check"><input type="checkbox" checked={settings.show_ip} onChange={event => setSettings(current => ({ ...current, show_ip: event.target.checked }))} /><span>Show IP addresses</span></label>
+      <div className="cvsj-session-policy-group">
         <h4>Concurrent sessions</h4>
-        <label className="alfa-check"><input type="checkbox" checked={settings.limit_enabled} onChange={event => setSettings(current => ({ ...current, limit_enabled: event.target.checked }))} /><span>Limit active sessions per account</span></label>
-        <label className="alfa-field"><span>Maximum sessions</span><Input aria-label="Maximum sessions per account" type="number" min="1" max="20" step="1" disabled={!settings.limit_enabled} value={settings.max_sessions} onChange={event => setSettings(current => ({ ...current, max_sessions: Number(event.target.value) }))} /></label>
-        <small>New sign ins end the oldest sessions above this limit. Site administrators, Super Admins, and Activity Log session managers are always excluded.</small>
+        <label className="cvsj-check"><input type="checkbox" checked={settings.limit_enabled} onChange={event => setSettings(current => ({ ...current, limit_enabled: event.target.checked }))} /><span>Limit active sessions per account</span></label>
+        <label className="cvsj-field"><span>Maximum sessions</span><Input aria-label="Maximum sessions per account" type="number" min="1" max="20" step="1" disabled={!settings.limit_enabled} value={settings.max_sessions} onChange={event => setSettings(current => ({ ...current, max_sessions: Number(event.target.value) }))} /></label>
+        <small>New sign ins end the oldest sessions above this limit. Site administrators, Super Admins, and Change Vigil session managers are always excluded.</small>
       </div>
-      <div className="alfa-session-policy-group">
+      <div className="cvsj-session-policy-group">
         <h4>Idle expiry</h4>
-        <label className="alfa-check"><input type="checkbox" checked={settings.idle_enabled} onChange={event => setSettings(current => ({ ...current, idle_enabled: event.target.checked, track_activity: event.target.checked || current.track_activity }))} /><span>End idle sessions automatically</span></label>
-        <label className="alfa-field"><span>Idle time, minutes</span><Input aria-label="Idle time in minutes" type="number" min="5" max="10080" step="1" disabled={!settings.idle_enabled} value={settings.idle_minutes} onChange={event => setSettings(current => ({ ...current, idle_minutes: Number(event.target.value) }))} /></label>
+        <label className="cvsj-check"><input type="checkbox" checked={settings.idle_enabled} onChange={event => setSettings(current => ({ ...current, idle_enabled: event.target.checked, track_activity: event.target.checked || current.track_activity }))} /><span>End idle sessions automatically</span></label>
+        <label className="cvsj-field"><span>Idle time, minutes</span><Input aria-label="Idle time in minutes" type="number" min="5" max="10080" step="1" disabled={!settings.idle_enabled} value={settings.idle_minutes} onChange={event => setSettings(current => ({ ...current, idle_minutes: Number(event.target.value) }))} /></label>
         <small>Idle expiry enables last activity tracking. Existing sessions receive a grace period when this policy is first enabled. Administrators and session managers are excluded.</small>
       </div>
-      <div className="alfa-session-policy-roles"><h4>Additional excluded roles</h4><p>Accounts with any selected role are never affected by automatic session limits.</p><div>{Object.entries(config.roles).map(([role, label]) => <label className="alfa-check" key={role}><input type="checkbox" checked={settings.excluded_roles.includes(role)} onChange={event => setSettings(current => ({ ...current, excluded_roles: event.target.checked ? [...current.excluded_roles, role] : current.excluded_roles.filter(value => value !== role) }))} /><span>{label}</span></label>)}</div></div>
+      <div className="cvsj-session-policy-roles"><h4>Additional excluded roles</h4><p>Accounts with any selected role are never affected by automatic session limits.</p><div>{Object.entries(config.roles).map(([role, label]) => <label className="cvsj-check" key={role}><input type="checkbox" checked={settings.excluded_roles.includes(role)} onChange={event => setSettings(current => ({ ...current, excluded_roles: event.target.checked ? [...current.excluded_roles, role] : current.excluded_roles.filter(value => value !== role) }))} /><span>{label}</span></label>)}</div></div>
       {data?.policy_issue && <Alert>{data.policy_issue}</Alert>}
       {settingsState.error && <Alert>{settingsState.error}</Alert>}
-      {settingsState.message && <p role="status" className="alfa-inline-success">{settingsState.message}</p>}
+      {settingsState.message && <p role="status" className="cvsj-inline-success">{settingsState.message}</p>}
       <Button type="submit" disabled={settingsState.busy}>{settingsState.busy ? "Saving…" : "Save privacy settings"}</Button>
     </form>}
-    <form className="alfa-session-search" onSubmit={runSearch}>
+    <form className="cvsj-session-search" onSubmit={runSearch}>
       <Input aria-label="Search accounts" maxLength={160} placeholder="Search by account name or username" value={searchInput} onChange={event => setSearchInput(event.target.value)} />
       <Button type="submit"><Search aria-hidden="true" /> Search accounts</Button>
       {search && <Button type="button" variant="ghost" onClick={() => { setSearchInput(""); setSearch(""); setPage(1); }}>Clear search</Button>}
     </form>
     {error && <Alert>{error}</Alert>}
     {actionState.error && <Alert>{actionState.error}</Alert>}
-    {actionState.message && <p role="status" className="alfa-inline-success">{actionState.message}</p>}
+    {actionState.message && <p role="status" className="cvsj-inline-success">{actionState.message}</p>}
     {!data && !error && <p role="status">Loading sessions…</p>}
-    {data && sessions.length === 0 && emptyAccounts.length === 0 && <div className="alfa-empty"><UsersRound size={24} aria-hidden="true" /><h3>No matching accounts</h3><p>Check the account name or username and try again.</p></div>}
-    {data && (sessions.length > 0 || emptyAccounts.length > 0) && <div className="alfa-session-table-wrap" role="region" aria-label="Active user sessions" tabIndex={0}>
+    {data && sessions.length === 0 && emptyAccounts.length === 0 && <div className="cvsj-empty"><UsersRound size={24} aria-hidden="true" /><h3>No matching accounts</h3><p>Check the account name or username and try again.</p></div>}
+    {data && (sessions.length > 0 || emptyAccounts.length > 0) && <div className="cvsj-session-table-wrap" role="region" aria-label="Active user sessions" tabIndex={0}>
       <Table aria-label="Active user sessions">
         <TableHeader><TableRow><TableHead>Account</TableHead><TableHead>Role</TableHead><TableHead>Session details</TableHead><TableHead>Login time</TableHead><TableHead>Last activity</TableHead><TableHead><span className="screen-reader-text">Session actions</span></TableHead></TableRow></TableHeader>
         <TableBody>
           {sessions.map(({ user, session }) => <TableRow key={`${user.id}:${session.reference}`}>
-            <TableCell><strong>{user.name}</strong><small className="alfa-session-login">{user.login}{session.current && <Badge variant="outline">This browser</Badge>}</small></TableCell>
+            <TableCell><strong>{user.name}</strong><small className="cvsj-session-login">{user.login}{session.current && <Badge variant="outline">This browser</Badge>}</small></TableCell>
             <TableCell>{user.role || "No site role"}</TableCell>
-            <TableCell><div className="alfa-session-device">{session.browser && <span><Laptop aria-hidden="true" size={14} />{session.browser}</span>}{session.ip && <span><MapPin aria-hidden="true" size={14} />{session.ip}</span>}{!session.browser && !session.ip && <span>Details hidden</span>}<small>Expires {session.expiration || "Unknown"}</small></div></TableCell>
+            <TableCell><div className="cvsj-session-device">{session.browser && <span><Laptop aria-hidden="true" size={14} />{session.browser}</span>}{session.ip && <span><MapPin aria-hidden="true" size={14} />{session.ip}</span>}{!session.browser && !session.ip && <span>Details hidden</span>}<small>Expires {session.expiration || "Unknown"}</small></div></TableCell>
             <TableCell>{session.login || "Unknown"}</TableCell>
             <TableCell>{settings?.track_activity ? session.last_activity || "Not observed on this site" : "Tracking off"}</TableCell>
-            <TableCell><div className="alfa-session-actions"><Button type="button" variant="outline" disabled={!session.can_revoke || Boolean(actionState.busy)} onClick={() => endSession(user, session)}><LogOut aria-hidden="true" size={15} /> End session</Button>{user.sessions[0]?.reference === session.reference && <Button type="button" variant="ghost" disabled={!session.can_revoke || Boolean(actionState.busy)} onClick={() => endAll(user)}>End all for account</Button>}</div></TableCell>
+            <TableCell><div className="cvsj-session-actions"><Button type="button" variant="outline" disabled={!session.can_revoke || Boolean(actionState.busy)} onClick={() => endSession(user, session)}><LogOut aria-hidden="true" size={15} /> End session</Button>{user.sessions[0]?.reference === session.reference && <Button type="button" variant="ghost" disabled={!session.can_revoke || Boolean(actionState.busy)} onClick={() => endAll(user)}>End all for account</Button>}</div></TableCell>
           </TableRow>)}
-          {emptyAccounts.map(user => <TableRow key={`${user.id}:empty`}><TableCell><strong>{user.name}</strong><small className="alfa-session-login">{user.login}</small></TableCell><TableCell>{user.role || "No site role"}</TableCell><TableCell colSpan={3}>No active sessions</TableCell><TableCell>No session actions</TableCell></TableRow>)}
+          {emptyAccounts.map(user => <TableRow key={`${user.id}:empty`}><TableCell><strong>{user.name}</strong><small className="cvsj-session-login">{user.login}</small></TableCell><TableCell>{user.role || "No site role"}</TableCell><TableCell colSpan={3}>No active sessions</TableCell><TableCell>No session actions</TableCell></TableRow>)}
         </TableBody>
       </Table>
     </div>}
-    {data && <div className="alfa-pagination" aria-label="Account pages"><span>{data.total_users} accounts, page {data.page}</span><Button variant="outline" disabled={data.page <= 1} onClick={() => setPage(value => Math.max(1, value - 1))}><ArrowLeft aria-hidden="true" /> Previous</Button><Button variant="outline" disabled={!data.has_more} onClick={() => setPage(value => value + 1)}>Next <ArrowRight aria-hidden="true" /></Button></div>}
-    <p className="alfa-session-policy-note"><Clock3 aria-hidden="true" size={15} /> WordPress controls session expiry. This screen does not change the site's login duration.</p>
-    <p className="alfa-settings-version">Activity Log for Admins, Version {config.version}</p>
+    {data && <div className="cvsj-pagination" aria-label="Account pages"><span>{data.total_users} accounts, page {data.page}</span><Button variant="outline" disabled={data.page <= 1} onClick={() => setPage(value => Math.max(1, value - 1))}><ArrowLeft aria-hidden="true" /> Previous</Button><Button variant="outline" disabled={!data.has_more} onClick={() => setPage(value => value + 1)}>Next <ArrowRight aria-hidden="true" /></Button></div>}
+    <p className="cvsj-session-policy-note"><Clock3 aria-hidden="true" size={15} /> WordPress controls session expiry. This screen does not change the site's login duration.</p>
+    <p className="cvsj-settings-version">Change Vigil Site Journal, Version {config.version}</p>
   </section>;
 }
 
@@ -1576,12 +1576,12 @@ function App() {
   const showSessions = !config.networkMode && view.sessions && config.sessionsAllowed;
   const showReports = !config.networkMode && view.reports && !showSettings;
   const currentPage = showNetworkSites ? "sites" : showSessions ? "sessions" : showSettings ? "settings" : showReports ? "reports" : "activity";
-  return <div className="alfa-app">
-    <div className="alfa-heading">
-      <div className="alfa-mark"><Activity size={25} aria-hidden="true" /></div>
-      <div><h1 ref={heading} tabIndex={-1}>{config.networkMode ? "Network Activity Log" : "Activity Log"}</h1><p>{config.networkMode ? "Review changes across sites in this network." : "See who changed what across this WordPress site."}</p></div>
+  return <div className="cvsj-app">
+    <div className="cvsj-heading">
+      <div className="cvsj-mark"><Activity size={25} aria-hidden="true" /></div>
+      <div><h1 ref={heading} tabIndex={-1}>{config.networkMode ? "Network Change Vigil" : "Change Vigil"}</h1><p>{config.networkMode ? "Review changes across sites in this network." : "See who changed what across this WordPress site."}</p></div>
     </div>
-    <nav className="alfa-nav" aria-label="Activity Log">
+    <nav className="cvsj-nav" aria-label="Change Vigil">
       <a href={viewUrl(view.filters, "activity")} onClick={event => follow(event, "activity")} aria-current={currentPage === "activity" ? "page" : undefined}><Activity size={16} aria-hidden="true" /> Activity</a>
       {config.networkMode && <a href={viewUrl(view.filters, "sites")} onClick={event => follow(event, "sites")} aria-current={currentPage === "sites" ? "page" : undefined}><Globe size={16} aria-hidden="true" /> Sites</a>}
       {!config.networkMode && <a href={viewUrl(view.filters, "reports", { group: view.reportGroup, interval: view.reportInterval })} onClick={event => follow(event, "reports")} aria-current={currentPage === "reports" ? "page" : undefined}><FileText size={16} aria-hidden="true" /> Reports</a>}
@@ -1594,4 +1594,4 @@ function App() {
   </div>;
 }
 
-createRoot(document.getElementById("alfa-root")).render(<App />);
+createRoot(document.getElementById("cvsj-root")).render(<App />);

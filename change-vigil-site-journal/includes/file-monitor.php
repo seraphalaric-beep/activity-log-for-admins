@@ -1,11 +1,11 @@
 <?php
 
-namespace ActivityLogForAdmins;
+namespace ChangeVigilSiteJournal;
 
 defined( 'ABSPATH' ) || exit;
 
 final class FileMonitor {
-    public const HOOK = 'alfa_file_scan';
+    public const HOOK = 'cvsj_file_scan';
     private const CONTINUE_DELAY = MINUTE_IN_SECONDS;
     private const BATCH_SIZE = 100;
     private const BATCH_SECONDS = 4;
@@ -75,7 +75,7 @@ final class FileMonitor {
             self::run_batch();
         } catch ( \Throwable $error ) {
             self::record_failure( 'file_scan_error' );
-            Capture::file_event( 'file_scan_failed', 'Site files', __( 'File scan failed', 'activity-log-for-admins' ), [ 'reason' => 'The scan stopped unexpectedly.' ], 'warning' );
+            Capture::file_event( 'file_scan_failed', 'Site files', __( 'File scan failed', 'change-vigil-site-journal' ), [ 'reason' => 'The scan stopped unexpectedly.' ], 'warning' );
             self::continue_later();
         } finally {
             self::$running = false;
@@ -91,7 +91,7 @@ final class FileMonitor {
             $existing = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i LIMIT 1', $table ) );
             if ( $wpdb->last_error ) {
                 self::record_failure( 'file_scan_error' );
-                Capture::file_event( 'file_scan_failed', 'Site files', __( 'File scan failed', 'activity-log-for-admins' ), [ 'reason' => 'The file index is unavailable.' ], 'warning' );
+                Capture::file_event( 'file_scan_failed', 'Site files', __( 'File scan failed', 'change-vigil-site-journal' ), [ 'reason' => 'The file index is unavailable.' ], 'warning' );
                 return;
             }
             $health = (array) get_option( Store::HEALTH, [] );
@@ -108,7 +108,7 @@ final class FileMonitor {
                 'started_at' => time(),
             ];
             update_option( Store::FILE_SCAN_STATE, $state, false );
-            Capture::file_event( 'file_scan_started', 'Site files', __( 'Started a file scan', 'activity-log-for-admins' ), [ 'baseline' => $state['initial'] ] );
+            Capture::file_event( 'file_scan_started', 'Site files', __( 'Started a file scan', 'change-vigil-site-journal' ), [ 'baseline' => $state['initial'] ] );
             $health['file_scan_started'] = time();
             update_option( Store::HEALTH, $health, false );
         }
@@ -251,7 +251,7 @@ final class FileMonitor {
                     }
                     if ( ! $state['initial'] ) {
                         // translators: %s is the file path.
-                        Capture::file_event( 'file_deleted', $path, sprintf( __( 'Deleted file %s', 'activity-log-for-admins' ), $path ), [], 'warning' );
+                        Capture::file_event( 'file_deleted', $path, sprintf( __( 'Deleted file %s', 'change-vigil-site-journal' ), $path ), [], 'warning' );
                     }
                 }
                 ++$processed;
@@ -333,10 +333,10 @@ final class FileMonitor {
         $fingerprint_change = $was_known && (string) $before['fingerprint'] !== $fingerprint;
         if ( ! $was_known ) {
             // translators: %s is the file path.
-            Capture::file_event( 'file_created', $path, sprintf( __( 'Created file %s', 'activity-log-for-admins' ), $path ), [ 'size' => $size, 'permissions' => self::mode_label( $mode ) ], 'notice' );
+            Capture::file_event( 'file_created', $path, sprintf( __( 'Created file %s', 'change-vigil-site-journal' ), $path ), [ 'size' => $size, 'permissions' => self::mode_label( $mode ) ], 'notice' );
         } elseif ( $fingerprint_change || $size_change || $mtime_change ) {
             // translators: %s is the file path.
-            Capture::file_event( 'file_modified', $path, sprintf( __( 'Changed file %s', 'activity-log-for-admins' ), $path ), [
+            Capture::file_event( 'file_modified', $path, sprintf( __( 'Changed file %s', 'change-vigil-site-journal' ), $path ), [
                 'changes' => [
                     'Size' => [ (int) $before['file_size'], $size ],
                     'Modified' => [ (int) $before['file_mtime'], $mtime ],
@@ -348,7 +348,7 @@ final class FileMonitor {
         }
         if ( $mode_change ) {
             // translators: %s is the file path.
-            Capture::file_event( 'file_permissions_changed', $path, sprintf( __( 'Changed permissions for %s', 'activity-log-for-admins' ), $path ), [
+            Capture::file_event( 'file_permissions_changed', $path, sprintf( __( 'Changed permissions for %s', 'change-vigil-site-journal' ), $path ), [
                 'changes' => [ 'Permissions' => [ self::mode_label( (int) $before['file_mode'] ), self::mode_label( $mode ) ] ],
             ], 'warning' );
         }
@@ -361,16 +361,16 @@ final class FileMonitor {
         $health['file_scan_last'] = time();
         if ( $state['errors'] ) {
             $health['file_scan_error'] = time();
-            Capture::file_event( 'file_scan_failed', 'Site files', __( 'File scan completed with skipped locations', 'activity-log-for-admins' ), [ 'skipped_locations' => (int) $state['errors'] ], 'warning' );
+            Capture::file_event( 'file_scan_failed', 'Site files', __( 'File scan completed with skipped locations', 'change-vigil-site-journal' ), [ 'skipped_locations' => (int) $state['errors'] ], 'warning' );
         } else {
             unset( $health['file_scan_error'] );
         }
         update_option( Store::HEALTH, $health, false );
         if ( $state['size_skipped'] ) {
             // translators: %d is the number of large files.
-            Capture::file_event( 'file_scan_size_skipped', 'Site files', sprintf( __( 'Content checksums skipped for %d large files', 'activity-log-for-admins' ), (int) $state['size_skipped'] ), [ 'count' => (int) $state['size_skipped'], 'maximum_mb' => Store::settings()['file_max_size_mb'] ] );
+            Capture::file_event( 'file_scan_size_skipped', 'Site files', sprintf( __( 'Content checksums skipped for %d large files', 'change-vigil-site-journal' ), (int) $state['size_skipped'] ), [ 'count' => (int) $state['size_skipped'], 'maximum_mb' => Store::settings()['file_max_size_mb'] ] );
         }
-        Capture::file_event( 'file_scan_completed', 'Site files', __( 'Completed a file scan', 'activity-log-for-admins' ), [
+        Capture::file_event( 'file_scan_completed', 'Site files', __( 'Completed a file scan', 'change-vigil-site-journal' ), [
             'files_scanned' => (int) $state['scanned'],
             'large_files' => (int) $state['size_skipped'],
             'skipped_locations' => (int) $state['errors'],

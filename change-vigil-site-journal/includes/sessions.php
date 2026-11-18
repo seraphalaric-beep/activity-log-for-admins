@@ -1,6 +1,6 @@
 <?php
 
-namespace ActivityLogForAdmins;
+namespace ChangeVigilSiteJournal;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -19,12 +19,12 @@ final class SessionAccess extends \WP_User_Meta_Session_Tokens {
 }
 
 final class Sessions {
-    public const SETTINGS = 'alfa_session_settings';
-    public const CLEAR_ACTIVITY = 'alfa_session_clear_activity';
-    private const CLEAR_CURSOR = 'alfa_session_clear_cursor';
+    public const SETTINGS = 'cvsj_session_settings';
+    public const CLEAR_ACTIVITY = 'cvsj_session_clear_activity';
+    private const CLEAR_CURSOR = 'cvsj_session_clear_cursor';
     private const IDLE_STARTED = 'idle_enabled_at';
-    private const POLICY_ERROR = 'alfa_session_policy_error';
-    private const ACTIVITY_PREFIX = 'alfa_session_activity_';
+    private const POLICY_ERROR = 'cvsj_session_policy_error';
+    private const ACTIVITY_PREFIX = 'cvsj_session_activity_';
     private const ACTIVITY_TTL = 30 * DAY_IN_SECONDS;
     private const ACTIVITY_INTERVAL = 5 * MINUTE_IN_SECONDS;
     private const PAGE_SIZE = 25;
@@ -57,21 +57,21 @@ final class Sessions {
     public static function save_settings( \WP_REST_Request $request ): array|\WP_Error {
         $input = $request->get_json_params();
         if ( ! is_array( $input ) || array_diff( array_keys( $input ), [ 'track_activity', 'show_browser', 'show_ip', 'limit_enabled', 'max_sessions', 'idle_enabled', 'idle_minutes', 'excluded_roles' ] ) ) {
-            return new \WP_Error( 'alfa_session_settings_invalid', __( 'The session settings are invalid.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+            return new \WP_Error( 'cvsj_session_settings_invalid', __( 'The session settings are invalid.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
         }
         foreach ( [ 'track_activity', 'show_browser', 'show_ip', 'limit_enabled', 'idle_enabled' ] as $key ) {
             if ( ! isset( $input[ $key ] ) || ! is_bool( $input[ $key ] ) ) {
-                return new \WP_Error( 'alfa_session_settings_invalid', __( 'Choose each session privacy setting before saving.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                return new \WP_Error( 'cvsj_session_settings_invalid', __( 'Choose each session privacy setting before saving.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
             }
         }
         if ( ! isset( $input['max_sessions'] ) || ! is_int( $input['max_sessions'] ) || $input['max_sessions'] < 1 || $input['max_sessions'] > 20
             || ! isset( $input['idle_minutes'] ) || ! is_int( $input['idle_minutes'] ) || $input['idle_minutes'] < 5 || $input['idle_minutes'] > 10080
             || ! isset( $input['excluded_roles'] ) || ! is_array( $input['excluded_roles'] ) || ! array_is_list( $input['excluded_roles'] )
             || count( $input['excluded_roles'] ) > 20 || count( self::normalize_roles( $input['excluded_roles'] ) ) !== count( $input['excluded_roles'] ) ) {
-            return new \WP_Error( 'alfa_session_settings_invalid', __( 'Check the session limits and excluded roles.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+            return new \WP_Error( 'cvsj_session_settings_invalid', __( 'Check the session limits and excluded roles.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
         }
         if ( $input['idle_enabled'] && ! $input['track_activity'] ) {
-            return new \WP_Error( 'alfa_session_tracking_required', __( 'Enable last activity tracking before enabling idle session expiry.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+            return new \WP_Error( 'cvsj_session_tracking_required', __( 'Enable last activity tracking before enabling idle session expiry.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
         }
         $previous = self::settings();
         $settings = [
@@ -90,7 +90,7 @@ final class Sessions {
             $saved[ self::IDLE_STARTED ] = $previous['idle_enabled'] ? max( 0, (int) ( $previous_saved[ self::IDLE_STARTED ] ?? time() ) ) : time();
         }
         if ( $settings !== $previous && ! update_option( self::SETTINGS, $saved, false ) && self::settings() !== $settings ) {
-            return new \WP_Error( 'alfa_session_settings_save_failed', __( 'Session settings could not be saved. Try again.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+            return new \WP_Error( 'cvsj_session_settings_save_failed', __( 'Session settings could not be saved. Try again.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
         }
         if ( $previous['track_activity'] && ! $settings['track_activity'] ) {
             self::schedule_activity_clear();
@@ -108,7 +108,7 @@ final class Sessions {
         $page = max( 1, (int) $request->get_param( 'page' ) );
         $search = $request->get_param( 'search' );
         if ( $page > 100000 || ( null !== $search && ( ! is_string( $search ) || strlen( $search ) > 160 ) ) ) {
-            return new \WP_Error( 'alfa_sessions_filter', __( 'Check the session search and page number.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+            return new \WP_Error( 'cvsj_sessions_filter', __( 'Check the session search and page number.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
         }
         $args = [
             'blog_id' => get_current_blog_id(),
@@ -175,7 +175,7 @@ final class Sessions {
             'has_more' => $page * self::PAGE_SIZE < $total,
             'settings' => $settings,
             'multisite_account_scope' => is_multisite(),
-            'policy_issue' => get_option( self::POLICY_ERROR ) ? __( 'A session policy could not update a WordPress session. Check the configured session store.', 'activity-log-for-admins' ) : '',
+            'policy_issue' => get_option( self::POLICY_ERROR ) ? __( 'A session policy could not update a WordPress session. Check the configured session store.', 'change-vigil-site-journal' ) : '',
         ];
     }
 
@@ -183,11 +183,11 @@ final class Sessions {
         $user_id = absint( $request['user_id'] );
         $reference = strtolower( (string) $request['reference'] );
         if ( ! preg_match( '/\A[a-f0-9]{64}\z/', $reference ) ) {
-            return new \WP_Error( 'alfa_session_missing', __( 'The session was not found. Refresh the list and try again.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+            return new \WP_Error( 'cvsj_session_missing', __( 'The session was not found. Refresh the list and try again.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
         }
         $user = get_userdata( $user_id );
         if ( ! $user instanceof \WP_User || ! self::can_revoke_user( $user_id ) ) {
-            return new \WP_Error( 'alfa_session_user_forbidden', __( 'You cannot manage sessions for this account.', 'activity-log-for-admins' ), [ 'status' => 403 ] );
+            return new \WP_Error( 'cvsj_session_user_forbidden', __( 'You cannot manage sessions for this account.', 'change-vigil-site-journal' ), [ 'status' => 403 ] );
         }
         $access = self::access( $user_id );
         if ( is_wp_error( $access ) ) {
@@ -195,11 +195,11 @@ final class Sessions {
         }
         $verifier = self::find_verifier( $access->indexed_sessions(), $reference );
         if ( '' === $verifier ) {
-            return new \WP_Error( 'alfa_session_missing', __( 'The session was not found. Refresh the list and try again.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+            return new \WP_Error( 'cvsj_session_missing', __( 'The session was not found. Refresh the list and try again.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
         }
         $access->revoke_verifier( $verifier );
         if ( isset( $access->indexed_sessions()[ $verifier ] ) ) {
-            return new \WP_Error( 'alfa_session_revoke_failed', __( 'WordPress could not end this session. Try again.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+            return new \WP_Error( 'cvsj_session_revoke_failed', __( 'WordPress could not end this session. Try again.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
         }
         self::delete_activity_reference( $user_id, $reference );
         Capture::session_ended( $user, 1, false );
@@ -210,7 +210,7 @@ final class Sessions {
         $user_id = absint( $request['user_id'] );
         $user = get_userdata( $user_id );
         if ( ! $user instanceof \WP_User || ! self::can_revoke_user( $user_id ) ) {
-            return new \WP_Error( 'alfa_session_user_forbidden', __( 'You cannot manage sessions for this account.', 'activity-log-for-admins' ), [ 'status' => 403 ] );
+            return new \WP_Error( 'cvsj_session_user_forbidden', __( 'You cannot manage sessions for this account.', 'change-vigil-site-journal' ), [ 'status' => 403 ] );
         }
         $access = self::access( $user_id );
         if ( is_wp_error( $access ) ) {
@@ -221,7 +221,7 @@ final class Sessions {
             $manager = \WP_Session_Tokens::get_instance( $user_id );
             $manager->destroy_all();
             if ( $access->indexed_sessions() ) {
-                return new \WP_Error( 'alfa_sessions_revoke_failed', __( 'WordPress could not end every session. Try again.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+                return new \WP_Error( 'cvsj_sessions_revoke_failed', __( 'WordPress could not end every session. Try again.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
             }
             Capture::session_ended( $user, $count, true );
         }
@@ -437,7 +437,7 @@ final class Sessions {
     private static function access( int $user_id ): SessionAccess|\WP_Error {
         $manager = \WP_Session_Tokens::get_instance( $user_id );
         if ( get_class( $manager ) !== \WP_User_Meta_Session_Tokens::class ) {
-            return new \WP_Error( 'alfa_sessions_manager_unsupported', __( 'This site uses a custom WordPress session store. Activity Log cannot safely manage its sessions.', 'activity-log-for-admins' ), [ 'status' => 501 ] );
+            return new \WP_Error( 'cvsj_sessions_manager_unsupported', __( 'This site uses a custom WordPress session store. Change Vigil cannot safely manage its sessions.', 'change-vigil-site-journal' ), [ 'status' => 501 ] );
         }
         return new SessionAccess( $user_id );
     }

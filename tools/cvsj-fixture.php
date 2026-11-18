@@ -8,35 +8,35 @@ require __DIR__ . '/wp-load.php';
 if ( is_file( __DIR__ . '/privacy-fixture.php' ) ) {
     require_once __DIR__ . '/privacy-fixture.php';
 }
-foreach ( [ 'admin.php', 'nav-menu.php', 'comment.php', 'class-wp-upgrader.php' ] as $alfa_include ) {
-    $alfa_path = ABSPATH . 'wp-admin/includes/' . $alfa_include;
-    if ( is_file( $alfa_path ) ) {
-        require_once $alfa_path;
+foreach ( [ 'admin.php', 'nav-menu.php', 'comment.php', 'class-wp-upgrader.php' ] as $cvsj_include ) {
+    $cvsj_path = ABSPATH . 'wp-admin/includes/' . $cvsj_include;
+    if ( is_file( $cvsj_path ) ) {
+        require_once $cvsj_path;
     }
 }
 
-use ActivityLogForAdmins\Store;
-use ActivityLogForAdmins\Capture;
-use ActivityLogForAdmins\FileMonitor;
-use ActivityLogForAdmins\ScheduledReports;
-use ActivityLogForAdmins\Alerts;
-use ActivityLogForAdmins\DeveloperAPI;
+use ChangeVigilSiteJournal\Store;
+use ChangeVigilSiteJournal\Capture;
+use ChangeVigilSiteJournal\FileMonitor;
+use ChangeVigilSiteJournal\ScheduledReports;
+use ChangeVigilSiteJournal\Alerts;
+use ChangeVigilSiteJournal\DeveloperAPI;
 
 $operation = sanitize_key( $_POST['operation'] ?? '' );
 if ( 'nonce' === $operation && is_user_logged_in() ) {
-	wp_send_json( [ 'nonce' => wp_create_nonce( 'wp_rest' ), 'restBase' => rest_url( 'activity-log-for-admins/v1/' ) ] );
+	wp_send_json( [ 'nonce' => wp_create_nonce( 'wp_rest' ), 'restBase' => rest_url( 'change-vigil-site-journal/v1/' ) ] );
 }
 if ( 'session_probe' === $operation ) {
 	$user_id = get_current_user_id();
 	$state = [ 'user_id' => $user_id, 'idle_enabled' => false, 'elapsed' => null, 'session_found' => false, 'filter_registered' => false ];
-	$stored = (array) get_option( ActivityLogForAdmins\Sessions::SETTINGS, [] );
+	$stored = (array) get_option( ChangeVigilSiteJournal\Sessions::SETTINGS, [] );
 	$state['idle_enabled'] = ! empty( $stored['idle_enabled'] );
-	$state['filter_registered'] = false !== has_filter( 'determine_current_user', [ ActivityLogForAdmins\Sessions::class, 'enforce_idle_limit' ] );
+	$state['filter_registered'] = false !== has_filter( 'determine_current_user', [ ChangeVigilSiteJournal\Sessions::class, 'enforce_idle_limit' ] );
 	if ( $user_id && function_exists( 'wp_get_session_token' ) ) {
 		$token = wp_get_session_token();
 		$session = '' === $token ? null : WP_Session_Tokens::get_instance( $user_id )->get( $token );
 		$reference = '' === $token ? '' : hash_hmac( 'sha256', hash( 'sha256', $token ), wp_salt( 'auth' ) );
-		$activity = get_transient( 'alfa_session_activity_' . $user_id );
+		$activity = get_transient( 'cvsj_session_activity_' . $user_id );
 		$state['session_found'] = is_array( $session );
 		$state['elapsed'] = time() - max( (int) ( $session['login'] ?? 0 ), (int) ( $stored['idle_enabled_at'] ?? 0 ), (int) ( is_array( $activity ) ? ( $activity[ $reference ] ?? 0 ) : 0 ) );
 	}
@@ -46,11 +46,11 @@ if ( ! current_user_can( 'manage_options' ) ) {
     wp_send_json_error( 'Pilot administrator required.', 403 );
 }
 
-const ALFA_PLUGIN = 'activity-log-for-admins/activity-log-for-admins.php';
+const CVSJ_PLUGIN = 'change-vigil-site-journal/change-vigil-site-journal.php';
 global $wpdb;
 if ( 'activate' === $operation ) {
-    $result = activate_plugin( ALFA_PLUGIN );
-    wp_send_json( [ 'active' => ! is_wp_error( $result ) && is_plugin_active( ALFA_PLUGIN ) ] );
+    $result = activate_plugin( CVSJ_PLUGIN );
+    wp_send_json( [ 'active' => ! is_wp_error( $result ) && is_plugin_active( CVSJ_PLUGIN ) ] );
 }
 $table = Store::table();
 
@@ -70,12 +70,12 @@ function fixture_delete_account( int $user_id ): bool {
     return wp_delete_user( $user_id );
 }
 
-function fixture_zip( string $kind, string $version, string $theme_slug = 'alfa-test-theme' ): string {
-    $path = wp_tempnam( 'alfa-fixture-' . $kind . '.zip' );
+function fixture_zip( string $kind, string $version, string $theme_slug = 'cvsj-test-theme' ): string {
+    $path = wp_tempnam( 'cvsj-fixture-' . $kind . '.zip' );
     $zip = new ZipArchive();
     $zip->open( $path, ZipArchive::CREATE | ZipArchive::OVERWRITE );
     if ( 'plugin' === $kind ) {
-        $zip->addFromString( 'alfa-test-plugin/pilot.php', "<?php\n/* Plugin Name: Pilot fixture plugin\nVersion: $version\n*/" );
+        $zip->addFromString( 'cvsj-test-plugin/pilot.php', "<?php\n/* Plugin Name: Pilot fixture plugin\nVersion: $version\n*/" );
     } else {
         $zip->addFromString( $theme_slug . '/style.css', "/* Theme Name: Pilot fixture theme\nVersion: $version\n*/" );
         $zip->addFromString( $theme_slug . '/index.php', "<?php\n" );
@@ -85,8 +85,8 @@ function fixture_zip( string $kind, string $version, string $theme_slug = 'alfa-
 }
 
 function fixture_component_events(): array {
-    $plugin = 'alfa-test-plugin/pilot.php';
-    $theme_slug = 'alfa-test-theme-' . strtolower( wp_generate_password( 8, false, false ) );
+    $plugin = 'cvsj-test-plugin/pilot.php';
+    $theme_slug = 'cvsj-test-theme-' . strtolower( wp_generate_password( 8, false, false ) );
     $old_theme = get_stylesheet();
     $original = [];
     $version = [];
@@ -152,11 +152,11 @@ function fixture_component_events(): array {
 }
 
 function fixture_extended_events( int $editor_id ): array {
-	$suffix = 'alfa-coverage-' . strtolower( wp_generate_password( 6, false, false ) );
+	$suffix = 'cvsj-coverage-' . strtolower( wp_generate_password( 6, false, false ) );
 	$title = 'Pilot book ' . $suffix;
 	$book = wp_insert_post( [
 		'post_title' => $title,
-		'post_type' => 'alfa_book',
+		'post_type' => 'cvsj_book',
 		'post_status' => 'publish',
 		'post_content' => 'Original book content',
 		'comment_status' => 'open',
@@ -164,12 +164,12 @@ function fixture_extended_events( int $editor_id ): array {
 	fixture_check( $book );
 	fixture_check( wp_update_post( [ 'ID' => $book, 'post_title' => 'Updated ' . $title, 'post_content' => 'Updated book content' ], true ) );
 
-	$genre = wp_insert_term( 'Pilot genre ' . $suffix, 'alfa_genre' );
+	$genre = wp_insert_term( 'Pilot genre ' . $suffix, 'cvsj_genre' );
 	fixture_check( $genre );
 	$genre_id = (int) $genre['term_id'];
-	fixture_check( wp_set_object_terms( $book, [ $genre_id ], 'alfa_genre' ) );
-	fixture_check( wp_set_object_terms( $book, [], 'alfa_genre' ) );
-	fixture_check( wp_update_term( $genre_id, 'alfa_genre', [ 'name' => 'Updated pilot genre ' . $suffix ] ) );
+	fixture_check( wp_set_object_terms( $book, [ $genre_id ], 'cvsj_genre' ) );
+	fixture_check( wp_set_object_terms( $book, [], 'cvsj_genre' ) );
+	fixture_check( wp_update_term( $genre_id, 'cvsj_genre', [ 'name' => 'Updated pilot genre ' . $suffix ] ) );
 	$category = wp_insert_term( 'Pilot category ' . $suffix, 'category' );
 	$tag = wp_insert_term( 'Pilot tag ' . $suffix, 'post_tag' );
 	fixture_check( $category );
@@ -224,12 +224,12 @@ function fixture_extended_events( int $editor_id ): array {
 	fixture_check( wp_delete_nav_menu( $menu ) );
 
 	$widget_secret = 'PRIVATE_WIDGET_TEXT_' . $suffix;
-	$widget_option = 'widget_alfa_pilot_' . str_replace( '-', '_', $suffix );
+	$widget_option = 'widget_cvsj_pilot_' . str_replace( '-', '_', $suffix );
 	add_option( $widget_option, [ '2' => [ 'text' => 'old widget value' ], '_multiwidget' => 1 ], '', false );
 	update_option( $widget_option, [ '2' => [ 'text' => $widget_secret ], '_multiwidget' => 1 ], false );
 	delete_option( $widget_option );
 
-	$events = \ActivityLogForAdmins\Store::query( [ 'q' => $suffix ], 200, 0, 0, true );
+	$events = \ChangeVigilSiteJournal\Store::query( [ 'q' => $suffix ], 200, 0, 0, true );
 	fixture_check( $events );
 	$encoded = wp_json_encode( $events, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 	$privacy_ok = ! str_contains( $encoded, $comment_secret )
@@ -239,13 +239,13 @@ function fixture_extended_events( int $editor_id ): array {
 		&& ! str_contains( $encoded, 'updated.' . $suffix . '@example.test' )
 		&& ! str_contains( $encoded, $url_secret )
 		&& ! str_contains( $encoded, $widget_secret );
-	$profile_event = \ActivityLogForAdmins\Store::query( [ 'action' => 'user_profile_changed', 'item' => 'user:' . $editor_id ], 10, 0, 0, true );
+	$profile_event = \ChangeVigilSiteJournal\Store::query( [ 'action' => 'user_profile_changed', 'item' => 'user:' . $editor_id ], 10, 0, 0, true );
 	fixture_check( $profile_event );
-	$password_event = \ActivityLogForAdmins\Store::query( [ 'action' => 'password_changed', 'item' => 'user:' . $editor_id ], 10, 0, 0, true );
+	$password_event = \ChangeVigilSiteJournal\Store::query( [ 'action' => 'password_changed', 'item' => 'user:' . $editor_id ], 10, 0, 0, true );
 	fixture_check( $password_event );
-	$sign_out_event = \ActivityLogForAdmins\Store::query( [ 'action' => 'signed_out', 'item' => 'user:' . $editor_id ], 10, 0, 0, true );
+	$sign_out_event = \ChangeVigilSiteJournal\Store::query( [ 'action' => 'signed_out', 'item' => 'user:' . $editor_id ], 10, 0, 0, true );
 	fixture_check( $sign_out_event );
-	$menu_events = \ActivityLogForAdmins\Store::query( [ 'action' => 'menu_item_updated', 'q' => $suffix ], 20, 0, 0, true );
+	$menu_events = \ChangeVigilSiteJournal\Store::query( [ 'action' => 'menu_item_updated', 'q' => $suffix ], 20, 0, 0, true );
 	fixture_check( $menu_events );
 	$menu_destination_captured = false;
 	foreach ( $menu_events as $menu_event ) {
@@ -307,7 +307,7 @@ function fixture_woocommerce_disabled(): array {
 	$product->set_status( 'draft' );
 	$product_id = (int) $product->save();
 	fixture_check( $product_id );
-	\ActivityLogForAdmins\Capture::flush_woocommerce_changes();
+	\ChangeVigilSiteJournal\Capture::flush_woocommerce_changes();
 	$events = Store::query( [ 'item' => 'product:' . $product_id ], 20, 0, 0, true );
 	fixture_check( is_array( $events ) );
 	wp_delete_post( $product_id, true );
@@ -320,7 +320,7 @@ function fixture_woocommerce_events(): array {
 		throw new RuntimeException( 'Enable WooCommerce recording and install WooCommerce before running this fixture.' );
 	}
 	$suffix = strtolower( wp_generate_password( 8, false, false ) );
-	$product_name = 'Activity Log product ' . $suffix;
+	$product_name = 'Change Vigil product ' . $suffix;
 	$updated_product_name = 'Updated ' . $product_name;
 	$product_id = 0;
 	$coupon_id = 0;
@@ -379,16 +379,16 @@ function fixture_woocommerce_events(): array {
 		fixture_check( true );
 
 		wp_trash_post( $product_id );
-		\ActivityLogForAdmins\Capture::flush_woocommerce_changes();
+		\ChangeVigilSiteJournal\Capture::flush_woocommerce_changes();
 		wp_untrash_post( $product_id );
-		\ActivityLogForAdmins\Capture::flush_woocommerce_changes();
+		\ChangeVigilSiteJournal\Capture::flush_woocommerce_changes();
 		wp_delete_post( $product_id, true );
 		wp_trash_post( $coupon_id );
-		\ActivityLogForAdmins\Capture::flush_woocommerce_changes();
+		\ChangeVigilSiteJournal\Capture::flush_woocommerce_changes();
 		wp_untrash_post( $coupon_id );
-		\ActivityLogForAdmins\Capture::flush_woocommerce_changes();
+		\ChangeVigilSiteJournal\Capture::flush_woocommerce_changes();
 		wp_delete_post( $coupon_id, true );
-		\ActivityLogForAdmins\Capture::flush_woocommerce_changes();
+		\ChangeVigilSiteJournal\Capture::flush_woocommerce_changes();
 
 		$tax_value = 'yes' === strtolower( (string) $old_tax ) ? 'no' : 'yes';
 		update_option( 'woocommerce_calc_taxes', $tax_value, false );
@@ -444,7 +444,7 @@ function fixture_woocommerce_events(): array {
 		if ( $coupon_id && get_post( $coupon_id ) instanceof WP_Post ) {
 			wp_delete_post( $coupon_id, true );
 		}
-		\ActivityLogForAdmins\Capture::flush_woocommerce_changes();
+		\ChangeVigilSiteJournal\Capture::flush_woocommerce_changes();
 		update_option( Store::SETTINGS, $old_settings, false );
 		foreach ( [ 'woocommerce_calc_taxes' => $old_tax, 'woocommerce_notify_low_stock' => $old_notify, 'woocommerce_specific_allowed_countries' => $old_countries ] as $option => $value ) {
 			if ( false === $value ) {
@@ -465,15 +465,15 @@ function fixture_acf_events( bool $enabled ): array {
 		throw new RuntimeException( 'Set the Advanced Custom Fields recording option before running this fixture.' );
 	}
 	$suffix = strtolower( wp_generate_password( 8, false, false ) );
-	$marker_key = 'field_alfa_marker_' . $suffix;
-	$email_key = 'field_alfa_contact_' . $suffix;
+	$marker_key = 'field_cvsj_marker_' . $suffix;
+	$email_key = 'field_cvsj_contact_' . $suffix;
 	$marker_name = 'pilot_marker_' . $suffix;
 	$email_name = 'pilot_contact_' . $suffix;
 	$before_email = 'before-' . $suffix . '@example.invalid';
 	$after_email = 'after-' . $suffix . '@example.invalid';
 	acf_add_local_field_group( [
-		'key' => 'group_alfa_' . $suffix,
-		'title' => 'Activity Log ACF fixture',
+		'key' => 'group_cvsj_' . $suffix,
+		'title' => 'Change Vigil ACF fixture',
 		'fields' => [
 			[ 'key' => $marker_key, 'label' => 'Editorial marker', 'name' => $marker_name, 'type' => 'text' ],
 			[ 'key' => $email_key, 'label' => 'Contact email', 'name' => $email_name, 'type' => 'email' ],
@@ -484,7 +484,7 @@ function fixture_acf_events( bool $enabled ): array {
 		],
 	] );
 	$post_id = wp_insert_post( [
-		'post_title' => 'Activity Log ACF fixture ' . $suffix,
+		'post_title' => 'Change Vigil ACF fixture ' . $suffix,
 		'post_type' => 'page',
 		'post_status' => 'publish',
 	], true );
@@ -494,9 +494,9 @@ function fixture_acf_events( bool $enabled ): array {
 	if ( $enabled ) {
 		update_field( $marker_key, 'After marker', (int) $post_id );
 		update_field( $email_key, $after_email, (int) $post_id );
-		\ActivityLogForAdmins\Capture::flush_acf_changes();
+		\ChangeVigilSiteJournal\Capture::flush_acf_changes();
 		update_field( $marker_key, 'After marker', (int) $post_id );
-		\ActivityLogForAdmins\Capture::flush_acf_changes();
+		\ChangeVigilSiteJournal\Capture::flush_acf_changes();
 	}
 	$events = Store::query( [ 'item' => 'page:' . (int) $post_id, 'action' => 'acf_fields_changed' ], 20, 0, 0, true );
 	fixture_check( is_array( $events ) );
@@ -507,14 +507,14 @@ function fixture_acf_events( bool $enabled ): array {
 	$product_supported = $enabled && post_type_exists( 'product' );
 	if ( $product_supported ) {
 		$product_id = wp_insert_post( [
-			'post_title' => 'Activity Log ACF product ' . $suffix,
+			'post_title' => 'Change Vigil ACF product ' . $suffix,
 			'post_type' => 'product',
 			'post_status' => 'publish',
 		], true );
 		fixture_check( $product_id );
 		update_post_meta( (int) $product_id, $marker_name, 'Before product marker' );
 		update_field( $marker_key, 'After product marker', (int) $product_id );
-		\ActivityLogForAdmins\Capture::flush_acf_changes();
+		\ChangeVigilSiteJournal\Capture::flush_acf_changes();
 		$product_events = Store::query( [ 'item' => 'product:' . (int) $product_id, 'action' => 'acf_fields_changed' ], 10, 0, 0, true );
 		fixture_check( is_array( $product_events ) );
 		$product_details = $product_events ? json_decode( (string) $product_events[0]['details'], true ) : [];
@@ -525,7 +525,7 @@ function fixture_acf_events( bool $enabled ): array {
 	}
 	$result = [
 		'supported' => true,
-		'hookRegistered' => false !== has_filter( 'acf/update_value', [ ActivityLogForAdmins\Capture::class, 'acf_value_updated' ] ),
+		'hookRegistered' => false !== has_filter( 'acf/update_value', [ ChangeVigilSiteJournal\Capture::class, 'acf_value_updated' ] ),
 		'postId' => (int) $post_id,
 		'postName' => get_the_title( $post_id ),
 		'eventCount' => count( $events ),
@@ -549,7 +549,7 @@ function fixture_acf_events( bool $enabled ): array {
 
 function fixture_bbpress_items( string $suffix ): array {
 	$forum_id = bbp_insert_forum( [
-		'post_title' => 'Activity Log forum ' . $suffix,
+		'post_title' => 'Change Vigil forum ' . $suffix,
 		'post_content' => 'PRIVATE_BBPRESS_FORUM_BODY_' . $suffix,
 		'post_status' => 'publish',
 		'post_author' => get_current_user_id(),
@@ -557,7 +557,7 @@ function fixture_bbpress_items( string $suffix ): array {
 	fixture_check( $forum_id );
 	$topic_id = bbp_insert_topic( [
 		'post_parent' => (int) $forum_id,
-		'post_title' => 'Activity Log topic ' . $suffix,
+		'post_title' => 'Change Vigil topic ' . $suffix,
 		'post_content' => 'PRIVATE_BBPRESS_TOPIC_BODY_' . $suffix,
 		'post_status' => 'publish',
 		'post_author' => get_current_user_id(),
@@ -706,7 +706,7 @@ function fixture_bbpress_events(): array {
 
 function fixture_wpforms_form( string $suffix ): int {
 	$form_id = wp_insert_post( [
-		'post_title' => 'Activity Log WPForms ' . $suffix,
+		'post_title' => 'Change Vigil WPForms ' . $suffix,
 		'post_type' => 'wpforms',
 		'post_status' => 'publish',
 		'post_author' => get_current_user_id(),
@@ -746,7 +746,7 @@ function fixture_wpforms_events(): array {
 		$form_id = fixture_wpforms_form( $suffix );
 		fixture_check( wp_update_post( [
 			'ID' => $form_id,
-			'post_title' => 'Updated Activity Log WPForms ' . $suffix,
+			'post_title' => 'Updated Change Vigil WPForms ' . $suffix,
 			'post_content' => 'PRIVATE_WPFORMS_FORM_EDIT_' . $suffix,
 		], true ) );
 		$form_events = Store::query( [ 'item' => 'wpforms_form:' . $form_id ], 50, 0, 0, true );
@@ -777,7 +777,7 @@ function fixture_wpforms_events(): array {
 			'supported' => true,
 			'version' => WPFORMS_VERSION,
 			'formId' => $form_id,
-			'formName' => 'Updated Activity Log WPForms ' . $suffix,
+			'formName' => 'Updated Change Vigil WPForms ' . $suffix,
 			'actions' => array_column( $events, 'action_key' ),
 			'unchangedIgnored' => $unchanged_ignored,
 			'zeroEntryIdIgnored' => $zero_id_ignored,
@@ -885,7 +885,7 @@ function fixture_seo_hook_state(): array {
 	return [
 		'yoastLoaded' => fixture_seo_plugin_loaded( 'yoast' ),
 		'rankMathLoaded' => fixture_seo_plugin_loaded( 'rank_math' ),
-		'optionHookRegistered' => false !== has_action( 'updated_option', [ ActivityLogForAdmins\Capture::class, 'seo_option_updated' ] ),
+		'optionHookRegistered' => false !== has_action( 'updated_option', [ ChangeVigilSiteJournal\Capture::class, 'seo_option_updated' ] ),
 	];
 }
 
@@ -921,11 +921,11 @@ function fixture_pmpro_loaded(): bool {
 function fixture_pmpro_hook_state(): array {
 	return [
 		'loaded' => fixture_pmpro_loaded(),
-		'membershipHook' => false !== has_action( 'pmpro_after_all_membership_level_changes', [ ActivityLogForAdmins\Capture::class, 'pmpro_membership_levels_changed' ] ),
-		'levelCreateHook' => false !== has_action( 'pmpro_added_membership_level', [ ActivityLogForAdmins\Capture::class, 'pmpro_level_added' ] ),
-		'levelBeforeUpdateHook' => false !== has_action( 'pmpro_update_membership_level', [ ActivityLogForAdmins\Capture::class, 'pmpro_level_before_update' ] ),
-		'levelUpdateHook' => false !== has_action( 'pmpro_updated_membership_level', [ ActivityLogForAdmins\Capture::class, 'pmpro_level_updated' ] ),
-		'levelDeleteHook' => false !== has_action( 'pmpro_delete_membership_level', [ ActivityLogForAdmins\Capture::class, 'pmpro_level_deleted' ] ),
+		'membershipHook' => false !== has_action( 'pmpro_after_all_membership_level_changes', [ ChangeVigilSiteJournal\Capture::class, 'pmpro_membership_levels_changed' ] ),
+		'levelCreateHook' => false !== has_action( 'pmpro_added_membership_level', [ ChangeVigilSiteJournal\Capture::class, 'pmpro_level_added' ] ),
+		'levelBeforeUpdateHook' => false !== has_action( 'pmpro_update_membership_level', [ ChangeVigilSiteJournal\Capture::class, 'pmpro_level_before_update' ] ),
+		'levelUpdateHook' => false !== has_action( 'pmpro_updated_membership_level', [ ChangeVigilSiteJournal\Capture::class, 'pmpro_level_updated' ] ),
+		'levelDeleteHook' => false !== has_action( 'pmpro_delete_membership_level', [ ChangeVigilSiteJournal\Capture::class, 'pmpro_level_deleted' ] ),
 	];
 }
 
@@ -1068,10 +1068,10 @@ function fixture_termly_loaded(): bool {
 function fixture_termly_hook_state(): array {
 	return [
 		'loaded' => fixture_termly_loaded(),
-		'bannerHook' => false !== has_action( 'update_option_termly_display_banner', [ ActivityLogForAdmins\Capture::class, 'termly_banner_updated' ] ),
-		'autoblockerHook' => false !== has_action( 'update_option_termly_display_auto_blocker', [ ActivityLogForAdmins\Capture::class, 'termly_autoblocker_updated' ] ),
-		'scanHook' => false !== has_action( 'update_option_termly_site_scan', [ ActivityLogForAdmins\Capture::class, 'termly_site_scan_updated' ] ),
-		'keyDeleteHook' => false !== has_action( 'delete_option', [ ActivityLogForAdmins\Capture::class, 'termly_api_key_before_delete' ] ),
+		'bannerHook' => false !== has_action( 'update_option_termly_display_banner', [ ChangeVigilSiteJournal\Capture::class, 'termly_banner_updated' ] ),
+		'autoblockerHook' => false !== has_action( 'update_option_termly_display_auto_blocker', [ ChangeVigilSiteJournal\Capture::class, 'termly_autoblocker_updated' ] ),
+		'scanHook' => false !== has_action( 'update_option_termly_site_scan', [ ChangeVigilSiteJournal\Capture::class, 'termly_site_scan_updated' ] ),
+		'keyDeleteHook' => false !== has_action( 'delete_option', [ ChangeVigilSiteJournal\Capture::class, 'termly_api_key_before_delete' ] ),
 	];
 }
 
@@ -1093,13 +1093,13 @@ function fixture_termly_events(): array {
 		$original[ $name ] = [ 'exists' => false !== get_option( $name, false ), 'value' => get_option( $name, false ) ];
 	}
 	$actions = [
-		'added_option' => [ ActivityLogForAdmins\Capture::class, 'termly_api_key_added' ],
-		'update_option_termly_api_key' => [ ActivityLogForAdmins\Capture::class, 'termly_api_key_updated' ],
-		'delete_option' => [ ActivityLogForAdmins\Capture::class, 'termly_api_key_before_delete' ],
-		'deleted_option' => [ ActivityLogForAdmins\Capture::class, 'termly_api_key_deleted' ],
-		'update_option_termly_display_banner' => [ ActivityLogForAdmins\Capture::class, 'termly_banner_updated' ],
-		'update_option_termly_display_auto_blocker' => [ ActivityLogForAdmins\Capture::class, 'termly_autoblocker_updated' ],
-		'update_option_termly_site_scan' => [ ActivityLogForAdmins\Capture::class, 'termly_site_scan_updated' ],
+		'added_option' => [ ChangeVigilSiteJournal\Capture::class, 'termly_api_key_added' ],
+		'update_option_termly_api_key' => [ ChangeVigilSiteJournal\Capture::class, 'termly_api_key_updated' ],
+		'delete_option' => [ ChangeVigilSiteJournal\Capture::class, 'termly_api_key_before_delete' ],
+		'deleted_option' => [ ChangeVigilSiteJournal\Capture::class, 'termly_api_key_deleted' ],
+		'update_option_termly_display_banner' => [ ChangeVigilSiteJournal\Capture::class, 'termly_banner_updated' ],
+		'update_option_termly_display_auto_blocker' => [ ChangeVigilSiteJournal\Capture::class, 'termly_autoblocker_updated' ],
+		'update_option_termly_site_scan' => [ ChangeVigilSiteJournal\Capture::class, 'termly_site_scan_updated' ],
 	];
 	$last_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', Store::table() ) );
 
@@ -1157,18 +1157,18 @@ function fixture_mainwp_loaded(): bool {
 function fixture_mainwp_hook_state(): array {
 	return [
 		'loaded' => fixture_mainwp_loaded(),
-		'siteAddHook' => false !== has_action( 'mainwp_added_new_site', [ ActivityLogForAdmins\Capture::class, 'mainwp_site_added' ] ),
-		'siteDeleteHook' => false !== has_action( 'mainwp_site_deleted', [ ActivityLogForAdmins\Capture::class, 'mainwp_site_deleted' ] ),
-		'siteSyncHook' => false !== has_action( 'mainwp_site_sync', [ ActivityLogForAdmins\Capture::class, 'mainwp_site_sync' ] ),
-		'syncRequestFilter' => false !== has_filter( 'mainwp_sync_others_data', [ ActivityLogForAdmins\Capture::class, 'mainwp_sync_request' ] ),
-		'clientHook' => false !== has_action( 'mainwp_client_updated', [ ActivityLogForAdmins\Capture::class, 'mainwp_client_updated' ] ),
-		'clientDeleteHook' => false !== has_action( 'mainwp_client_deleted', [ ActivityLogForAdmins\Capture::class, 'mainwp_client_deleted' ] ),
+		'siteAddHook' => false !== has_action( 'mainwp_added_new_site', [ ChangeVigilSiteJournal\Capture::class, 'mainwp_site_added' ] ),
+		'siteDeleteHook' => false !== has_action( 'mainwp_site_deleted', [ ChangeVigilSiteJournal\Capture::class, 'mainwp_site_deleted' ] ),
+		'siteSyncHook' => false !== has_action( 'mainwp_site_sync', [ ChangeVigilSiteJournal\Capture::class, 'mainwp_site_sync' ] ),
+		'syncRequestFilter' => false !== has_filter( 'mainwp_sync_others_data', [ ChangeVigilSiteJournal\Capture::class, 'mainwp_sync_request' ] ),
+		'clientHook' => false !== has_action( 'mainwp_client_updated', [ ChangeVigilSiteJournal\Capture::class, 'mainwp_client_updated' ] ),
+		'clientDeleteHook' => false !== has_action( 'mainwp_client_deleted', [ ChangeVigilSiteJournal\Capture::class, 'mainwp_client_deleted' ] ),
 	];
 }
 
 function fixture_mainwp_transfer(): array {
 	$site_id = 907;
-	$cursor_option = 'alfa_mainwp_cursor_' . $site_id;
+	$cursor_option = 'cvsj_mainwp_cursor_' . $site_id;
 	$original_cursor = get_option( $cursor_option, null );
 	delete_option( $cursor_option );
 	$event = [
@@ -1186,15 +1186,15 @@ function fixture_mainwp_transfer(): array {
 		'summary' => 'Edited Privacy policy page',
 		'details' => [ 'changes' => [ 'Title' => [ 'Previous title', 'New title' ] ], 'untrusted' => '<img src=x onerror=alert(1)>' ],
 	];
-	$request = ActivityLogForAdmins\Capture::mainwp_sync_request( [], (object) [ 'id' => $site_id ] );
-	$before = ActivityLogForAdmins\Store::query( [ 'site_id' => (string) $site_id ], 10, 0, 0, true );
+	$request = ChangeVigilSiteJournal\Capture::mainwp_sync_request( [], (object) [ 'id' => $site_id ] );
+	$before = ChangeVigilSiteJournal\Store::query( [ 'site_id' => (string) $site_id ], 10, 0, 0, true );
 	fixture_check( is_array( $before ) );
 	do_action( 'mainwp_site_sync', (object) [ 'id' => $site_id ], [ 'activity_log_for_admins' => [ 'schema_version' => 1, 'events' => [ $event ] ] ], true, '', [] );
 	do_action( 'mainwp_site_sync', (object) [ 'id' => $site_id ], [ 'activity_log_for_admins' => [ 'schema_version' => 1, 'events' => [ $event ] ] ], true, '', [] );
-	$rows = ActivityLogForAdmins\Store::query( [ 'site_id' => (string) $site_id ], 10, 0, 0, true );
+	$rows = ChangeVigilSiteJournal\Store::query( [ 'site_id' => (string) $site_id ], 10, 0, 0, true );
 	fixture_check( is_array( $rows ) );
-	$request_after = ActivityLogForAdmins\Capture::mainwp_sync_request( [], (object) [ 'id' => $site_id ] );
-	$export = ActivityLogForAdmins\Capture::mainwp_sync_export( [], [ 'activity_log_for_admins' => [ 'schema_version' => 1, 'after_id' => 0, 'limit' => 50 ] ] );
+	$request_after = ChangeVigilSiteJournal\Capture::mainwp_sync_request( [], (object) [ 'id' => $site_id ] );
+	$export = ChangeVigilSiteJournal\Capture::mainwp_sync_export( [], [ 'activity_log_for_admins' => [ 'schema_version' => 1, 'after_id' => 0, 'limit' => 50 ] ] );
 	$export_ids = array_map( 'intval', array_column( $export['activity_log_for_admins']['events'] ?? [], 'id' ) );
 	$raw = wp_json_encode( $rows );
 	$result = [
@@ -1269,7 +1269,7 @@ function fixture_infinitewp_loaded(): bool {
 function fixture_infinitewp_hook_state(): array {
 	return [
 		'loaded' => fixture_infinitewp_loaded(),
-		'backupHook' => false !== has_action( 'added_post_meta', [ ActivityLogForAdmins\Capture::class, 'infinitewp_activity_added' ] ),
+		'backupHook' => false !== has_action( 'added_post_meta', [ ChangeVigilSiteJournal\Capture::class, 'infinitewp_activity_added' ] ),
 	];
 }
 
@@ -1296,7 +1296,7 @@ function fixture_infinitewp_disabled(): array {
 			update_option( 'is_save_activity_log', $original_log_setting, false );
 		}
 	}
-	$events = ActivityLogForAdmins\Store::query( [ 'category' => 'infinitewp' ], 10, 0, 0, true );
+	$events = ChangeVigilSiteJournal\Store::query( [ 'category' => 'infinitewp' ], 10, 0, 0, true );
 	fixture_check( is_array( $events ) );
 	return [ 'supported' => true, 'capturedWhileDisabled' => (bool) $events ];
 }
@@ -1309,7 +1309,7 @@ function fixture_infinitewp_events(): array {
 
 	$user = wp_get_current_user();
 	fixture_check( $user instanceof WP_User && $user->exists() );
-	$last_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', ActivityLogForAdmins\Store::table() ) );
+	$last_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', ChangeVigilSiteJournal\Store::table() ) );
 	if ( ! defined( 'IWP_AUTHORISED_CALL' ) ) {
 		define( 'IWP_AUTHORISED_CALL', 1 );
 	}
@@ -1364,12 +1364,12 @@ function fixture_infinitewp_events(): array {
 		}
 	}
 
-	$events = ActivityLogForAdmins\Store::query( [ 'category' => 'infinitewp' ], 20, 0, 0, true );
+	$events = ChangeVigilSiteJournal\Store::query( [ 'category' => 'infinitewp' ], 20, 0, 0, true );
 	fixture_check( is_array( $events ) );
 	$new_events = array_values( array_filter( $events, static fn( array $event ): bool => (int) ( $event['id'] ?? 0 ) > $last_id ) );
 	$backup_events = array_values( array_filter( $new_events, static fn( array $event ): bool => 'infinitewp_backup_completed' === ( $event['action_key'] ?? '' ) ) );
-	$source_events = ActivityLogForAdmins\Store::query( [ 'action' => 'content_created', 'item' => 'page:' . (int) $source_probe ], 10, 0, 0, true );
-	$mismatch_events = ActivityLogForAdmins\Store::query( [ 'action' => 'content_created', 'item' => 'page:' . (int) $mismatch_probe ], 10, 0, 0, true );
+	$source_events = ChangeVigilSiteJournal\Store::query( [ 'action' => 'content_created', 'item' => 'page:' . (int) $source_probe ], 10, 0, 0, true );
+	$mismatch_events = ChangeVigilSiteJournal\Store::query( [ 'action' => 'content_created', 'item' => 'page:' . (int) $mismatch_probe ], 10, 0, 0, true );
 	fixture_check( is_array( $source_events ) && is_array( $mismatch_events ) );
 	$backup = $backup_events[0] ?? null;
 	$details = is_array( $backup ) ? json_decode( (string) ( $backup['details'] ?? '' ), true ) ?: [] : [];
@@ -1449,7 +1449,7 @@ try {
             update_option( Store::SETTINGS, [], false );
             delete_option( Store::HEALTH );
             delete_option( Store::FILE_SCAN_STATE );
-            delete_option( 'alfa_alert_digest_after_id' );
+            delete_option( 'cvsj_alert_digest_after_id' );
             wp_clear_scheduled_hook( Store::CLEANUP );
             wp_clear_scheduled_hook( Store::CONTINUE_CLEANUP );
             wp_clear_scheduled_hook( Store::ALERT_DIGEST );
@@ -1475,7 +1475,7 @@ try {
         case 'acf_hook_state':
             wp_send_json( [
                 'loaded' => function_exists( 'acf' ),
-                'registered' => false !== has_filter( 'acf/update_value', [ ActivityLogForAdmins\Capture::class, 'acf_value_updated' ] ),
+                'registered' => false !== has_filter( 'acf/update_value', [ ChangeVigilSiteJournal\Capture::class, 'acf_value_updated' ] ),
             ] );
 
         case 'bbpress_disabled':
@@ -1493,7 +1493,7 @@ try {
         case 'wpforms_hook_state':
             wp_send_json( [
                 'loaded' => defined( 'WPFORMS_VERSION' ),
-                'registered' => false !== has_action( 'wpforms_process_complete', [ ActivityLogForAdmins\Capture::class, 'wpforms_entry_submitted' ] ),
+                'registered' => false !== has_action( 'wpforms_process_complete', [ ChangeVigilSiteJournal\Capture::class, 'wpforms_entry_submitted' ] ),
             ] );
 
         case 'seo_hook_state':
@@ -1635,7 +1635,7 @@ try {
             $network = get_network();
             $site_id = wp_insert_site( [
                 'domain' => (string) $network->domain,
-                'path' => '/alfa-network-' . strtolower( wp_generate_password( 8, false, false ) ) . '/',
+                'path' => '/cvsj-network-' . strtolower( wp_generate_password( 8, false, false ) ) . '/',
                 'title' => 'Network center test site',
                 'user_id' => get_current_user_id(),
             ] );
@@ -1711,12 +1711,12 @@ try {
             if ( ! is_multisite() ) {
                 wp_send_json( [ 'supported' => false ] );
             }
-            $multisite_path = '/alfa-pilot-' . strtolower( wp_generate_password( 8, false, false ) ) . '/';
+            $multisite_path = '/cvsj-pilot-' . strtolower( wp_generate_password( 8, false, false ) ) . '/';
             $multisite_network = get_network();
             $multisite_site = wp_insert_site( [
                 'domain' => (string) $multisite_network->domain,
                 'path' => $multisite_path,
-                'title' => 'Activity Log pilot ' . $multisite_path,
+                'title' => 'Change Vigil pilot ' . $multisite_path,
                 'user_id' => get_current_user_id(),
             ] );
             fixture_check( $multisite_site );
@@ -1866,29 +1866,29 @@ try {
             wp_send_json( $email_results );
 
         case 'database_create':
-            $database_table = $wpdb->prefix . 'alfa_fixture_table_' . strtolower( wp_generate_password( 10, false, false ) );
+            $database_table = $wpdb->prefix . 'cvsj_fixture_table_' . strtolower( wp_generate_password( 10, false, false ) );
             $create_result = $wpdb->query( "CREATE TABLE `$database_table` (id bigint unsigned NOT NULL) " . $wpdb->get_charset_collate() );
             fixture_check( $create_result );
             $found_table = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $database_table ) ) );
             fixture_check( $found_table === $database_table );
-            update_option( 'alfa_fixture_database_table', $database_table, false );
+            update_option( 'cvsj_fixture_database_table', $database_table, false );
             wp_send_json( [ 'table' => $database_table, 'created' => true ] );
 
         case 'database_drop':
-            $database_table = get_option( 'alfa_fixture_database_table', '' );
+            $database_table = get_option( 'cvsj_fixture_database_table', '' );
             fixture_check( is_string( $database_table ) && str_starts_with( $database_table, $wpdb->prefix )
                 && 1 === preg_match( '/\A[A-Za-z0-9_$]{1,64}\z/', $database_table ) );
             $drop_result = $wpdb->query( "DROP TABLE IF EXISTS `$database_table`" );
             fixture_check( $drop_result );
-            delete_option( 'alfa_fixture_database_table' );
+            delete_option( 'cvsj_fixture_database_table' );
             wp_send_json( [ 'table' => $database_table, 'deleted' => true ] );
 
         case 'file_monitor':
             $settings_before = Store::settings();
-            $fixture_directory = ABSPATH . 'alfa-file-monitor-fixture';
+            $fixture_directory = ABSPATH . 'cvsj-file-monitor-fixture';
             $batch_directory = $fixture_directory . DIRECTORY_SEPARATOR . 'batch';
             $batch_files = [];
-            $relative_path = 'alfa-file-monitor-fixture/probe-' . strtolower( wp_generate_password( 8, false, false ) ) . '.txt';
+            $relative_path = 'cvsj-file-monitor-fixture/probe-' . strtolower( wp_generate_password( 8, false, false ) ) . '.txt';
             $fixture_path = ABSPATH . str_replace( '/', DIRECTORY_SEPARATOR, $relative_path );
             $result = [];
             wp_mkdir_p( $fixture_directory );
@@ -1982,7 +1982,7 @@ try {
 
         case 'warning_content':
             wp_clear_scheduled_hook( Store::ALERT_DIGEST );
-            delete_option( 'alfa_alert_digest_after_id' );
+            delete_option( 'cvsj_alert_digest_after_id' );
             Store::add( [
                 'actor_kind' => 'user', 'actor_id' => get_current_user_id(), 'actor_name' => 'pilotadmin',
                 'item_kind' => 'page', 'item_key' => 'warning-content-fixture', 'item_name' => 'Content warning fixture',
@@ -1992,7 +1992,7 @@ try {
 
         case 'warning_batch':
             wp_clear_scheduled_hook( Store::ALERT_DIGEST );
-            delete_option( 'alfa_alert_digest_after_id' );
+            delete_option( 'cvsj_alert_digest_after_id' );
             for ( $index = 1; $index <= 3; ++$index ) {
                 Store::add( [
                     'actor_kind' => 'user', 'actor_id' => get_current_user_id(), 'actor_name' => 'pilotadmin',
@@ -2004,7 +2004,7 @@ try {
 
         case 'alert_cleanup':
             wp_clear_scheduled_hook( Store::ALERT_DIGEST );
-            delete_option( 'alfa_alert_digest_after_id' );
+            delete_option( 'cvsj_alert_digest_after_id' );
             wp_send_json( [ 'scheduled' => (bool) wp_next_scheduled( Store::ALERT_DIGEST ) ] );
 
         case 'alert_delivery':
@@ -2023,7 +2023,7 @@ try {
             $mail_headers = is_array( $captured_mail ) ? (array) ( $captured_mail['headers'] ?? [] ) : [];
             $mail_recipients = is_array( $captured_mail ) ? (array) ( $captured_mail['to'] ?? [] ) : [];
             wp_send_json( [
-                'sent' => is_array( $captured_mail ) && str_contains( $mail_body, 'Activity Log recorded warning events' ),
+                'sent' => is_array( $captured_mail ) && str_contains( $mail_body, 'Change Vigil recorded warning events' ),
                 'containsKnownSummary' => str_contains( $mail_body, 'Warning digest scheduling fixture' ),
                 'plainText' => in_array( 'Content-Type: text/plain; charset=UTF-8', $mail_headers, true ),
                 'summaryOnly' => ! str_contains( $mail_body, 'PRIVATE_DIGEST_DETAIL' ),
@@ -2035,15 +2035,15 @@ try {
         case 'custom_alert_begin':
             $snapshot = [
                 'rules' => get_option( Alerts::RULES, false ),
-                'queue' => get_option( 'alfa_alert_rule_queue', false ),
+                'queue' => get_option( 'cvsj_alert_rule_queue', false ),
                 'channels' => get_option( Alerts::CHANNELS, false ),
-                'retry_generation' => get_option( 'alfa_alert_retry_generation', false ),
-                'paused' => get_option( 'alfa_alert_queue_paused', false ),
+                'retry_generation' => get_option( 'cvsj_alert_retry_generation', false ),
+                'paused' => get_option( 'cvsj_alert_queue_paused', false ),
             ];
-            fixture_check( update_option( 'alfa_fixture_alert_snapshot', $snapshot, false ) || $snapshot === get_option( 'alfa_fixture_alert_snapshot', false ) );
+            fixture_check( update_option( 'cvsj_fixture_alert_snapshot', $snapshot, false ) || $snapshot === get_option( 'cvsj_fixture_alert_snapshot', false ) );
             update_option( Alerts::RULES, [], false );
-            update_option( 'alfa_alert_rule_queue', [], false );
-            update_option( 'alfa_alert_queue_paused', false, false );
+            update_option( 'cvsj_alert_rule_queue', [], false );
+            update_option( 'cvsj_alert_queue_paused', false, false );
             wp_clear_scheduled_hook( Alerts::HOOK );
             wp_clear_scheduled_hook( Alerts::RETRY_HOOK );
             wp_send_json( [ 'ready' => true ] );
@@ -2075,7 +2075,7 @@ try {
             ], [] );
             $event_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE item_key = %s ORDER BY id DESC LIMIT 1', Store::table(), $item_key ) );
             fixture_check( $event_id > 0 );
-            $queue = (array) get_option( 'alfa_alert_rule_queue', [] );
+            $queue = (array) get_option( 'cvsj_alert_rule_queue', [] );
             $queued = (bool) array_filter( $queue, static fn( $entry ): bool => is_array( $entry ) && (int) ( $entry['event_id'] ?? 0 ) === $event_id );
             wp_send_json( [ 'eventId' => $event_id, 'queued' => $queued ] );
 
@@ -2172,13 +2172,13 @@ try {
                         && ! str_contains( wp_json_encode( $body ), $expected_token );
                     return [ 'headers' => [], 'body' => '{"sid":"SM00000000000000000000000000000000"}', 'response' => [ 'code' => 201, 'message' => 'Created' ], 'cookies' => [], 'filename' => null ];
                 }
-                return new WP_Error( 'alfa_fixture_unexpected_host', 'The notification request used an unapproved destination.' );
+                return new WP_Error( 'cvsj_fixture_unexpected_host', 'The notification request used an unapproved destination.' );
             };
             add_filter( 'pre_wp_mail', $capture_mail, 10, 2 );
             add_filter( 'pre_http_request', $mock_http, 10, 3 );
             try {
                 for ( $run = 0; $run < 4; ++$run ) {
-                    $queue = (array) get_option( 'alfa_alert_rule_queue', [] );
+                    $queue = (array) get_option( 'cvsj_alert_rule_queue', [] );
                     if ( ! $queue ) {
                         break;
                     }
@@ -2186,7 +2186,7 @@ try {
                         $entry['retry_at'] = 0;
                     }
                     unset( $entry );
-                    update_option( 'alfa_alert_rule_queue', $queue, false );
+                    update_option( 'cvsj_alert_rule_queue', $queue, false );
                     do_action( Alerts::HOOK );
                 }
             } finally {
@@ -2197,7 +2197,7 @@ try {
                 'mailAttempts' => $mail_attempts,
                 'slackAttempts' => $slack_attempts,
                 'smsAttempts' => $sms_attempts,
-                'queueRemaining' => count( (array) get_option( 'alfa_alert_rule_queue', [] ) ),
+                'queueRemaining' => count( (array) get_option( 'cvsj_alert_rule_queue', [] ) ),
                 'slackPayloadSafe' => $slack_payload_safe,
                 'twilioRequestSafe' => $twilio_request_safe,
             ] );
@@ -2224,7 +2224,7 @@ try {
             add_filter( 'pre_wp_mail', $capture, 10, 2 );
             try {
                 for ( $run = 0; $run < 4; ++$run ) {
-                    $queue = (array) get_option( 'alfa_alert_rule_queue', [] );
+                    $queue = (array) get_option( 'cvsj_alert_rule_queue', [] );
                     if ( ! $queue ) {
                         break;
                     }
@@ -2232,9 +2232,9 @@ try {
                         $entry['retry_at'] = 0;
                     }
                     unset( $entry );
-                    update_option( 'alfa_alert_rule_queue', $queue, false );
+                    update_option( 'cvsj_alert_rule_queue', $queue, false );
                     do_action( Alerts::HOOK );
-                    $queue = (array) get_option( 'alfa_alert_rule_queue', [] );
+                    $queue = (array) get_option( 'cvsj_alert_rule_queue', [] );
                     if ( $queue ) {
                         $retry_delays[] = max( 0, (int) $queue[0]['retry_at'] - time() );
                     }
@@ -2246,7 +2246,7 @@ try {
                 'attempts' => $attempts,
                 'retryDelays' => $retry_delays,
                 'messages' => $captured,
-                'queueRemaining' => count( (array) get_option( 'alfa_alert_rule_queue', [] ) ),
+                'queueRemaining' => count( (array) get_option( 'cvsj_alert_rule_queue', [] ) ),
             ] );
 
         case 'custom_alert_permissions':
@@ -2254,15 +2254,15 @@ try {
             fixture_check( $editor );
             $previous_user = get_current_user_id();
             wp_set_current_user( (int) $editor->ID );
-            $read = rest_do_request( new WP_REST_Request( 'GET', '/activity-log-for-admins/v1/alerts/rules' ) );
-            $channel_read = rest_do_request( new WP_REST_Request( 'GET', '/activity-log-for-admins/v1/alerts/channels' ) );
-            $channel_write_request = new WP_REST_Request( 'POST', '/activity-log-for-admins/v1/alerts/channels' );
+            $read = rest_do_request( new WP_REST_Request( 'GET', '/change-vigil-site-journal/v1/alerts/rules' ) );
+            $channel_read = rest_do_request( new WP_REST_Request( 'GET', '/change-vigil-site-journal/v1/alerts/channels' ) );
+            $channel_write_request = new WP_REST_Request( 'POST', '/change-vigil-site-journal/v1/alerts/channels' );
             $channel_write_request->set_body_params( [] );
             $channel_write = rest_do_request( $channel_write_request );
-            $channel_test_request = new WP_REST_Request( 'POST', '/activity-log-for-admins/v1/alerts/channels/test' );
+            $channel_test_request = new WP_REST_Request( 'POST', '/change-vigil-site-journal/v1/alerts/channels/test' );
             $channel_test_request->set_body_params( [ 'channel' => 'slack' ] );
             $channel_test = rest_do_request( $channel_test_request );
-            $write_request = new WP_REST_Request( 'POST', '/activity-log-for-admins/v1/alerts/rules' );
+            $write_request = new WP_REST_Request( 'POST', '/change-vigil-site-journal/v1/alerts/rules' );
             $write_request->set_body_params( [
                 'name' => 'Unauthorized rule', 'enabled' => true, 'logic' => 'all',
                 'conditions' => [ [ 'field' => 'severity', 'operator' => 'equals', 'value' => 'warning' ] ],
@@ -2284,24 +2284,24 @@ try {
                 wp_send_json_error( 'The custom alert fixture identifier is invalid.', 400 );
             }
             update_option( Alerts::RULES, [], false );
-            update_option( 'alfa_alert_rule_queue', [], false );
-            update_option( 'alfa_alert_queue_paused', false, false );
+            update_option( 'cvsj_alert_rule_queue', [], false );
+            update_option( 'cvsj_alert_queue_paused', false, false );
             wp_clear_scheduled_hook( Alerts::HOOK );
             wp_clear_scheduled_hook( Alerts::RETRY_HOOK );
             $wpdb->query( $wpdb->prepare(
                 'DELETE FROM %i WHERE item_key LIKE %s',
                 Store::table(), $wpdb->esc_like( 'alert-fixture-' . strtolower( $marker ) . '-' ) . '%'
             ) );
-            $snapshot = get_option( 'alfa_fixture_alert_snapshot', false );
+            $snapshot = get_option( 'cvsj_fixture_alert_snapshot', false );
             if ( is_array( $snapshot ) ) {
-                foreach ( [ Alerts::RULES => $snapshot['rules'] ?? false, 'alfa_alert_rule_queue' => $snapshot['queue'] ?? false, Alerts::CHANNELS => $snapshot['channels'] ?? false, 'alfa_alert_retry_generation' => $snapshot['retry_generation'] ?? false, 'alfa_alert_queue_paused' => $snapshot['paused'] ?? false ] as $option => $value ) {
+                foreach ( [ Alerts::RULES => $snapshot['rules'] ?? false, 'cvsj_alert_rule_queue' => $snapshot['queue'] ?? false, Alerts::CHANNELS => $snapshot['channels'] ?? false, 'cvsj_alert_retry_generation' => $snapshot['retry_generation'] ?? false, 'cvsj_alert_queue_paused' => $snapshot['paused'] ?? false ] as $option => $value ) {
                     if ( false === $value ) {
                         delete_option( $option );
                     } else {
                         update_option( $option, $value, false );
                     }
                 }
-                delete_option( 'alfa_fixture_alert_snapshot' );
+                delete_option( 'cvsj_fixture_alert_snapshot' );
                 Alerts::schedule_pending();
             }
             wp_send_json( [ 'restored' => true ] );
@@ -2312,12 +2312,12 @@ try {
                 wp_send_json_error( 'The developer API fixture identifier is invalid.', 400 );
             }
             $settings_snapshot = get_option( Store::SETTINGS, false );
-            $type = 'alfa_fixture_event_changed';
+            $type = 'cvsj_fixture_event_changed';
             $type_filter = static function ( array $types ): array {
-                $types['alfa_fixture_event_changed'] = [ 'category' => 'components', 'label' => 'Fixture record changed' ];
+                $types['cvsj_fixture_event_changed'] = [ 'category' => 'components', 'label' => 'Fixture record changed' ];
                 return $types;
             };
-            add_filter( 'alfa_activity_log_external_event_types', $type_filter );
+            add_filter( 'cvsj_activity_log_external_event_types', $type_filter );
             try {
                 $registry_available = in_array( $type, Capture::action_types(), true )
                     && 'Fixture record changed' === ( Store::action_labels()[ $type ] ?? '' )
@@ -2369,7 +2369,7 @@ try {
                 ];
                 $fixture_passed = ! in_array( false, $result, true );
             } finally {
-                remove_filter( 'alfa_activity_log_external_event_types', $type_filter );
+                remove_filter( 'cvsj_activity_log_external_event_types', $type_filter );
                 if ( false === $settings_snapshot ) {
                     delete_option( Store::SETTINGS );
                 } else {
@@ -2506,7 +2506,7 @@ try {
             wp_send_json( [ 'item' => $item_name, 'item_key' => $item_key, 'count' => 1001 ] );
 
         case 'privacy_roundtrip':
-            wp_send_json( alfa_privacy_fixture() );
+            wp_send_json( cvsj_privacy_fixture() );
 
         case 'scheduled_report_due':
             $id = strtolower( sanitize_text_field( (string) ( $_POST['id'] ?? '' ) ) );
@@ -2603,7 +2603,7 @@ try {
             if ( ! preg_match( '/\Areport-[a-f0-9]{32}\.(?:csv|html)\z/', $archive_name ) ) {
                 wp_send_json_error( 'The report history copy was not found.', 404 );
             }
-            $archive_directory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'activity-log-for-admins-' . substr( hash( 'sha256', (string) get_option( 'siteurl' ) . (string) $wpdb->prefix . (string) get_current_blog_id() ), 0, 16 ) . DIRECTORY_SEPARATOR . 'history';
+            $archive_directory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'change-vigil-site-journal-' . substr( hash( 'sha256', (string) get_option( 'siteurl' ) . (string) $wpdb->prefix . (string) get_current_blog_id() ), 0, 16 ) . DIRECTORY_SEPARATOR . 'history';
             $archive_path = $archive_directory . DIRECTORY_SEPARATOR . $archive_name;
             fixture_check( file_exists( $archive_path ) && update_option( ScheduledReports::HISTORY, $history, false ) );
             ScheduledReports::tick();
@@ -2622,7 +2622,7 @@ try {
             wp_send_json( [ 'count' => (int) $count ] );
 
         case 'permissions':
-            $namespace = '/activity-log-for-admins/v1';
+            $namespace = '/change-vigil-site-journal/v1';
             $matrix = [];
             foreach ( [ 'anonymous' => 0, 'editor' => get_user_by( 'login', 'piloteditor' )->ID ] as $label => $user ) {
                 wp_set_current_user( $user );
@@ -2636,12 +2636,12 @@ try {
 
         case 'session_seed':
             $suffix = strtolower( wp_generate_password( 8, false, false ) );
-            $editor_login = 'alfa_session_' . $suffix;
+            $editor_login = 'cvsj_session_' . $suffix;
             $editor_password = wp_generate_password( 32, true, true );
             $editor_id = wp_create_user( $editor_login, $editor_password, $editor_login . '@example.test' );
             fixture_check( $editor_id );
             ( new WP_User( $editor_id ) )->set_role( 'editor' );
-            $site_admin_login = 'alfa_siteadmin_' . $suffix;
+            $site_admin_login = 'cvsj_siteadmin_' . $suffix;
             $site_admin_password = wp_generate_password( 32, true, true );
             $site_admin_id = wp_create_user( $site_admin_login, $site_admin_password, $site_admin_login . '@example.test' );
             fixture_check( $site_admin_id );
@@ -2670,7 +2670,7 @@ try {
         case 'bulk_seed':
             $baseline = Store::latest_id();
             $suffix = strtolower( wp_generate_password( 8, false, false ) );
-            $login = 'alfa_bulk_' . $suffix;
+            $login = 'cvsj_bulk_' . $suffix;
             $user_id = wp_create_user( $login, wp_generate_password( 32, true, true ), $login . '@example.test' );
             fixture_check( $user_id );
             ( new WP_User( $user_id ) )->set_role( 'editor' );
@@ -2786,11 +2786,11 @@ try {
             $user_id = absint( $_POST['user_id'] ?? 0 );
             $age = min( 30 * DAY_IN_SECONDS, max( 0, absint( $_POST['age'] ?? 0 ) ) );
             $policy_age = min( 30 * DAY_IN_SECONDS, max( 0, absint( $_POST['policy_age'] ?? $age ) ) );
-            $access = new ActivityLogForAdmins\SessionAccess( $user_id );
+            $access = new ChangeVigilSiteJournal\SessionAccess( $user_id );
             $activity = [];
-            $settings = (array) get_option( ActivityLogForAdmins\Sessions::SETTINGS, [] );
+            $settings = (array) get_option( ChangeVigilSiteJournal\Sessions::SETTINGS, [] );
             $settings['idle_enabled_at'] = time() - $policy_age;
-            update_option( ActivityLogForAdmins\Sessions::SETTINGS, $settings, false );
+            update_option( ChangeVigilSiteJournal\Sessions::SETTINGS, $settings, false );
             $sessions = $access->indexed_sessions();
             foreach ( $sessions as $verifier => $session ) {
                 $reference = hash_hmac( 'sha256', (string) $verifier, wp_salt( 'auth' ) );
@@ -2799,14 +2799,14 @@ try {
                 $sessions[ $verifier ] = $session;
             }
             update_user_meta( $user_id, 'session_tokens', $sessions );
-            set_transient( 'alfa_session_activity_' . $user_id, $activity, 30 * DAY_IN_SECONDS );
+            set_transient( 'cvsj_session_activity_' . $user_id, $activity, 30 * DAY_IN_SECONDS );
             wp_send_json( [ 'marked' => count( $activity ), 'marked_at' => time() - $age, 'policy_age' => time() - (int) ( $settings['idle_enabled_at'] ?? 0 ) ] );
 
         case 'session_cleanup':
             $user_ids = array_filter( [ absint( $_POST['editor_id'] ?? 0 ), absint( $_POST['site_admin_id'] ?? 0 ) ] );
-            ActivityLogForAdmins\Sessions::erase_activity_for_user( get_current_user_id() );
+            ChangeVigilSiteJournal\Sessions::erase_activity_for_user( get_current_user_id() );
             foreach ( $user_ids as $user_id ) {
-                ActivityLogForAdmins\Sessions::erase_activity_for_user( (int) $user_id );
+                ChangeVigilSiteJournal\Sessions::erase_activity_for_user( (int) $user_id );
                 $session_events = $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM %i WHERE item_kind = %s AND item_key = %s', $table, 'user', (string) $user_id ) );
                 if ( $session_events ) {
                     $ids = array_map( 'intval', $session_events );
@@ -2823,9 +2823,9 @@ try {
                 $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE event_id IN (' . $placeholders . ')', Store::notes_table(), ...$ids ) );
                 $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id IN (' . $placeholders . ')', $table, ...$ids ) );
             }
-            update_option( ActivityLogForAdmins\Sessions::SETTINGS, [ 'track_activity' => false, 'show_browser' => false, 'show_ip' => false ], false );
-            wp_clear_scheduled_hook( ActivityLogForAdmins\Sessions::CLEAR_ACTIVITY );
-            delete_option( 'alfa_session_clear_cursor' );
+            update_option( ChangeVigilSiteJournal\Sessions::SETTINGS, [ 'track_activity' => false, 'show_browser' => false, 'show_ip' => false ], false );
+            wp_clear_scheduled_hook( ChangeVigilSiteJournal\Sessions::CLEAR_ACTIVITY );
+            delete_option( 'cvsj_session_clear_cursor' );
             wp_send_json( [ 'deleted' => count( $user_ids ) ] );
 
         case 'health':
@@ -2845,9 +2845,9 @@ try {
             }
             $health = Store::health();
             $before = Store::latest_id();
-            deactivate_plugins( ALFA_PLUGIN );
+            deactivate_plugins( CVSJ_PLUGIN );
             $unscheduled = ! wp_next_scheduled( Store::CLEANUP );
-            fixture_check( activate_plugin( ALFA_PLUGIN ) );
+            fixture_check( activate_plugin( CVSJ_PLUGIN ) );
             $latest_after_reactivation = Store::latest_id();
             $scheduled_after_reactivation = wp_next_scheduled( Store::CLEANUP );
             $reactivated = $unscheduled && $latest_after_reactivation >= $before && (bool) $scheduled_after_reactivation;
@@ -2857,7 +2857,7 @@ try {
             fixture_check( wp_clear_scheduled_hook( Store::CLEANUP ) );
             $reject_cleanup_schedule = static function ( mixed $pre, object $event ): mixed {
                 return Store::CLEANUP === $event->hook
-                    ? new WP_Error( 'alfa_fixture_schedule_failure', 'Intentional pilot schedule failure.' )
+                    ? new WP_Error( 'cvsj_fixture_schedule_failure', 'Intentional pilot schedule failure.' )
                     : $pre;
             };
             add_filter( 'pre_schedule_event', $reject_cleanup_schedule, 10, 2 );
@@ -2890,7 +2890,7 @@ try {
                 $samples['filtered'][] = $measure( static fn() => Store::query( $filters, 51 ) );
                 $samples['capture'][] = $measure( static fn() => wp_insert_post( [ 'post_title' => 'Capture timing', 'post_status' => 'publish' ], true ) );
             }
-            remove_action( 'wp_after_insert_post', [ ActivityLogForAdmins\Capture::class, 'post' ], 30 );
+            remove_action( 'wp_after_insert_post', [ ChangeVigilSiteJournal\Capture::class, 'post' ], 30 );
             $baseline = [];
             for ( $i = 0; $i < 25; ++$i ) {
                 $baseline[] = $measure( static fn() => wp_insert_post( [ 'post_title' => 'Capture timing', 'post_status' => 'publish' ], true ) );
@@ -2906,28 +2906,28 @@ try {
             ] );
 
         case 'deactivate':
-            deactivate_plugins( ALFA_PLUGIN );
-            wp_send_json( [ 'inactive' => ! is_plugin_active( ALFA_PLUGIN ) ] );
+            deactivate_plugins( CVSJ_PLUGIN );
+            wp_send_json( [ 'inactive' => ! is_plugin_active( CVSJ_PLUGIN ) ] );
 
         case 'uninstall':
-            define( 'WP_UNINSTALL_PLUGIN', ALFA_PLUGIN );
-            $script = WP_PLUGIN_DIR . '/activity-log-for-admins/uninstall.php';
+            define( 'WP_UNINSTALL_PLUGIN', CVSJ_PLUGIN );
+            $script = WP_PLUGIN_DIR . '/change-vigil-site-journal/uninstall.php';
             $before = Store::latest_id();
             update_option( Store::SAVED_REPORTS, [ [
                 'id' => wp_generate_uuid4(), 'name' => 'Uninstall preservation fixture', 'filters' => [],
                 'group' => 'category', 'interval' => 'daily', 'range_days' => 30, 'created_at' => gmdate( 'Y-m-d H:i:s' ),
             ] ], false );
-            update_option( 'alfa_privacy_erase_state', [ 'fixture' => [ 'cursor' => 7, 'updated_at' => time() ] ], false );
+            update_option( 'cvsj_privacy_erase_state', [ 'fixture' => [ 'cursor' => 7, 'updated_at' => time() ] ], false );
             update_option( Store::SETTINGS, [ 'retention' => 60, 'erase' => false ] );
             require $script;
-            $preserved = Store::latest_id() === $before && is_array( get_option( Store::SAVED_REPORTS ) ) && false === get_option( 'alfa_privacy_erase_state' );
+            $preserved = Store::latest_id() === $before && is_array( get_option( Store::SAVED_REPORTS ) ) && false === get_option( 'cvsj_privacy_erase_state' );
             update_option( Store::SETTINGS, [ 'retention' => 60, 'erase' => true ] );
-            update_option( 'alfa_privacy_erase_state', [ 'fixture' => [ 'cursor' => 7, 'updated_at' => time() ] ], false );
+            update_option( 'cvsj_privacy_erase_state', [ 'fixture' => [ 'cursor' => 7, 'updated_at' => time() ] ], false );
             require $script;
             $erased = null === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) )
                 && false === get_option( Store::SETTINGS ) && false === get_option( Store::SCHEMA ) && false === get_option( Store::HEALTH )
                 && false === get_option( Store::SAVED_REPORTS ) && false === get_option( Alerts::RULES )
-                && false === get_option( Alerts::CHANNELS ) && false === get_option( 'alfa_privacy_erase_state' );
+                && false === get_option( Alerts::CHANNELS ) && false === get_option( 'cvsj_privacy_erase_state' );
             wp_send_json( compact( 'preserved', 'erased' ) );
     }
 } catch ( Throwable $error ) {

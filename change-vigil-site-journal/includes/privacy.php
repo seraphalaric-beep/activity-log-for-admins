@@ -1,13 +1,13 @@
 <?php
 
-namespace ActivityLogForAdmins;
+namespace ChangeVigilSiteJournal;
 
 defined( 'ABSPATH' ) || exit;
 
 final class Privacy {
     private const PAGE_SIZE = 50;
     private const ERASE_BATCH = 250;
-    private const ERASE_STATE = 'alfa_privacy_erase_state';
+    private const ERASE_STATE = 'cvsj_privacy_erase_state';
 
     public static function register(): void {
         add_filter( 'wp_privacy_personal_data_exporters', [ self::class, 'exporters' ] );
@@ -15,16 +15,16 @@ final class Privacy {
     }
 
     public static function exporters( array $exporters ): array {
-        $exporters['activity-log-for-admins'] = [
-            'exporter_friendly_name' => __( 'Activity Log for Admins', 'activity-log-for-admins' ),
+        $exporters['change-vigil-site-journal'] = [
+            'exporter_friendly_name' => __( 'Change Vigil Site Journal', 'change-vigil-site-journal' ),
             'callback' => [ self::class, 'export_personal_data' ],
         ];
         return $exporters;
     }
 
     public static function erasers( array $erasers ): array {
-        $erasers['activity-log-for-admins'] = [
-            'eraser_friendly_name' => __( 'Activity Log for Admins', 'activity-log-for-admins' ),
+        $erasers['change-vigil-site-journal'] = [
+            'eraser_friendly_name' => __( 'Change Vigil Site Journal', 'change-vigil-site-journal' ),
             'callback' => [ self::class, 'erase_personal_data' ],
         ];
         return $erasers;
@@ -33,7 +33,7 @@ final class Privacy {
     public static function export_personal_data( string $email_address, int $page = 1 ): array {
         global $wpdb;
         if ( ! self::can_manage_privacy() ) {
-            return [ 'data' => [], 'done' => true, 'messages' => [ __( 'You are not allowed to export this activity data.', 'activity-log-for-admins' ) ] ];
+            return [ 'data' => [], 'done' => true, 'messages' => [ __( 'You are not allowed to export this activity data.', 'change-vigil-site-journal' ) ] ];
         }
         $email = sanitize_email( $email_address );
         if ( ! is_email( $email ) ) {
@@ -62,8 +62,8 @@ final class Privacy {
                         'item_id' => 'session-activity-' . $user_id,
                         'group_id' => 'activity-log-session-activity',
                         'item_data' => [
-                            [ 'name' => __( 'Session activity', 'activity-log-for-admins' ), 'value' => __( 'Last observed request', 'activity-log-for-admins' ) ],
-                            [ 'name' => __( 'Time', 'activity-log-for-admins' ), 'value' => wp_date( 'j M Y, H:i:s T', $last_activity ) ],
+                            [ 'name' => __( 'Session activity', 'change-vigil-site-journal' ), 'value' => __( 'Last observed request', 'change-vigil-site-journal' ) ],
+                            [ 'name' => __( 'Time', 'change-vigil-site-journal' ), 'value' => wp_date( 'j M Y, H:i:s T', $last_activity ) ],
                         ],
                     ];
                 }
@@ -106,12 +106,12 @@ final class Privacy {
                 'item_id' => 'event-' . (int) $event['id'],
                 'group_id' => 'activity-log-events',
                 'item_data' => [
-                    [ 'name' => __( 'Time', 'activity-log-for-admins' ), 'value' => wp_date( 'j M Y, H:i:s T', strtotime( $event['occurred_at'] . ' UTC' ) ) ],
-                    [ 'name' => __( 'Action', 'activity-log-for-admins' ), 'value' => sanitize_text_field( (string) $event['action_key'] ) ],
-                    [ 'name' => __( 'Actor', 'activity-log-for-admins' ), 'value' => ( ( $user_id && (int) $event['actor_id'] === $user_id ) || str_contains( strtolower( (string) $event['actor_name'] ), strtolower( $email ) ) ) ? sanitize_text_field( (string) $event['actor_name'] ) : __( 'Another site user', 'activity-log-for-admins' ) ],
-                    [ 'name' => __( 'Affected item', 'activity-log-for-admins' ), 'value' => ( 'user' === $event['item_kind'] && (string) $user_id === (string) $event['item_key'] ) ? __( 'WordPress account', 'activity-log-for-admins' ) : sanitize_text_field( (string) $event['item_name'] ) ],
-                    [ 'name' => __( 'Summary', 'activity-log-for-admins' ), 'value' => sanitize_text_field( (string) $event['summary'] ) ],
-                    [ 'name' => __( 'Event details', 'activity-log-for-admins' ), 'value' => is_array( $details ) ? wp_json_encode( $details, JSON_INVALID_UTF8_SUBSTITUTE ) : '' ],
+                    [ 'name' => __( 'Time', 'change-vigil-site-journal' ), 'value' => wp_date( 'j M Y, H:i:s T', strtotime( $event['occurred_at'] . ' UTC' ) ) ],
+                    [ 'name' => __( 'Action', 'change-vigil-site-journal' ), 'value' => sanitize_text_field( (string) $event['action_key'] ) ],
+                    [ 'name' => __( 'Actor', 'change-vigil-site-journal' ), 'value' => ( ( $user_id && (int) $event['actor_id'] === $user_id ) || str_contains( strtolower( (string) $event['actor_name'] ), strtolower( $email ) ) ) ? sanitize_text_field( (string) $event['actor_name'] ) : __( 'Another site user', 'change-vigil-site-journal' ) ],
+                    [ 'name' => __( 'Affected item', 'change-vigil-site-journal' ), 'value' => ( 'user' === $event['item_kind'] && (string) $user_id === (string) $event['item_key'] ) ? __( 'WordPress account', 'change-vigil-site-journal' ) : sanitize_text_field( (string) $event['item_name'] ) ],
+                    [ 'name' => __( 'Summary', 'change-vigil-site-journal' ), 'value' => sanitize_text_field( (string) $event['summary'] ) ],
+                    [ 'name' => __( 'Event details', 'change-vigil-site-journal' ), 'value' => is_array( $details ) ? wp_json_encode( $details, JSON_INVALID_UTF8_SUBSTITUTE ) : '' ],
                 ],
             ];
         }
@@ -120,9 +120,9 @@ final class Privacy {
                 'item_id' => 'note-' . (int) $note['id'],
                 'group_id' => 'activity-log-notes',
                 'item_data' => [
-                    [ 'name' => __( 'Event ID', 'activity-log-for-admins' ), 'value' => (string) $note['event_id'] ],
-                    [ 'name' => __( 'Time', 'activity-log-for-admins' ), 'value' => wp_date( 'j M Y, H:i:s T', strtotime( $note['created_at'] . ' UTC' ) ) ],
-                    [ 'name' => __( 'Note', 'activity-log-for-admins' ), 'value' => sanitize_textarea_field( (string) $note['note'] ) ],
+                    [ 'name' => __( 'Event ID', 'change-vigil-site-journal' ), 'value' => (string) $note['event_id'] ],
+                    [ 'name' => __( 'Time', 'change-vigil-site-journal' ), 'value' => wp_date( 'j M Y, H:i:s T', strtotime( $note['created_at'] . ' UTC' ) ) ],
+                    [ 'name' => __( 'Note', 'change-vigil-site-journal' ), 'value' => sanitize_textarea_field( (string) $note['note'] ) ],
                 ],
             ];
         }
@@ -130,7 +130,7 @@ final class Privacy {
             return [
                 'data' => $data,
                 'done' => true,
-                'messages' => [ __( 'Activity data could not be fully read. Check the Activity Log database table before completing this export.', 'activity-log-for-admins' ) ],
+                'messages' => [ __( 'Activity data could not be fully read. Check the Change Vigil database table before completing this export.', 'change-vigil-site-journal' ) ],
             ];
         }
         return [ 'data' => $data, 'done' => count( (array) $events ) < self::PAGE_SIZE && count( (array) $notes ) < self::PAGE_SIZE ];
@@ -165,12 +165,12 @@ final class Privacy {
                 }
             }
             if ( $matches_user ) {
-                $matching_filters[] = __( 'Actor: this account', 'activity-log-for-admins' );
+                $matching_filters[] = __( 'Actor: this account', 'change-vigil-site-journal' );
             }
             $schedule_name = (string) ( $schedule['name'] ?? '' );
             $name_matches = self::contains_identifier( $schedule_name, $identifiers );
             if ( $name_matches ) {
-                $matching_filters[] = __( 'Report name', 'activity-log-for-admins' ) . ': ' . sanitize_text_field( $schedule_name );
+                $matching_filters[] = __( 'Report name', 'change-vigil-site-journal' ) . ': ' . sanitize_text_field( $schedule_name );
             }
             if ( ! $is_recipient && ! $matching_filters && ! $name_matches ) {
                 continue;
@@ -182,11 +182,11 @@ final class Privacy {
                 'item_id' => 'scheduled-report-' . sanitize_key( (string) ( $schedule['id'] ?? '' ) ),
                 'group_id' => 'activity-log-report-recipients',
                 'item_data' => [
-                    [ 'name' => __( 'Report', 'activity-log-for-admins' ), 'value' => sanitize_text_field( $schedule_name ) ],
-                    [ 'name' => __( 'Frequency', 'activity-log-for-admins' ), 'value' => sanitize_key( (string) ( $schedule['cadence'] ?? '' ) ) ],
-                    [ 'name' => __( 'Format', 'activity-log-for-admins' ), 'value' => sanitize_key( (string) ( $schedule['format'] ?? 'csv' ) ) ],
-                    [ 'name' => __( 'Why this report is linked', 'activity-log-for-admins' ), 'value' => $is_recipient ? __( 'Recipient', 'activity-log-for-admins' ) : implode( '; ', $matching_filters ) ],
-                    ...( $is_recipient ? [ [ 'name' => __( 'Recipient email', 'activity-log-for-admins' ), 'value' => $email ] ] : [] ),
+                    [ 'name' => __( 'Report', 'change-vigil-site-journal' ), 'value' => sanitize_text_field( $schedule_name ) ],
+                    [ 'name' => __( 'Frequency', 'change-vigil-site-journal' ), 'value' => sanitize_key( (string) ( $schedule['cadence'] ?? '' ) ) ],
+                    [ 'name' => __( 'Format', 'change-vigil-site-journal' ), 'value' => sanitize_key( (string) ( $schedule['format'] ?? 'csv' ) ) ],
+                    [ 'name' => __( 'Why this report is linked', 'change-vigil-site-journal' ), 'value' => $is_recipient ? __( 'Recipient', 'change-vigil-site-journal' ) : implode( '; ', $matching_filters ) ],
+                    ...( $is_recipient ? [ [ 'name' => __( 'Recipient email', 'change-vigil-site-journal' ), 'value' => $email ] ] : [] ),
                 ],
             ];
         }
@@ -205,13 +205,13 @@ final class Privacy {
                 'item_id' => 'activity-log-report-history-' . sanitize_key( (string) ( $entry['id'] ?? '' ) ),
                 'group_id' => 'activity-log-report-history',
                 'item_data' => [
-                    [ 'name' => __( 'Report', 'activity-log-for-admins' ), 'value' => sanitize_text_field( (string) ( $entry['name'] ?? '' ) ) ],
-                    [ 'name' => __( 'Format', 'activity-log-for-admins' ), 'value' => sanitize_key( (string) ( $entry['format'] ?? '' ) ) ],
-                    [ 'name' => __( 'Frequency', 'activity-log-for-admins' ), 'value' => sanitize_key( (string) ( $entry['cadence'] ?? '' ) ) ],
-                    [ 'name' => __( 'Delivery time', 'activity-log-for-admins' ), 'value' => wp_date( 'j M Y, H:i:s T', max( 0, (int) ( $entry['occurred_at'] ?? 0 ) ) ) ],
-                    [ 'name' => __( 'Delivery status', 'activity-log-for-admins' ), 'value' => sanitize_key( (string) ( $entry['status'] ?? '' ) ) ],
-                    [ 'name' => __( 'Matching events', 'activity-log-for-admins' ), 'value' => (string) max( 0, (int) ( $entry['event_count'] ?? 0 ) ) ],
-                    ...( ! empty( $entry['file'] ) ? [ [ 'name' => __( 'Private report copy', 'activity-log-for-admins' ), 'value' => __( 'A copy was retained in report history at the time of delivery.', 'activity-log-for-admins' ) ] ] : [] ),
+                    [ 'name' => __( 'Report', 'change-vigil-site-journal' ), 'value' => sanitize_text_field( (string) ( $entry['name'] ?? '' ) ) ],
+                    [ 'name' => __( 'Format', 'change-vigil-site-journal' ), 'value' => sanitize_key( (string) ( $entry['format'] ?? '' ) ) ],
+                    [ 'name' => __( 'Frequency', 'change-vigil-site-journal' ), 'value' => sanitize_key( (string) ( $entry['cadence'] ?? '' ) ) ],
+                    [ 'name' => __( 'Delivery time', 'change-vigil-site-journal' ), 'value' => wp_date( 'j M Y, H:i:s T', max( 0, (int) ( $entry['occurred_at'] ?? 0 ) ) ) ],
+                    [ 'name' => __( 'Delivery status', 'change-vigil-site-journal' ), 'value' => sanitize_key( (string) ( $entry['status'] ?? '' ) ) ],
+                    [ 'name' => __( 'Matching events', 'change-vigil-site-journal' ), 'value' => (string) max( 0, (int) ( $entry['event_count'] ?? 0 ) ) ],
+                    ...( ! empty( $entry['file'] ) ? [ [ 'name' => __( 'Private report copy', 'change-vigil-site-journal' ), 'value' => __( 'A copy was retained in report history at the time of delivery.', 'change-vigil-site-journal' ) ] ] : [] ),
                 ],
             ];
         }
@@ -239,28 +239,28 @@ final class Privacy {
             }
             $matches_name = self::contains_identifier( (string) $report['name'], $identifiers );
             if ( $matches_user ) {
-                $references[] = __( 'Actor: this account', 'activity-log-for-admins' );
+                $references[] = __( 'Actor: this account', 'change-vigil-site-journal' );
             }
             if ( $matches_name ) {
-                $references[] = __( 'Report name', 'activity-log-for-admins' ) . ': ' . sanitize_text_field( $report['name'] );
+                $references[] = __( 'Report name', 'change-vigil-site-journal' ) . ': ' . sanitize_text_field( $report['name'] );
             }
             foreach ( (array) ( $report['tags'] ?? [] ) as $tag ) {
                 if ( is_string( $tag ) && self::contains_identifier( $tag, $identifiers ) ) {
                     $matches_name = true;
-                    $references[] = __( 'Tag', 'activity-log-for-admins' ) . ': ' . sanitize_text_field( $tag );
+                    $references[] = __( 'Tag', 'change-vigil-site-journal' ) . ': ' . sanitize_text_field( $tag );
                 }
             }
             if ( $matches_user || $matches_value || $matches_name ) {
                 $item_data = [
-                    [ 'name' => __( 'Saved report', 'activity-log-for-admins' ), 'value' => sanitize_text_field( $report['name'] ) ],
-                    [ 'name' => __( 'Matching reference', 'activity-log-for-admins' ), 'value' => implode( '; ', array_values( array_unique( $references ) ) ) ],
+                    [ 'name' => __( 'Saved report', 'change-vigil-site-journal' ), 'value' => sanitize_text_field( $report['name'] ) ],
+                    [ 'name' => __( 'Matching reference', 'change-vigil-site-journal' ), 'value' => implode( '; ', array_values( array_unique( $references ) ) ) ],
                 ];
                 if ( ( $matches_user || $matched_filter_identifier ) && isset( $report['statistics'] ) ) {
                     $statistics = $report['statistics'];
                     $item_data[] = [
-                        'name' => __( 'Saved statistics result', 'activity-log-for-admins' ),
+                        'name' => __( 'Saved statistics result', 'change-vigil-site-journal' ),
                         // translators: %1$d is the number of matching events; %2$s is the start of the date range; %3$s is the end of the date range.
-                        'value' => sprintf( _n( '%1$d event, %2$s through %3$s', '%1$d events, %2$s through %3$s', $statistics['total'], 'activity-log-for-admins' ), $statistics['total'], $statistics['from'], $statistics['to'] ),
+                        'value' => sprintf( _n( '%1$d event, %2$s through %3$s', '%1$d events, %2$s through %3$s', $statistics['total'], 'change-vigil-site-journal' ), $statistics['total'], $statistics['from'], $statistics['to'] ),
                     ];
                 }
                 $items[] = [
@@ -277,15 +277,15 @@ final class Privacy {
         $items = [];
         $settings = Store::settings();
         foreach ( [
-            'viewer_users' => __( 'Can view activity', 'activity-log-for-admins' ),
-            'manager_users' => __( 'Can manage Activity Log', 'activity-log-for-admins' ),
-            'excluded_users' => __( 'Excluded from activity recording', 'activity-log-for-admins' ),
+            'viewer_users' => __( 'Can view activity', 'change-vigil-site-journal' ),
+            'manager_users' => __( 'Can manage Change Vigil', 'change-vigil-site-journal' ),
+            'excluded_users' => __( 'Excluded from activity recording', 'change-vigil-site-journal' ),
         ] as $key => $label ) {
             if ( in_array( $user_id, $settings[ $key ], true ) ) {
                 $items[] = [
                     'item_id' => 'activity-log-access-' . $key,
                     'group_id' => 'activity-log-settings',
-                    'item_data' => [ [ 'name' => __( 'Access setting', 'activity-log-for-admins' ), 'value' => $label ] ],
+                    'item_data' => [ [ 'name' => __( 'Access setting', 'change-vigil-site-journal' ), 'value' => $label ] ],
                 ];
             }
         }
@@ -293,7 +293,7 @@ final class Privacy {
             $items[] = [
                 'item_id' => 'activity-log-excluded-user-item',
                 'group_id' => 'activity-log-settings',
-                'item_data' => [ [ 'name' => __( 'Item exclusion', 'activity-log-for-admins' ), 'value' => __( 'This account item is excluded from recording', 'activity-log-for-admins' ) ] ],
+                'item_data' => [ [ 'name' => __( 'Item exclusion', 'change-vigil-site-journal' ), 'value' => __( 'This account item is excluded from recording', 'change-vigil-site-journal' ) ] ],
             ];
         }
         return $items;
@@ -304,8 +304,8 @@ final class Privacy {
             'item_id' => 'activity-log-email-' . sanitize_key( $purpose ),
             'group_id' => 'activity-log-email-settings',
             'item_data' => [
-                [ 'name' => __( 'Purpose', 'activity-log-for-admins' ), 'value' => $purpose ],
-                [ 'name' => __( 'Email address', 'activity-log-for-admins' ), 'value' => $email ],
+                [ 'name' => __( 'Purpose', 'change-vigil-site-journal' ), 'value' => $purpose ],
+                [ 'name' => __( 'Email address', 'change-vigil-site-journal' ), 'value' => $email ],
             ],
         ];
     }
@@ -313,7 +313,7 @@ final class Privacy {
     public static function erase_personal_data( string $email_address, int $page = 1 ): array {
         global $wpdb;
         if ( ! self::can_manage_privacy() ) {
-            return [ 'items_removed' => false, 'items_retained' => false, 'messages' => [ __( 'You are not allowed to erase this activity data.', 'activity-log-for-admins' ) ], 'done' => true ];
+            return [ 'items_removed' => false, 'items_retained' => false, 'messages' => [ __( 'You are not allowed to erase this activity data.', 'change-vigil-site-journal' ) ], 'done' => true ];
         }
         $email = sanitize_email( $email_address );
         if ( ! is_email( $email ) ) {
@@ -362,7 +362,7 @@ final class Privacy {
         $events_more = false;
         $events_safe = '' === $settings['error'] && '' === $alerts['error'] && ! empty( $delivery['events_safe'] );
         if ( ! $events_safe ) {
-            $messages[] = __( 'Activity entries will be processed after privacy related email settings, pending alerts, and active reports are secured.', 'activity-log-for-admins' );
+            $messages[] = __( 'Activity entries will be processed after privacy related email settings, pending alerts, and active reports are secured.', 'change-vigil-site-journal' );
             $has_error = true;
         }
         if ( $events_safe ) {
@@ -381,7 +381,7 @@ final class Privacy {
                 ) );
             }
             if ( $wpdb->last_error || ! is_array( $note_ids ) ) {
-                $messages[] = __( 'Personal notes could not be processed. Check the Activity Log database table and retry the erasure.', 'activity-log-for-admins' );
+                $messages[] = __( 'Personal notes could not be processed. Check the Change Vigil database table and retry the erasure.', 'change-vigil-site-journal' );
                 $has_error = true;
             } elseif ( $note_ids ) {
                 $notes_more = count( $note_ids ) > self::ERASE_BATCH;
@@ -390,7 +390,7 @@ final class Privacy {
                     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Remove a note selected for privacy erasure by its integer primary key.
                     $deleted = $wpdb->delete( Store::notes_table(), [ 'id' => $note_id ], [ '%d' ] );
                     if ( false === $deleted ) {
-                        $messages[] = __( 'Personal notes could not be deleted. Retry the erasure request.', 'activity-log-for-admins' );
+                        $messages[] = __( 'Personal notes could not be deleted. Retry the erasure request.', 'change-vigil-site-journal' );
                         $has_error = true;
                         break;
                     }
@@ -412,7 +412,7 @@ final class Privacy {
                 ), ARRAY_A );
             }
             if ( $wpdb->last_error || ! is_array( $events ) ) {
-                $messages[] = __( 'Activity data could not be processed. Check the Activity Log database table and retry the erasure.', 'activity-log-for-admins' );
+                $messages[] = __( 'Activity data could not be processed. Check the Change Vigil database table and retry the erasure.', 'change-vigil-site-journal' );
                 $has_error = true;
             } elseif ( $events ) {
                 $events_more = count( $events ) > self::ERASE_BATCH;
@@ -426,13 +426,13 @@ final class Privacy {
                     }
                 }
                 if ( $note_deletion_failed ) {
-                    $messages[] = __( 'Notes linked to activity could not be deleted. Retry the erasure request.', 'activity-log-for-admins' );
+                    $messages[] = __( 'Notes linked to activity could not be deleted. Retry the erasure request.', 'change-vigil-site-journal' );
                     $has_error = true;
                 } else {
-                    $actor_name = __( 'Deleted user', 'activity-log-for-admins' );
-                    $actor_summary = __( 'Activity retained, details removed during privacy erasure', 'activity-log-for-admins' );
-                    $account_name = __( 'WordPress account', 'activity-log-for-admins' );
-                    $account_summary = __( 'Account activity with personal details removed', 'activity-log-for-admins' );
+                    $actor_name = __( 'Deleted user', 'change-vigil-site-journal' );
+                    $actor_summary = __( 'Activity retained, details removed during privacy erasure', 'change-vigil-site-journal' );
+                    $account_name = __( 'WordPress account', 'change-vigil-site-journal' );
+                    $account_summary = __( 'Account activity with personal details removed', 'change-vigil-site-journal' );
                     $update_failed = false;
                     foreach ( $events as $event ) {
                         $id = (int) $event['id'];
@@ -467,7 +467,7 @@ final class Privacy {
                                 $changes['item_key'] = '';
                             }
                             if ( $item_email_matches && ! $account_matches ) {
-                                $changes['item_name'] = __( 'Activity item', 'activity-log-for-admins' );
+                                $changes['item_name'] = __( 'Activity item', 'change-vigil-site-journal' );
                             }
                             $changes['summary'] = $actor_summary;
                             $changes['details'] = '{}';
@@ -485,7 +485,7 @@ final class Privacy {
                         }
                     }
                     if ( $update_failed ) {
-                        $messages[] = __( 'Activity entries could not be anonymized. Retry the erasure request.', 'activity-log-for-admins' );
+                        $messages[] = __( 'Activity entries could not be anonymized. Retry the erasure request.', 'change-vigil-site-journal' );
                         $has_error = true;
                     } else {
                         $event_ids = array_map( static fn( array $event ): int => (int) $event['id'], $events );
@@ -496,7 +496,7 @@ final class Privacy {
         }
 
         if ( $items_retained ) {
-            $messages[] = __( 'Activity entries were retained for site administration. Account names and identifiers were removed, and personal change details were cleared.', 'activity-log-for-admins' );
+            $messages[] = __( 'Activity entries were retained for site administration. Account names and identifiers were removed, and personal change details were cleared.', 'change-vigil-site-journal' );
         }
         $done = ! $has_error && ! $events_more && ! $notes_more;
         if ( $done ) {
@@ -507,7 +507,7 @@ final class Privacy {
         if ( $states ) {
             $saved_state = update_option( self::ERASE_STATE, $states, false );
             if ( ! $saved_state && $states !== get_option( self::ERASE_STATE, [] ) ) {
-                $messages[] = __( 'Privacy erasure progress could not be saved. Retry the erasure request.', 'activity-log-for-admins' );
+                $messages[] = __( 'Privacy erasure progress could not be saved. Retry the erasure request.', 'change-vigil-site-journal' );
                 $done = false;
             }
         } else {
@@ -549,14 +549,14 @@ final class Privacy {
         }
         if ( $settings['email_alerts'] && ! $recipients && strtolower( $email ) === strtolower( (string) get_option( 'admin_email' ) ) ) {
             $settings['email_alerts'] = false;
-            delete_option( 'alfa_alert_digest_after_id' );
+            delete_option( 'cvsj_alert_digest_after_id' );
             $removed = true;
         }
         $stored = Store::settings();
         if ( $settings !== $stored ) {
             update_option( Store::SETTINGS, $settings, false );
         }
-        $error = Store::settings() !== $settings ? __( 'Activity Log privacy settings could not be updated. Retry the erasure request.', 'activity-log-for-admins' ) : '';
+        $error = Store::settings() !== $settings ? __( 'Change Vigil privacy settings could not be updated. Retry the erasure request.', 'change-vigil-site-journal' ) : '';
         return [ 'removed' => $removed, 'error' => $error ];
     }
 
@@ -597,7 +597,7 @@ final class Privacy {
                 $changed = true;
             }
             if ( isset( $report['name'] ) && is_string( $report['name'] ) && self::contains_identifier( $report['name'], $identifiers ) ) {
-                $report['name'] = __( 'Saved report', 'activity-log-for-admins' );
+                $report['name'] = __( 'Saved report', 'change-vigil-site-journal' );
                 $changed = true;
             }
             if ( is_array( $report['tags'] ?? null ) ) {
@@ -612,7 +612,7 @@ final class Privacy {
         if ( $changed ) {
             update_option( Store::SAVED_REPORTS, $reports, false );
         }
-        $error = $changed && get_option( Store::SAVED_REPORTS, [] ) !== $reports ? __( 'Saved report privacy data could not be updated. Retry the erasure request.', 'activity-log-for-admins' ) : '';
+        $error = $changed && get_option( Store::SAVED_REPORTS, [] ) !== $reports ? __( 'Saved report privacy data could not be updated. Retry the erasure request.', 'change-vigil-site-journal' ) : '';
         return [ 'removed' => $changed && '' === $error, 'error' => $error ];
     }
 

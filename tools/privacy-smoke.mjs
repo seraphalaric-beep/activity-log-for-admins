@@ -18,10 +18,10 @@ try {
   await page.locator("#user_pass").fill(password);
   await page.locator("#wp-submit").click();
   await page.waitForLoadState("domcontentloaded");
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
 
-  const response = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "privacy_roundtrip" } });
+  const response = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "privacy_roundtrip" } });
   assert.equal(response.status(), 200, await response.text());
   const result = await response.json();
   assert.equal(result.ok, true);

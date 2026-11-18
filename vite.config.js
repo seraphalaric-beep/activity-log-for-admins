@@ -10,9 +10,9 @@ export default defineConfig({
   publicDir: fileURLToPath(new URL("./ui/public", import.meta.url)),
   define: { "process.env.NODE_ENV": JSON.stringify("production") },
   build: {
-    outDir: fileURLToPath(new URL(sourceArchive ? "../build" : "./activity-log-for-admins/build", import.meta.url)),
+    outDir: fileURLToPath(new URL(sourceArchive ? "../build" : "./change-vigil-site-journal/build", import.meta.url)),
     emptyOutDir: true,
-    lib: { entry: "ui/main.jsx", name: "ActivityLogForAdmins", formats: ["iife"], fileName: () => "admin.js", cssFileName: "admin" },
+    lib: { entry: "ui/main.jsx", name: "ChangeVigilSiteJournal", formats: ["iife"], fileName: () => "admin.js", cssFileName: "admin" },
     rollupOptions: {
       external: id => id === "react" || id.startsWith("react/") || id === "react-dom" || id.startsWith("react-dom/"),
       output: {

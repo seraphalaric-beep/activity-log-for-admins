@@ -25,12 +25,12 @@ async function signIn() {
 
 async function api(path, query = {}, data = null) {
   return page.evaluate(async ({ path, query, data }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, String(value));
-    url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    url.searchParams.set("_cvsj_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const response = await fetch(url, {
       method: data ? "POST" : "GET",
       credentials: "same-origin",
@@ -43,15 +43,15 @@ async function api(path, query = {}, data = null) {
 }
 
 async function fixtureCall(operation, fields = {}) {
-  const response = await context.request.post(base + "/alfa-fixture.php", { form: { operation, ...fields } });
+  const response = await context.request.post(base + "/cvsj-fixture.php", { form: { operation, ...fields } });
   assert.equal(response.status(), 200, await response.text());
   return response.json();
 }
 
 try {
   await signIn();
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
   const settings = await api("settings");
   assert.equal(settings.status, 200);
   fixture = await fixtureCall("investigation_filters_seed");
@@ -71,7 +71,7 @@ try {
   const target = fixture.events[0];
   const targetEvent = await api("events", { event_id: target.id });
   assert.equal(targetEvent.status, 200);
-  const targetDate = await page.evaluate(iso => new Intl.DateTimeFormat("en-CA", { timeZone: window.alfaSettings.timezone || "UTC" }).format(new Date(iso)), targetEvent.data.events[0].time_iso);
+  const targetDate = await page.evaluate(iso => new Intl.DateTimeFormat("en-CA", { timeZone: window.cvsjSettings.timezone || "UTC" }).format(new Date(iso)), targetEvent.data.events[0].time_iso);
   const saved = await api("reports/saved", {}, {
     name: "Exact item investigation",
     filters: {
@@ -101,13 +101,13 @@ try {
   assert.equal((await api("events", { item_id: "x".repeat(192) })).status, 400, "Oversized exact item identifiers are rejected.");
 
   const shared = new URL("/wp-admin/admin.php", base);
-  shared.searchParams.set("page", "activity-log-for-admins");
+  shared.searchParams.set("page", "change-vigil-site-journal");
   shared.searchParams.set("event_id", String(target.id));
   shared.searchParams.set("item_kind", target.kind);
   shared.searchParams.set("item_id", target.item_id);
   await page.goto(shared.href);
-  await page.locator(".alfa-event-link").waitFor();
-  assert.equal(await page.locator(".alfa-event-link").count(), 1, "The shareable URL restores every exact filter.");
+  await page.locator(".cvsj-event-link").waitFor();
+  assert.equal(await page.locator(".cvsj-event-link").count(), 1, "The shareable URL restores every exact filter.");
   await page.getByRole("button", { name: /Filters/ }).click();
   assert.equal(await page.getByLabel("Exact event ID").inputValue(), String(target.id));
   assert.equal(await page.getByLabel("Affected item type").inputValue(), target.kind);
@@ -139,7 +139,7 @@ try {
   await page.screenshot({ path: ".tmp/network-parity-wp/investigation-filters-desktop.png", animations: "disabled" });
   await page.setViewportSize({ width: 390, height: 844 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "The filters fit a narrow admin viewport.");
-  assert.equal(await page.locator(".alfa-filter-grid").evaluate(element => getComputedStyle(element).gridTemplateColumns.split(" ").length), 1, "Filter controls use a readable single column on narrow screens.");
+  assert.equal(await page.locator(".cvsj-filter-grid").evaluate(element => getComputedStyle(element).gridTemplateColumns.split(" ").length), 1, "Filter controls use a readable single column on narrow screens.");
   await page.screenshot({ path: ".tmp/network-parity-wp/investigation-filters-mobile.png", animations: "disabled" });
 
   console.log("Exact event, item type, and item identifier filters passed REST validation and shared URL restoration on desktop and narrow screens.");

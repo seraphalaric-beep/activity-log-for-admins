@@ -1,17 +1,17 @@
 <?php
 
-namespace ActivityLogForAdmins;
+namespace ChangeVigilSiteJournal;
 
 defined( 'ABSPATH' ) || exit;
 
 final class ScheduledReports {
-    public const TICK = 'alfa_scheduled_reports_tick';
-    public const CONTINUE = 'alfa_scheduled_report_continue';
-    public const SCHEDULES = 'alfa_report_schedules';
-    public const JOB = 'alfa_report_job';
-    private const CANCELLED_JOB = 'alfa_report_job_cancelled';
-    private const REPORT_LOCK_PREFIX = 'alfa_report_';
-    public const HISTORY = 'alfa_report_history';
+    public const TICK = 'cvsj_scheduled_reports_tick';
+    public const CONTINUE = 'cvsj_scheduled_report_continue';
+    public const SCHEDULES = 'cvsj_report_schedules';
+    public const JOB = 'cvsj_report_job';
+    private const CANCELLED_JOB = 'cvsj_report_job_cancelled';
+    private const REPORT_LOCK_PREFIX = 'cvsj_report_';
+    public const HISTORY = 'cvsj_report_history';
     private const MAX_SCHEDULES = 20;
     private const MAX_RECIPIENTS = 10;
     private const BATCH_SIZE = 250;
@@ -23,19 +23,19 @@ final class ScheduledReports {
     private const RETRY_DELAYS = [ 300, 900 ];
 
     public static function cron_schedules( array $schedules ): array {
-        if ( ! isset( $schedules['alfa_quarter_hour'] ) ) {
-            $schedules['alfa_quarter_hour'] = [ 'interval' => 15 * MINUTE_IN_SECONDS, 'display' => __( 'Every fifteen minutes', 'activity-log-for-admins' ) ];
+        if ( ! isset( $schedules['cvsj_quarter_hour'] ) ) {
+            $schedules['cvsj_quarter_hour'] = [ 'interval' => 15 * MINUTE_IN_SECONDS, 'display' => __( 'Every fifteen minutes', 'change-vigil-site-journal' ) ];
         }
         return $schedules;
     }
 
     public static function ensure_schedule(): void {
-        if ( wp_next_scheduled( self::TICK ) && 'alfa_quarter_hour' === wp_get_schedule( self::TICK ) ) {
+        if ( wp_next_scheduled( self::TICK ) && 'cvsj_quarter_hour' === wp_get_schedule( self::TICK ) ) {
             self::schedule_health( false );
             return;
         }
         wp_clear_scheduled_hook( self::TICK );
-        $scheduled = wp_schedule_event( time() + 15 * MINUTE_IN_SECONDS, 'alfa_quarter_hour', self::TICK, [], true );
+        $scheduled = wp_schedule_event( time() + 15 * MINUTE_IN_SECONDS, 'cvsj_quarter_hour', self::TICK, [], true );
         self::schedule_health( false === $scheduled || is_wp_error( $scheduled ) );
     }
 
@@ -46,7 +46,7 @@ final class ScheduledReports {
         if ( is_array( $job ) && ! empty( $job['schedule_id'] ) ) {
             $schedule = self::find_schedule( (string) $job['schedule_id'] );
             if ( $schedule ) {
-                self::record_result( $schedule, 'failed', (int) ( $job['rows'] ?? 0 ), __( 'The report stopped because the plugin was deactivated.', 'activity-log-for-admins' ) );
+                self::record_result( $schedule, 'failed', (int) ( $job['rows'] ?? 0 ), __( 'The report stopped because the plugin was deactivated.', 'change-vigil-site-journal' ) );
             }
         }
         self::remove_job_file( $job );
@@ -141,8 +141,8 @@ final class ScheduledReports {
             if ( false === $path || ! preg_match( '/\A[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\z/i', $id ) ) {
                 continue;
             }
-            $url = add_query_arg( [ 'action' => 'alfa_report_download', 'id' => $id ], admin_url( 'admin-post.php' ) );
-            $entry['download_url'] = add_query_arg( '_wpnonce', wp_create_nonce( 'alfa_report_download_' . $id ), $url );
+            $url = add_query_arg( [ 'action' => 'cvsj_report_download', 'id' => $id ], admin_url( 'admin-post.php' ) );
+            $entry['download_url'] = add_query_arg( '_wpnonce', wp_create_nonce( 'cvsj_report_download_' . $id ), $url );
         }
         unset( $entry );
         return $history;
@@ -159,11 +159,11 @@ final class ScheduledReports {
             }
         }
         if ( ! $entry ) {
-            return new \WP_Error( 'alfa_report_history_missing', __( 'The report history item was not found.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+            return new \WP_Error( 'cvsj_report_history_missing', __( 'The report history item was not found.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
         }
         $remaining = array_values( array_filter( $history, static fn( array $item ): bool => ! hash_equals( strtolower( (string) ( $item['id'] ?? '' ) ), $id ) ) );
         if ( ! update_option( self::HISTORY, $remaining, false ) && $remaining !== get_option( self::HISTORY, [] ) ) {
-            return new \WP_Error( 'alfa_report_history_storage', __( 'The report history could not be deleted.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+            return new \WP_Error( 'cvsj_report_history_storage', __( 'The report history could not be deleted.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
         }
         self::delete_archive_file( (string) ( $entry['file'] ?? '' ) );
         return true;
@@ -172,8 +172,8 @@ final class ScheduledReports {
     public static function download_report(): void {
         $id = strtolower( sanitize_text_field( wp_unslash( (string) ( $_GET['id'] ?? '' ) ) ) );
         if ( ! Admin::can_manage() || ! preg_match( '/\A[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\z/i', $id )
-            || ! wp_verify_nonce( sanitize_text_field( wp_unslash( (string) ( $_GET['_wpnonce'] ?? '' ) ) ), 'alfa_report_download_' . $id ) ) {
-            wp_die( esc_html__( 'You are not allowed to download this report.', 'activity-log-for-admins' ), '', [ 'response' => 403 ] );
+            || ! wp_verify_nonce( sanitize_text_field( wp_unslash( (string) ( $_GET['_wpnonce'] ?? '' ) ) ), 'cvsj_report_download_' . $id ) ) {
+            wp_die( esc_html__( 'You are not allowed to download this report.', 'change-vigil-site-journal' ), '', [ 'response' => 403 ] );
         }
         foreach ( self::history() as $entry ) {
             if ( ! is_string( $entry['id'] ?? null ) || ! hash_equals( strtolower( $entry['id'] ), $id ) ) {
@@ -203,7 +203,7 @@ final class ScheduledReports {
             echo $contents;
             exit;
         }
-        wp_die( esc_html__( 'The report copy is no longer available.', 'activity-log-for-admins' ), '', [ 'response' => 404 ] );
+        wp_die( esc_html__( 'The report copy is no longer available.', 'change-vigil-site-journal' ), '', [ 'response' => 404 ] );
     }
 
     public static function create( string $template_id, string $cadence, int $hour, array $recipients, string $format = 'csv' ): array|\WP_Error {
@@ -216,16 +216,16 @@ final class ScheduledReports {
             }
         }
         if ( ! $template ) {
-            return new \WP_Error( 'alfa_schedule_template_missing', __( 'Choose a saved report before scheduling delivery.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+            return new \WP_Error( 'cvsj_schedule_template_missing', __( 'Choose a saved report before scheduling delivery.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
         }
         if ( ! in_array( $cadence, [ 'daily', 'weekly', 'monthly', 'quarterly' ], true ) || ! in_array( $format, [ 'csv', 'html' ], true ) || $hour < 0 || $hour > 23
             || ! $recipients || count( $recipients ) > self::MAX_RECIPIENTS ) {
-            return new \WP_Error( 'alfa_schedule_invalid', __( 'Check the delivery frequency, time, and recipient list.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+            return new \WP_Error( 'cvsj_schedule_invalid', __( 'Check the delivery frequency, time, and recipient list.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
         }
         $clean_recipients = [];
         foreach ( $recipients as $recipient ) {
             if ( ! is_string( $recipient ) || ! is_email( $recipient ) ) {
-                return new \WP_Error( 'alfa_schedule_invalid_email', __( 'Enter valid email addresses for every recipient.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                return new \WP_Error( 'cvsj_schedule_invalid_email', __( 'Enter valid email addresses for every recipient.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
             }
             $email = sanitize_email( $recipient );
             if ( ! in_array( strtolower( $email ), array_map( 'strtolower', $clean_recipients ), true ) ) {
@@ -233,11 +233,11 @@ final class ScheduledReports {
             }
         }
         if ( ! $clean_recipients ) {
-            return new \WP_Error( 'alfa_schedule_invalid_email', __( 'Enter at least one valid recipient.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+            return new \WP_Error( 'cvsj_schedule_invalid_email', __( 'Enter at least one valid recipient.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
         }
         $schedules = self::schedules();
         if ( count( $schedules ) >= self::MAX_SCHEDULES ) {
-            return new \WP_Error( 'alfa_schedule_limit', __( 'Delete a scheduled report before adding another. A site can keep up to 20 schedules.', 'activity-log-for-admins' ), [ 'status' => 409 ] );
+            return new \WP_Error( 'cvsj_schedule_limit', __( 'Delete a scheduled report before adding another. A site can keep up to 20 schedules.', 'change-vigil-site-journal' ), [ 'status' => 409 ] );
         }
         $schedule = [
             'id' => wp_generate_uuid4(),
@@ -257,7 +257,7 @@ final class ScheduledReports {
         ];
         $schedules[] = $schedule;
         if ( ! update_option( self::SCHEDULES, $schedules, false ) && $schedules !== get_option( self::SCHEDULES, [] ) ) {
-            return new \WP_Error( 'alfa_schedule_storage', __( 'The scheduled report could not be saved.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+            return new \WP_Error( 'cvsj_schedule_storage', __( 'The scheduled report could not be saved.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
         }
         return $schedule;
     }
@@ -266,7 +266,7 @@ final class ScheduledReports {
         $schedules = self::schedules();
         $remaining = array_values( array_filter( $schedules, static fn( array $schedule ): bool => ! hash_equals( $schedule['id'], strtolower( $id ) ) ) );
         if ( count( $remaining ) === count( $schedules ) ) {
-            return new \WP_Error( 'alfa_schedule_missing', __( 'The scheduled report was not found.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+            return new \WP_Error( 'cvsj_schedule_missing', __( 'The scheduled report was not found.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
         }
         $job = get_option( self::JOB, [] );
         if ( is_array( $job ) && hash_equals( (string) ( $job['schedule_id'] ?? '' ), strtolower( $id ) ) ) {
@@ -276,7 +276,7 @@ final class ScheduledReports {
             wp_clear_scheduled_hook( self::CONTINUE );
         }
         if ( ! update_option( self::SCHEDULES, $remaining, false ) && $remaining !== get_option( self::SCHEDULES, [] ) ) {
-            return new \WP_Error( 'alfa_schedule_storage', __( 'The scheduled report could not be deleted.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+            return new \WP_Error( 'cvsj_schedule_storage', __( 'The scheduled report could not be deleted.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
         }
         return true;
     }
@@ -300,7 +300,7 @@ final class ScheduledReports {
         if ( is_array( $job ) && ! empty( $job['schedule_id'] ) ) {
             // A report already being assembled may contain pre erasure activity.
             if ( ! self::request_job_cancellation( $job ) ) {
-                $errors[] = __( 'An active scheduled report could not be stopped. Retry the privacy erasure.', 'activity-log-for-admins' );
+                $errors[] = __( 'An active scheduled report could not be stopped. Retry the privacy erasure.', 'change-vigil-site-journal' );
             } else {
                 $removed = true;
                 $cancelled_job = true;
@@ -332,7 +332,7 @@ final class ScheduledReports {
                     $schedule['filters'] = $filters;
                 }
                 if ( isset( $schedule['name'] ) && is_string( $schedule['name'] ) && self::contains_identifier( $schedule['name'], $identifiers ) ) {
-                    $schedule['name'] = __( 'Scheduled report', 'activity-log-for-admins' );
+                    $schedule['name'] = __( 'Scheduled report', 'change-vigil-site-journal' );
                 }
                 if ( $original !== $schedule ) {
                     $removed = true;
@@ -346,7 +346,7 @@ final class ScheduledReports {
             if ( $remaining !== $schedules ) {
                 $saved = update_option( self::SCHEDULES, $remaining, false );
                 if ( ! $saved && $remaining !== get_option( self::SCHEDULES, [] ) ) {
-                    $errors[] = __( 'Scheduled report recipients or filters could not be updated. Retry the privacy erasure.', 'activity-log-for-admins' );
+                    $errors[] = __( 'Scheduled report recipients or filters could not be updated. Retry the privacy erasure.', 'change-vigil-site-journal' );
                 }
             }
         }
@@ -374,7 +374,7 @@ final class ScheduledReports {
                 $job_changed = true;
             }
             if ( isset( $job['name'] ) && is_string( $job['name'] ) && self::contains_identifier( $job['name'], $identifiers ) ) {
-                $job['name'] = __( 'Scheduled report', 'activity-log-for-admins' );
+                $job['name'] = __( 'Scheduled report', 'change-vigil-site-journal' );
                 $job_changed = true;
             }
             $active_schedule = self::find_schedule( (string) $job['schedule_id'] );
@@ -383,7 +383,7 @@ final class ScheduledReports {
             }
             if ( $user instanceof \WP_User || $matches_recipient || $matches_user || in_array( $actor_filter, $identifiers, true ) || ! $job['recipients'] || ! $active_schedule ) {
                 if ( ! self::request_job_cancellation( $job ) ) {
-                    $errors[] = __( 'An active scheduled report could not be updated. Retry the privacy erasure.', 'activity-log-for-admins' );
+                    $errors[] = __( 'An active scheduled report could not be updated. Retry the privacy erasure.', 'change-vigil-site-journal' );
                 } else {
                     $removed = true;
                     $cancelled_job = true;
@@ -392,7 +392,7 @@ final class ScheduledReports {
             }
             if ( $job_changed ) {
                 if ( ! self::save_job( $job ) ) {
-                    $errors[] = __( 'An active scheduled report could not be updated. Retry the privacy erasure.', 'activity-log-for-admins' );
+                    $errors[] = __( 'An active scheduled report could not be updated. Retry the privacy erasure.', 'change-vigil-site-journal' );
                 } else {
                     $removed = true;
                 }
@@ -407,7 +407,7 @@ final class ScheduledReports {
         foreach ( $history as &$entry ) {
             foreach ( [ 'name', 'message' ] as $key ) {
                 if ( isset( $entry[ $key ] ) && is_string( $entry[ $key ] ) && self::contains_identifier( $entry[ $key ], $identifiers ) ) {
-                    $entry[ $key ] = __( 'Scheduled report', 'activity-log-for-admins' );
+                    $entry[ $key ] = __( 'Scheduled report', 'change-vigil-site-journal' );
                     $history_changed = true;
                 }
             }
@@ -416,7 +416,7 @@ final class ScheduledReports {
         if ( $history_changed ) {
             $saved = update_option( self::HISTORY, $history, false );
             if ( ! $saved && $history !== get_option( self::HISTORY, [] ) ) {
-                $errors[] = __( 'Scheduled report history could not be updated. Retry the privacy erasure.', 'activity-log-for-admins' );
+                $errors[] = __( 'Scheduled report history could not be updated. Retry the privacy erasure.', 'change-vigil-site-journal' );
             } else {
                 $removed = true;
             }
@@ -468,19 +468,19 @@ final class ScheduledReports {
         $directory = self::temp_directory();
         $ceiling = Store::latest_id();
         if ( is_wp_error( $directory ) || is_wp_error( $ceiling ) ) {
-            self::record_result( $schedule, 'failed', 0, is_wp_error( $directory ) ? $directory->get_error_message() : __( 'Activity data is unavailable.', 'activity-log-for-admins' ) );
+            self::record_result( $schedule, 'failed', 0, is_wp_error( $directory ) ? $directory->get_error_message() : __( 'Activity data is unavailable.', 'change-vigil-site-journal' ) );
             return;
         }
         try {
             $format = in_array( $schedule['format'] ?? 'csv', [ 'csv', 'html' ], true ) ? $schedule['format'] : 'csv';
             $path = $directory . DIRECTORY_SEPARATOR . 'report-' . bin2hex( random_bytes( 16 ) ) . '.' . $format;
         } catch ( \Throwable $error ) {
-            self::record_result( $schedule, 'failed', 0, __( 'A private temporary report file could not be created.', 'activity-log-for-admins' ) );
+            self::record_result( $schedule, 'failed', 0, __( 'A private temporary report file could not be created.', 'change-vigil-site-journal' ) );
             return;
         }
         $filesystem = self::filesystem();
         if ( is_wp_error( $filesystem ) || $filesystem->exists( $path ) ) {
-            self::record_result( $schedule, 'failed', 0, __( 'A private temporary report file could not be created.', 'activity-log-for-admins' ) );
+            self::record_result( $schedule, 'failed', 0, __( 'A private temporary report file could not be created.', 'change-vigil-site-journal' ) );
             return;
         }
         $today = new \DateTimeImmutable( 'today', wp_timezone() );
@@ -505,7 +505,7 @@ final class ScheduledReports {
             || ! $filesystem->put_contents( $path, $contents, 0600 )
             || ! self::set_private_permissions( $path, 0600 ) ) {
             $filesystem->delete( $path );
-            self::record_result( $schedule, 'failed', 0, __( 'The report could not be written to private temporary storage.', 'activity-log-for-admins' ) );
+            self::record_result( $schedule, 'failed', 0, __( 'The report could not be written to private temporary storage.', 'change-vigil-site-journal' ) );
             return;
         }
 
@@ -527,7 +527,7 @@ final class ScheduledReports {
         ];
         if ( ! self::save_job( $job ) ) {
             self::remove_job_file( $job );
-            self::record_result( $schedule, 'failed', 0, __( 'Scheduled report state could not be saved.', 'activity-log-for-admins' ) );
+            self::record_result( $schedule, 'failed', 0, __( 'Scheduled report state could not be saved.', 'change-vigil-site-journal' ) );
             return;
         }
         $stored = self::schedules();
@@ -554,7 +554,7 @@ final class ScheduledReports {
         if ( ! self::valid_job_file( $job ) ) {
             $schedule = self::find_schedule( (string) $job['schedule_id'] );
             if ( $schedule ) {
-                self::record_result( $schedule, 'failed', (int) ( $job['rows'] ?? 0 ), __( 'The private temporary report file failed its location check.', 'activity-log-for-admins' ) );
+                self::record_result( $schedule, 'failed', (int) ( $job['rows'] ?? 0 ), __( 'The private temporary report file failed its location check.', 'change-vigil-site-journal' ) );
             }
             self::clear_cancellation( $job );
             delete_option( self::JOB );
@@ -583,7 +583,7 @@ final class ScheduledReports {
             }
             $job = $latest_job;
             if ( self::cancellation_requested( $job ) ) {
-                self::fail_job( $job, sanitize_text_field( (string) ( $job['cancel_message'] ?? __( 'The report was cancelled.', 'activity-log-for-admins' ) ) ) );
+                self::fail_job( $job, sanitize_text_field( (string) ( $job['cancel_message'] ?? __( 'The report was cancelled.', 'change-vigil-site-journal' ) ) ) );
                 $finished = true;
                 return;
             }
@@ -597,7 +597,7 @@ final class ScheduledReports {
             $filesystem = self::filesystem();
             $contents = is_wp_error( $filesystem ) ? false : $filesystem->get_contents( $job['path'] );
             if ( ! is_string( $contents ) ) {
-                self::fail_job( $job, __( 'The temporary report file is unavailable.', 'activity-log-for-admins' ) );
+                self::fail_job( $job, __( 'The temporary report file is unavailable.', 'change-vigil-site-journal' ) );
                 $finished = true;
                 return;
             }
@@ -611,7 +611,7 @@ final class ScheduledReports {
                 }
                 $rows = Store::query( $job['filters'], self::BATCH_SIZE, (int) $job['cursor'], (int) $job['ceiling'], true );
                 if ( is_wp_error( $rows ) ) {
-                    self::fail_job( $job, __( 'Activity data became unavailable while the report was being prepared.', 'activity-log-for-admins' ) );
+                    self::fail_job( $job, __( 'Activity data became unavailable while the report was being prepared.', 'change-vigil-site-journal' ) );
                     $finished = true;
                     return;
                 }
@@ -626,7 +626,7 @@ final class ScheduledReports {
                     ++$job['rows'];
                 }
                 if ( strlen( $contents ) + strlen( $append ) > self::MAX_REPORT_BYTES ) {
-                    self::fail_job( $job, __( 'The report exceeds the 10 MB email attachment limit. Narrow the date range or choose fewer fields.', 'activity-log-for-admins' ) );
+                    self::fail_job( $job, __( 'The report exceeds the 10 MB email attachment limit. Narrow the date range or choose fewer fields.', 'change-vigil-site-journal' ) );
                     $finished = true;
                     return;
                 }
@@ -638,7 +638,7 @@ final class ScheduledReports {
                 ++$batch_count;
             }
             if ( self::cancellation_requested( $job ) ) {
-                self::fail_job( $job, sanitize_text_field( (string) ( $job['cancel_message'] ?? __( 'The report was cancelled.', 'activity-log-for-admins' ) ) ) );
+                self::fail_job( $job, sanitize_text_field( (string) ( $job['cancel_message'] ?? __( 'The report was cancelled.', 'change-vigil-site-journal' ) ) ) );
                 $finished = true;
                 return;
             }
@@ -646,13 +646,13 @@ final class ScheduledReports {
                 $append .= "</tbody></table></main></body></html>";
             }
             if ( strlen( $contents ) + strlen( $append ) > self::MAX_REPORT_BYTES ) {
-                self::fail_job( $job, __( 'The report exceeds the 10 MB email attachment limit. Narrow the date range or choose fewer fields.', 'activity-log-for-admins' ) );
+                self::fail_job( $job, __( 'The report exceeds the 10 MB email attachment limit. Narrow the date range or choose fewer fields.', 'change-vigil-site-journal' ) );
                 $finished = true;
                 return;
             }
             if ( ! $filesystem->put_contents( $job['path'], $contents . $append, 0600 )
                 || ! self::set_private_permissions( $job['path'], 0600 ) ) {
-                self::fail_job( $job, __( 'The report could not be written to private temporary storage.', 'activity-log-for-admins' ) );
+                self::fail_job( $job, __( 'The report could not be written to private temporary storage.', 'change-vigil-site-journal' ) );
                 $finished = true;
                 return;
             }
@@ -663,7 +663,7 @@ final class ScheduledReports {
                 $job['retry_at'] = 0;
             }
             if ( ! self::save_job( $job ) ) {
-                self::fail_job( $job, __( 'Scheduled report progress could not be saved.', 'activity-log-for-admins' ) );
+                self::fail_job( $job, __( 'Scheduled report progress could not be saved.', 'change-vigil-site-journal' ) );
                 $finished = true;
                 return;
             }
@@ -672,7 +672,7 @@ final class ScheduledReports {
                 return;
             }
             if ( $job['attempts'] >= 100 ) {
-                self::fail_job( $job, __( 'The report exceeded its maximum number of background batches.', 'activity-log-for-admins' ) );
+                self::fail_job( $job, __( 'The report exceeded its maximum number of background batches.', 'change-vigil-site-journal' ) );
                 $finished = true;
                 return;
             }
@@ -694,22 +694,22 @@ final class ScheduledReports {
             return true;
         }
         if ( self::cancellation_requested( $job ) ) {
-            self::fail_job( $job, sanitize_text_field( (string) ( $job['cancel_message'] ?? __( 'The report was cancelled.', 'activity-log-for-admins' ) ) ) );
+            self::fail_job( $job, sanitize_text_field( (string) ( $job['cancel_message'] ?? __( 'The report was cancelled.', 'change-vigil-site-journal' ) ) ) );
             return true;
         }
         if ( self::deliver_job( $job ) ) {
             $archive_file = self::archive_job( $job );
-            $message = '' === $archive_file ? __( 'The email was sent, but the private report copy could not be saved.', 'activity-log-for-admins' ) : '';
+            $message = '' === $archive_file ? __( 'The email was sent, but the private report copy could not be saved.', 'change-vigil-site-journal' ) : '';
             self::record_result( $schedule, 'sent', (int) $job['rows'], $message, $archive_file );
             return true;
         }
 
         $attempt = (int) ( $job['delivery_attempts'] ?? 0 ) + 1;
-        $message = __( 'WordPress could not send the scheduled report. Check the site mail configuration.', 'activity-log-for-admins' );
+        $message = __( 'WordPress could not send the scheduled report. Check the site mail configuration.', 'change-vigil-site-journal' );
         if ( $attempt >= self::MAX_DELIVERY_ATTEMPTS ) {
             $archive_file = self::archive_job( $job );
             if ( '' === $archive_file ) {
-                $message .= ' ' . __( 'The private report copy could not be saved.', 'activity-log-for-admins' );
+                $message .= ' ' . __( 'The private report copy could not be saved.', 'change-vigil-site-journal' );
             }
             self::record_result( $schedule, 'failed', (int) $job['rows'], $message, $archive_file );
             return true;
@@ -719,7 +719,7 @@ final class ScheduledReports {
         $job['delivery_attempts'] = $attempt;
         $job['retry_at'] = time() + $delay;
         if ( ! self::save_job( $job ) ) {
-            self::record_result( $schedule, 'failed', (int) $job['rows'], __( 'The email failed and retry progress could not be saved.', 'activity-log-for-admins' ) );
+            self::record_result( $schedule, 'failed', (int) $job['rows'], __( 'The email failed and retry progress could not be saved.', 'change-vigil-site-journal' ) );
             return true;
         }
         self::mark_retry_pending( $schedule, $attempt, $delay );
@@ -734,7 +734,7 @@ final class ScheduledReports {
                 $current['last_status'] = 'pending';
                 $current['last_error'] = sprintf(
                     // translators: %1$d is the current retry number; %2$d is the maximum retry number; %3$d is the wait time in minutes.
-                    __( 'Email delivery failed. Retry %1$d of %2$d is queued in about %3$d minutes.', 'activity-log-for-admins' ),
+                    __( 'Email delivery failed. Retry %1$d of %2$d is queued in about %3$d minutes.', 'change-vigil-site-journal' ),
                     $attempt,
                     self::MAX_DELIVERY_ATTEMPTS,
                     (int) ceil( $delay / MINUTE_IN_SECONDS )
@@ -762,11 +762,11 @@ final class ScheduledReports {
             return false;
         }
         // translators: %1$s is the site name; %2$s is the scheduled report name.
-        $subject = sprintf( __( '[%1$s] Scheduled activity report: %2$s', 'activity-log-for-admins' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $job['name'] );
+        $subject = sprintf( __( '[%1$s] Scheduled activity report: %2$s', 'change-vigil-site-journal' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $job['name'] );
         $format_label = 'html' === ( $job['format'] ?? 'csv' ) ? 'HTML' : 'CSV';
         $body = sprintf(
             // translators: %1$s is the report file format; %2$d is the number of matching events.
-            __( 'Your scheduled activity report is attached as a %1$s file. It contains %2$d matching events for the selected date range. Manage report recipients and delivery in the Activity Log Reports page.', 'activity-log-for-admins' ),
+            __( 'Your scheduled activity report is attached as a %1$s file. It contains %2$d matching events for the selected date range. Manage report recipients and delivery in the Change Vigil Reports page.', 'change-vigil-site-journal' ),
             $format_label,
             (int) $job['rows']
         );
@@ -848,7 +848,7 @@ final class ScheduledReports {
     }
 
     private static function cleanup_orphan_files(): void {
-        $last = (int) get_option( 'alfa_report_temp_cleanup_at', 0 );
+        $last = (int) get_option( 'cvsj_report_temp_cleanup_at', 0 );
         if ( time() - $last < DAY_IN_SECONDS ) {
             return;
         }
@@ -903,11 +903,11 @@ final class ScheduledReports {
                 }
             }
         }
-        update_option( 'alfa_report_temp_cleanup_at', time(), false );
+        update_option( 'cvsj_report_temp_cleanup_at', time(), false );
     }
 
     private static function retention_days(): int {
-        $settings = get_option( 'alfa_settings', [] );
+        $settings = get_option( 'cvsj_settings', [] );
         $retention = is_array( $settings ) ? (int) ( $settings['retention'] ?? 90 ) : 90;
         return min( 3650, max( 1, $retention ) );
     }
@@ -932,7 +932,7 @@ final class ScheduledReports {
         }
         if ( ! function_exists( 'WP_Filesystem' ) || ( ! $wp_filesystem && ! WP_Filesystem() )
             || ! ( $wp_filesystem instanceof \WP_Filesystem_Base ) ) {
-            return new \WP_Error( 'alfa_report_filesystem', __( 'WordPress could not initialize private report storage.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_report_filesystem', __( 'WordPress could not initialize private report storage.', 'change-vigil-site-journal' ) );
         }
         return $wp_filesystem;
     }
@@ -940,7 +940,7 @@ final class ScheduledReports {
     private static function directory_files( string $directory, \WP_Filesystem_Base $filesystem ): array|\WP_Error {
         $entries = $filesystem->dirlist( $directory, false );
         if ( ! is_array( $entries ) ) {
-            return new \WP_Error( 'alfa_report_filesystem_list', __( 'WordPress could not inspect private report storage.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_report_filesystem_list', __( 'WordPress could not inspect private report storage.', 'change-vigil-site-journal' ) );
         }
         $paths = [];
         foreach ( $entries as $entry ) {
@@ -960,7 +960,7 @@ final class ScheduledReports {
             return $lock_name;
         }
         if ( null === $acquired ) {
-            return new \WP_Error( 'alfa_report_lock', __( 'The database could not secure the scheduled report job.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_report_lock', __( 'The database could not secure the scheduled report job.', 'change-vigil-site-journal' ) );
         }
         return false;
     }
@@ -978,25 +978,25 @@ final class ScheduledReports {
         $root = realpath( sys_get_temp_dir() );
         $wordpress = realpath( ABSPATH );
         if ( false === $root || ! $filesystem->is_writable( $root ) ) {
-            return new \WP_Error( 'alfa_report_temp', __( 'The server does not provide a private writable temporary directory.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_report_temp', __( 'The server does not provide a private writable temporary directory.', 'change-vigil-site-journal' ) );
         }
         $root_normal = trailingslashit( wp_normalize_path( $root ) );
         $wordpress_normal = false === $wordpress ? '' : trailingslashit( wp_normalize_path( $wordpress ) );
         if ( '' !== $wordpress_normal && str_starts_with( strtolower( $root_normal ), strtolower( $wordpress_normal ) ) ) {
-            return new \WP_Error( 'alfa_report_temp', __( 'The server temporary directory is inside the public WordPress directory.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_report_temp', __( 'The server temporary directory is inside the public WordPress directory.', 'change-vigil-site-journal' ) );
         }
         global $wpdb;
         $site_hash = substr( hash( 'sha256', (string) get_option( 'siteurl' ) . (string) $wpdb->prefix . (string) get_current_blog_id() ), 0, 16 );
-        $directory = $root . DIRECTORY_SEPARATOR . 'activity-log-for-admins-' . $site_hash;
+        $directory = $root . DIRECTORY_SEPARATOR . 'change-vigil-site-journal-' . $site_hash;
         if ( is_link( $directory ) || ( ! $filesystem->is_dir( $directory ) && ! $filesystem->mkdir( $directory, 0700 ) ) ) {
-            return new \WP_Error( 'alfa_report_temp', __( 'The private report directory could not be created.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_report_temp', __( 'The private report directory could not be created.', 'change-vigil-site-journal' ) );
         }
         if ( ! self::set_private_permissions( $directory, 0700 ) ) {
-            return new \WP_Error( 'alfa_report_temp', __( 'Private report directory permissions could not be secured.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_report_temp', __( 'Private report directory permissions could not be secured.', 'change-vigil-site-journal' ) );
         }
         $resolved = realpath( $directory );
         if ( false === $resolved || ! $filesystem->is_writable( $resolved ) || ! str_starts_with( strtolower( trailingslashit( wp_normalize_path( $resolved ) ) ), strtolower( $root_normal ) ) ) {
-            return new \WP_Error( 'alfa_report_temp', __( 'The private report directory failed its location check.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_report_temp', __( 'The private report directory failed its location check.', 'change-vigil-site-journal' ) );
         }
         return $resolved;
     }
@@ -1012,15 +1012,15 @@ final class ScheduledReports {
         }
         $directory = $temporary . DIRECTORY_SEPARATOR . 'history';
         if ( is_link( $directory ) || ( ! $filesystem->is_dir( $directory ) && ! $filesystem->mkdir( $directory, 0700 ) ) ) {
-            return new \WP_Error( 'alfa_report_archive', __( 'The private report history directory could not be created.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_report_archive', __( 'The private report history directory could not be created.', 'change-vigil-site-journal' ) );
         }
         if ( ! self::set_private_permissions( $directory, 0700 ) ) {
-            return new \WP_Error( 'alfa_report_archive', __( 'Private report history permissions could not be secured.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_report_archive', __( 'Private report history permissions could not be secured.', 'change-vigil-site-journal' ) );
         }
         $resolved = realpath( $directory );
         if ( false === $resolved || ! $filesystem->is_writable( $resolved )
             || strtolower( dirname( wp_normalize_path( $resolved ) ) ) !== strtolower( wp_normalize_path( $temporary ) ) ) {
-            return new \WP_Error( 'alfa_report_archive', __( 'The private report history directory failed its location check.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_report_archive', __( 'The private report history directory failed its location check.', 'change-vigil-site-journal' ) );
         }
         return $resolved;
     }
@@ -1108,17 +1108,17 @@ final class ScheduledReports {
     private static function erase_report_copies(): array {
         $directory = self::archive_directory();
         if ( is_wp_error( $directory ) ) {
-            return [ 'removed' => false, 'error' => __( 'Private report copies could not be checked during data erasure.', 'activity-log-for-admins' ) ];
+            return [ 'removed' => false, 'error' => __( 'Private report copies could not be checked during data erasure.', 'change-vigil-site-journal' ) ];
         }
         $removed = false;
         $failed = false;
         $filesystem = self::filesystem();
         if ( is_wp_error( $filesystem ) ) {
-            return [ 'removed' => false, 'error' => __( 'Private report copies could not be checked during data erasure.', 'activity-log-for-admins' ) ];
+            return [ 'removed' => false, 'error' => __( 'Private report copies could not be checked during data erasure.', 'change-vigil-site-journal' ) ];
         }
         $files = self::directory_files( $directory, $filesystem );
         if ( is_wp_error( $files ) ) {
-            return [ 'removed' => false, 'error' => __( 'Private report copies could not be checked during data erasure.', 'activity-log-for-admins' ) ];
+            return [ 'removed' => false, 'error' => __( 'Private report copies could not be checked during data erasure.', 'change-vigil-site-journal' ) ];
         }
         foreach ( $files as $path ) {
             if ( ! preg_match( '/\Areport-[a-f0-9]{32}\.(?:csv|html)\z/', basename( $path ) ) ) {
@@ -1141,7 +1141,7 @@ final class ScheduledReports {
         }
         return [
             'removed' => $removed,
-            'error' => $failed ? __( 'Private report copies could not be fully removed. Retry the privacy erasure.', 'activity-log-for-admins' ) : '',
+            'error' => $failed ? __( 'Private report copies could not be fully removed. Retry the privacy erasure.', 'change-vigil-site-journal' ) : '',
         ];
     }
 
@@ -1206,7 +1206,7 @@ final class ScheduledReports {
 
     private static function request_job_cancellation( array $job ): bool {
         $job['cancelled'] = true;
-        $job['cancel_message'] = __( 'The report stopped while activity data was being erased.', 'activity-log-for-admins' );
+        $job['cancel_message'] = __( 'The report stopped while activity data was being erased.', 'change-vigil-site-journal' );
         $token = [ 'path' => (string) ( $job['path'] ?? '' ), 'schedule_id' => (string) ( $job['schedule_id'] ?? '' ) ];
         $saved_token = update_option( self::CANCELLED_JOB, $token, false );
         if ( ! $saved_token && $token !== get_option( self::CANCELLED_JOB, [] ) ) {
@@ -1249,10 +1249,10 @@ final class ScheduledReports {
 
     private static function html_report_start( array $schedule, string $from, string $to ): string {
         $title = esc_html( (string) $schedule['name'] );
-        $metadata = '<p><strong>' . esc_html__( 'Date range', 'activity-log-for-admins' ) . ':</strong> ' . esc_html( $from . ' to ' . $to ) . '</p>';
-        $metadata .= '<p><strong>' . esc_html__( 'Generated', 'activity-log-for-admins' ) . ':</strong> ' . esc_html( wp_date( 'j M Y, H:i:s T' ) ) . '</p>';
+        $metadata = '<p><strong>' . esc_html__( 'Date range', 'change-vigil-site-journal' ) . ':</strong> ' . esc_html( $from . ' to ' . $to ) . '</p>';
+        $metadata .= '<p><strong>' . esc_html__( 'Generated', 'change-vigil-site-journal' ) . ':</strong> ' . esc_html( wp_date( 'j M Y, H:i:s T' ) ) . '</p>';
         if ( ! empty( $schedule['branding'] ) ) {
-            $metadata .= '<p><strong>' . esc_html__( 'Site', 'activity-log-for-admins' ) . ':</strong> ' . esc_html( get_bloginfo( 'name' ) ) . '</p>';
+            $metadata .= '<p><strong>' . esc_html__( 'Site', 'change-vigil-site-journal' ) . ':</strong> ' . esc_html( get_bloginfo( 'name' ) ) . '</p>';
         }
         $headers = '';
         foreach ( $schedule['columns'] as $column ) {
@@ -1280,16 +1280,16 @@ final class ScheduledReports {
 
     private static function column_label( string $column ): string {
         return match ( $column ) {
-            'event_id' => __( 'Event ID', 'activity-log-for-admins' ),
-            'time' => __( 'Time', 'activity-log-for-admins' ),
-            'actor' => __( 'Actor', 'activity-log-for-admins' ),
-            'actor_role' => __( 'Actor role', 'activity-log-for-admins' ),
-            'source' => __( 'Request source', 'activity-log-for-admins' ),
-            'item' => __( 'Affected item', 'activity-log-for-admins' ),
-            'action' => __( 'Event type', 'activity-log-for-admins' ),
-            'severity' => __( 'Severity', 'activity-log-for-admins' ),
-            'summary' => __( 'Summary', 'activity-log-for-admins' ),
-            'details' => __( 'Change details', 'activity-log-for-admins' ),
+            'event_id' => __( 'Event ID', 'change-vigil-site-journal' ),
+            'time' => __( 'Time', 'change-vigil-site-journal' ),
+            'actor' => __( 'Actor', 'change-vigil-site-journal' ),
+            'actor_role' => __( 'Actor role', 'change-vigil-site-journal' ),
+            'source' => __( 'Request source', 'change-vigil-site-journal' ),
+            'item' => __( 'Affected item', 'change-vigil-site-journal' ),
+            'action' => __( 'Event type', 'change-vigil-site-journal' ),
+            'severity' => __( 'Severity', 'change-vigil-site-journal' ),
+            'summary' => __( 'Summary', 'change-vigil-site-journal' ),
+            'details' => __( 'Change details', 'change-vigil-site-journal' ),
             default => '',
         };
     }
@@ -1299,10 +1299,10 @@ final class ScheduledReports {
         $actor = (string) $row['actor_name'];
         if ( '' === $actor ) {
             $actor = match ( $row['actor_kind'] ) {
-                'anonymous' => __( 'Unauthenticated', 'activity-log-for-admins' ),
-                'system' => __( 'WordPress background task', 'activity-log-for-admins' ),
-                'cli' => __( 'WP CLI', 'activity-log-for-admins' ),
-                default => __( 'Unknown', 'activity-log-for-admins' ),
+                'anonymous' => __( 'Unauthenticated', 'change-vigil-site-journal' ),
+                'system' => __( 'WordPress background task', 'change-vigil-site-journal' ),
+                'cli' => __( 'WP CLI', 'change-vigil-site-journal' ),
+                default => __( 'Unknown', 'change-vigil-site-journal' ),
             };
         }
         $details = json_decode( (string) $row['details'], true );

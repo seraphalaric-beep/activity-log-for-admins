@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve Activity Log for Admins. The 1.0.0 release is a pilot, so reports about missing events, unclear changes, and difficult investigations are especially useful.
+Thanks for helping improve Change Vigil Site Journal. The 1.0.0 release is a pilot, so reports about missing events, unclear changes, and difficult investigations are especially useful.
 
 ## Before opening an issue
 
@@ -15,7 +15,7 @@ For a feature request, describe the administrator task and the information neede
 3. Use only a disposable local WordPress site for the pilot fixture and browser suite. See [PILOT.md](PILOT.md).
 4. Keep changes within the documented pilot scope unless the issue explicitly discusses a later release.
 
-The `tools/alfa-fixture.php` helper is restricted to loopback requests and an administrator account. Never copy it into a production site.
+The `tools/cvj-fixture.php` helper is restricted to loopback requests and an administrator account. Never copy it into a production site.
 
 ## Pull requests
 

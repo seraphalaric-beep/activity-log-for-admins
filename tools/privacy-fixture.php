@@ -1,39 +1,39 @@
 <?php
 
-function alfa_privacy_fixture(): array {
+function cvsj_privacy_fixture(): array {
     global $wpdb;
     $suffix = strtolower( wp_generate_password( 8, false, false ) );
     $email = 'privacy-' . $suffix . '@example.test';
-    $login = 'alfa_privacy_' . $suffix;
+    $login = 'cvsj_privacy_' . $suffix;
     $marker = 'privacy-fixture-' . $suffix;
     $secret = 'PRIVACY_SECRET_' . strtoupper( $suffix );
     $admin_id = (int) get_current_user_id();
     $email_event_key = 'privacy-email-' . $suffix;
-    $settings_snapshot = get_option( ActivityLogForAdmins\Store::SETTINGS, false );
-    $reports_snapshot = get_option( ActivityLogForAdmins\Store::SAVED_REPORTS, false );
-    $schedules_snapshot = get_option( ActivityLogForAdmins\ScheduledReports::SCHEDULES, false );
-    $job_snapshot = get_option( ActivityLogForAdmins\ScheduledReports::JOB, false );
-    $history_snapshot = get_option( ActivityLogForAdmins\ScheduledReports::HISTORY, false );
-    $alert_rules_snapshot = get_option( ActivityLogForAdmins\Alerts::RULES, false );
-    $alert_queue_snapshot = get_option( 'alfa_alert_rule_queue', false );
-    $alert_retry_generation_snapshot = get_option( 'alfa_alert_retry_generation', false );
-    $alert_paused_snapshot = get_option( 'alfa_alert_queue_paused', false );
+    $settings_snapshot = get_option( ChangeVigilSiteJournal\Store::SETTINGS, false );
+    $reports_snapshot = get_option( ChangeVigilSiteJournal\Store::SAVED_REPORTS, false );
+    $schedules_snapshot = get_option( ChangeVigilSiteJournal\ScheduledReports::SCHEDULES, false );
+    $job_snapshot = get_option( ChangeVigilSiteJournal\ScheduledReports::JOB, false );
+    $history_snapshot = get_option( ChangeVigilSiteJournal\ScheduledReports::HISTORY, false );
+    $alert_rules_snapshot = get_option( ChangeVigilSiteJournal\Alerts::RULES, false );
+    $alert_queue_snapshot = get_option( 'cvsj_alert_rule_queue', false );
+    $alert_retry_generation_snapshot = get_option( 'cvsj_alert_retry_generation', false );
+    $alert_paused_snapshot = get_option( 'cvsj_alert_queue_paused', false );
     $user_id = 0;
     $editor_id = 0;
     $schedule_id = wp_generate_uuid4();
-    $job_directory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'activity-log-for-admins-' . substr( hash( 'sha256', (string) get_option( 'siteurl' ) . (string) $wpdb->prefix . (string) get_current_blog_id() ), 0, 16 );
+    $job_directory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'change-vigil-site-journal-' . substr( hash( 'sha256', (string) get_option( 'siteurl' ) . (string) $wpdb->prefix . (string) get_current_blog_id() ), 0, 16 );
     $job_path = $job_directory . DIRECTORY_SEPARATOR . 'report-' . bin2hex( random_bytes( 16 ) ) . '.html';
     $archive_directory = $job_directory . DIRECTORY_SEPARATOR . 'history';
     $archive_path = $archive_directory . DIRECTORY_SEPARATOR . 'report-' . bin2hex( random_bytes( 16 ) ) . '.html';
     $event_ids = [];
-    $editor_deleted_callback = [ ActivityLogForAdmins\Capture::class, 'user_deleted' ];
+    $editor_deleted_callback = [ ChangeVigilSiteJournal\Capture::class, 'user_deleted' ];
 
     try {
-        update_option( ActivityLogForAdmins\Alerts::RULES, [], false );
-        update_option( 'alfa_alert_rule_queue', [], false );
-        update_option( 'alfa_alert_queue_paused', false, false );
-        wp_clear_scheduled_hook( ActivityLogForAdmins\Alerts::HOOK );
-        wp_clear_scheduled_hook( ActivityLogForAdmins\Alerts::RETRY_HOOK );
+        update_option( ChangeVigilSiteJournal\Alerts::RULES, [], false );
+        update_option( 'cvsj_alert_rule_queue', [], false );
+        update_option( 'cvsj_alert_queue_paused', false, false );
+        wp_clear_scheduled_hook( ChangeVigilSiteJournal\Alerts::HOOK );
+        wp_clear_scheduled_hook( ChangeVigilSiteJournal\Alerts::RETRY_HOOK );
         $user_id = (int) wp_insert_user( [
             'user_login' => $login,
             'user_email' => $email,
@@ -51,35 +51,35 @@ function alfa_privacy_fixture(): array {
 
         wp_set_current_user( $user_id );
         for ( $index = 1; $index <= 251; ++$index ) {
-            ActivityLogForAdmins\Store::add( [
+            ChangeVigilSiteJournal\Store::add( [
                 'actor_kind' => 'user', 'actor_id' => $user_id, 'actor_name' => $target->display_name, 'actor_role' => 'subscriber',
                 'source' => 'admin', 'item_kind' => 'page', 'item_key' => $marker, 'item_name' => 'Privacy fixture page',
                 'action_key' => 'content_edited', 'severity' => 'info', 'summary' => 'Private activity for ' . $email . ' ' . $index,
             ], [ 'changes' => [ 'Private field' => [ $email, $secret ] ] ] );
-            $event_ids[] = ActivityLogForAdmins\Store::latest_id();
+            $event_ids[] = ChangeVigilSiteJournal\Store::latest_id();
         }
         $first_event_id = (int) end( $event_ids );
-        fixture_check( ActivityLogForAdmins\Store::add_note( $first_event_id, 'Private note written by ' . $email ) );
+        fixture_check( ChangeVigilSiteJournal\Store::add_note( $first_event_id, 'Private note written by ' . $email ) );
 
         wp_set_current_user( $admin_id );
-        ActivityLogForAdmins\Store::add( [
+        ChangeVigilSiteJournal\Store::add( [
             'actor_kind' => 'user', 'actor_id' => $admin_id, 'actor_name' => 'pilotadmin', 'actor_role' => 'administrator',
             'source' => 'admin', 'item_kind' => 'user', 'item_key' => (string) $user_id, 'item_name' => $target->display_name . ' ' . $email,
             'action_key' => 'role_changed', 'severity' => 'notice', 'summary' => 'Changed account for ' . $email,
         ], [ 'changes' => [ 'Account email' => [ $email, $email ] ] ] );
-        $affected_event_id = ActivityLogForAdmins\Store::latest_id();
+        $affected_event_id = ChangeVigilSiteJournal\Store::latest_id();
         $event_ids[] = $affected_event_id;
-        fixture_check( ActivityLogForAdmins\Store::add_note( $affected_event_id, 'Private account note for ' . $email ) );
-        ActivityLogForAdmins\Store::add( [
+        fixture_check( ChangeVigilSiteJournal\Store::add_note( $affected_event_id, 'Private account note for ' . $email ) );
+        ChangeVigilSiteJournal\Store::add( [
             'actor_kind' => 'user', 'actor_id' => $admin_id, 'actor_name' => 'pilotadmin', 'actor_role' => 'administrator',
             'source' => 'admin', 'item_kind' => 'setting', 'item_key' => $email_event_key, 'item_name' => 'Unrelated setting fixture',
             'action_key' => 'setting_changed', 'severity' => 'info', 'summary' => 'Unrelated event mentions ' . $email,
         ], [ 'changes' => [ 'Configured address' => [ $email, 'privacy-replacement@example.test' ] ] ] );
-        $email_event_id = ActivityLogForAdmins\Store::latest_id();
+        $email_event_id = ChangeVigilSiteJournal\Store::latest_id();
         $event_ids[] = $email_event_id;
-        fixture_check( ActivityLogForAdmins\Store::add_note( $email_event_id, 'Private note mentioning ' . $email ) );
+        fixture_check( ChangeVigilSiteJournal\Store::add_note( $email_event_id, 'Private note mentioning ' . $email ) );
 
-        $alert_rule = ActivityLogForAdmins\Alerts::save( [
+        $alert_rule = ChangeVigilSiteJournal\Alerts::save( [
             'name' => 'Privacy alert recipient fixture',
             'enabled' => true,
             'logic' => 'all',
@@ -87,32 +87,32 @@ function alfa_privacy_fixture(): array {
             'recipients' => [ $email, 'privacy-alert-keep@example.test' ],
         ] );
         fixture_check( $alert_rule );
-        ActivityLogForAdmins\Store::add( [
+        ChangeVigilSiteJournal\Store::add( [
             'actor_kind' => 'user', 'actor_id' => $admin_id, 'actor_name' => 'pilotadmin', 'actor_role' => 'administrator',
             'source' => 'admin', 'item_kind' => 'setting', 'item_key' => 'privacy-alert-' . $suffix, 'item_name' => 'Privacy alert fixture',
             'action_key' => 'privacy_alert_fixture', 'severity' => 'info', 'summary' => 'Alert data for ' . $email,
         ], [] );
-        $alert_event_id = ActivityLogForAdmins\Store::latest_id();
+        $alert_event_id = ChangeVigilSiteJournal\Store::latest_id();
         $event_ids[] = $alert_event_id;
-        $alert_queue = (array) get_option( 'alfa_alert_rule_queue', [] );
+        $alert_queue = (array) get_option( 'cvsj_alert_rule_queue', [] );
         $alert_was_queued = (bool) array_filter( $alert_queue, static fn( $entry ): bool => is_array( $entry ) && (int) ( $entry['event_id'] ?? 0 ) === $alert_event_id );
         fixture_check( $alert_was_queued );
 
         $personal_ids = $wpdb->get_col( $wpdb->prepare(
             'SELECT id FROM %i WHERE actor_id = %d OR (item_kind = %s AND item_key = %s)',
-            ActivityLogForAdmins\Store::table(), $user_id, 'user', (string) $user_id
+            ChangeVigilSiteJournal\Store::table(), $user_id, 'user', (string) $user_id
         ) );
         $event_ids = array_values( array_unique( array_merge( $event_ids, array_map( 'intval', (array) $personal_ids ) ) ) );
 
-        $test_settings = ActivityLogForAdmins\Store::settings();
+        $test_settings = ChangeVigilSiteJournal\Store::settings();
         $test_settings['email_alerts'] = true;
         $test_settings['email_alert_recipients'] = [ $email, 'privacy-keep@example.test' ];
         $test_settings['viewer_users'][] = $user_id;
         $test_settings['manager_users'][] = $user_id;
         $test_settings['excluded_users'][] = $user_id;
-        update_option( ActivityLogForAdmins\Store::SETTINGS, $test_settings, false );
+        update_option( ChangeVigilSiteJournal\Store::SETTINGS, $test_settings, false );
 
-        update_option( ActivityLogForAdmins\Store::SAVED_REPORTS, [ [
+        update_option( ChangeVigilSiteJournal\Store::SAVED_REPORTS, [ [
             'id' => wp_generate_uuid4(), 'name' => 'Report for ' . $email,
             'filters' => [ 'actor_id' => (string) $user_id, 'actor' => $login, 'actor_kind' => 'user' ],
             'group' => 'category', 'interval' => 'daily', 'range_days' => 1,
@@ -125,7 +125,7 @@ function alfa_privacy_fixture(): array {
             ],
         ] ], false );
 
-        update_option( ActivityLogForAdmins\ScheduledReports::SCHEDULES, [ [
+        update_option( ChangeVigilSiteJournal\ScheduledReports::SCHEDULES, [ [
             'id' => $schedule_id, 'name' => 'Report for ' . $email, 'cadence' => 'daily', 'format' => 'html', 'hour' => 9,
             'recipients' => [ $email, 'privacy-keep@example.test' ],
             'filters' => [ 'actor_id' => (string) $user_id, 'actor' => $login, 'actor_kind' => 'user' ],
@@ -136,21 +136,21 @@ function alfa_privacy_fixture(): array {
             'id' => wp_generate_uuid4(), 'name' => 'Report for ' . $email, 'cadence' => 'daily', 'format' => 'html',
             'occurred_at' => time(), 'status' => 'sent', 'event_count' => 1, 'message' => '', 'file' => basename( $archive_path ),
         ];
-        update_option( ActivityLogForAdmins\ScheduledReports::HISTORY, array_merge( [ $history_fixture ], is_array( $history_snapshot ) ? $history_snapshot : [] ), false );
-        update_option( ActivityLogForAdmins\ScheduledReports::JOB, [
+        update_option( ChangeVigilSiteJournal\ScheduledReports::HISTORY, array_merge( [ $history_fixture ], is_array( $history_snapshot ) ? $history_snapshot : [] ), false );
+        update_option( ChangeVigilSiteJournal\ScheduledReports::JOB, [
             'schedule_id' => $schedule_id, 'name' => 'Report for ' . $email, 'format' => 'html',
             'recipients' => [ $email, 'privacy-keep@example.test' ],
             'filters' => [ 'actor_id' => (string) $user_id, 'actor' => $login, 'actor_kind' => 'user' ],
-            'path' => $job_path, 'cursor' => 0, 'ceiling' => (int) ActivityLogForAdmins\Store::latest_id(),
+            'path' => $job_path, 'cursor' => 0, 'ceiling' => (int) ChangeVigilSiteJournal\Store::latest_id(),
             'rows' => 0, 'attempts' => 0, 'started_at' => time(),
         ], false );
 
         $exporters = apply_filters( 'wp_privacy_personal_data_exporters', [] );
         $erasers = apply_filters( 'wp_privacy_personal_data_erasers', [] );
-        $export_registered = isset( $exporters['activity-log-for-admins']['callback'] );
-        $erase_registered = isset( $erasers['activity-log-for-admins']['callback'] );
+        $export_registered = isset( $exporters['change-vigil-site-journal']['callback'] );
+        $erase_registered = isset( $erasers['change-vigil-site-journal']['callback'] );
         $editor = wp_insert_user( [
-            'user_login' => 'alfa_privacy_editor_' . $suffix,
+            'user_login' => 'cvsj_privacy_editor_' . $suffix,
             'user_email' => 'privacy-editor-' . $suffix . '@example.test',
             'user_pass' => wp_generate_password( 32, true, true ),
             'role' => 'editor',
@@ -159,12 +159,12 @@ function alfa_privacy_fixture(): array {
         $editor_id = (int) $editor;
         $editor_event_ids = $wpdb->get_col( $wpdb->prepare(
             'SELECT id FROM %i WHERE item_kind = %s AND item_key = %s',
-            ActivityLogForAdmins\Store::table(), 'user', (string) $editor_id
+            ChangeVigilSiteJournal\Store::table(), 'user', (string) $editor_id
         ) );
         $event_ids = array_merge( $event_ids, array_map( 'intval', (array) $editor_event_ids ) );
         wp_set_current_user( $editor_id );
-        $denied_export = ActivityLogForAdmins\Privacy::export_personal_data( $email, 1 );
-        $denied_erase = ActivityLogForAdmins\Privacy::erase_personal_data( $email, 1 );
+        $denied_export = ChangeVigilSiteJournal\Privacy::export_personal_data( $email, 1 );
+        $denied_erase = ChangeVigilSiteJournal\Privacy::erase_personal_data( $email, 1 );
         $access_denied = ! empty( $denied_export['messages'] ) && ! empty( $denied_erase['messages'] )
             && false === $denied_erase['items_removed'];
 
@@ -172,7 +172,7 @@ function alfa_privacy_fixture(): array {
         $export = [];
         $export_pages = 0;
         do {
-            $page = ActivityLogForAdmins\Privacy::export_personal_data( $email, ++$export_pages );
+            $page = ChangeVigilSiteJournal\Privacy::export_personal_data( $email, ++$export_pages );
             $export = array_merge( $export, (array) ( $page['data'] ?? [] ) );
             if ( ! empty( $page['messages'] ) ) {
                 throw new RuntimeException( implode( ' ', $page['messages'] ) );
@@ -188,40 +188,40 @@ function alfa_privacy_fixture(): array {
         $alert_rule_count = count( array_filter( $export, static fn( array $item ): bool => 'activity-log-alert-rules' === ( $item['group_id'] ?? '' ) ) );
         $export_text = wp_json_encode( $export, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 
-        $retry_generation_before_erase = (int) get_option( 'alfa_alert_retry_generation', 0 );
+        $retry_generation_before_erase = (int) get_option( 'cvsj_alert_retry_generation', 0 );
         $erase_pages = 0;
         $erase_result = [];
         do {
-            $erase_result = ActivityLogForAdmins\Privacy::erase_personal_data( $email, ++$erase_pages );
+            $erase_result = ChangeVigilSiteJournal\Privacy::erase_personal_data( $email, ++$erase_pages );
             if ( $erase_pages > 20 ) {
                 throw new RuntimeException( 'The privacy erasure exceeded its page limit.' );
             }
         } while ( empty( $erase_result['done'] ) && $erase_pages < 20 );
-        $retry_generation_advanced = (int) get_option( 'alfa_alert_retry_generation', 0 ) > $retry_generation_before_erase;
-        ActivityLogForAdmins\Alerts::retry_event( $alert_event_id, 1, $retry_generation_before_erase );
-        $stale_retry_ignored = [] === (array) get_option( 'alfa_alert_rule_queue', [] );
-        $alert_delivery_resumed = ! ActivityLogForAdmins\Alerts::channel_summary()['delivery_paused'];
+        $retry_generation_advanced = (int) get_option( 'cvsj_alert_retry_generation', 0 ) > $retry_generation_before_erase;
+        ChangeVigilSiteJournal\Alerts::retry_event( $alert_event_id, 1, $retry_generation_before_erase );
+        $stale_retry_ignored = [] === (array) get_option( 'cvsj_alert_rule_queue', [] );
+        $alert_delivery_resumed = ! ChangeVigilSiteJournal\Alerts::channel_summary()['delivery_paused'];
 
-        $settings_after = ActivityLogForAdmins\Store::settings();
-        $reports_after = get_option( ActivityLogForAdmins\Store::SAVED_REPORTS, [] );
-        $schedules_after = get_option( ActivityLogForAdmins\ScheduledReports::SCHEDULES, [] );
-        $job_after = get_option( ActivityLogForAdmins\ScheduledReports::JOB, [] );
+        $settings_after = ChangeVigilSiteJournal\Store::settings();
+        $reports_after = get_option( ChangeVigilSiteJournal\Store::SAVED_REPORTS, [] );
+        $schedules_after = get_option( ChangeVigilSiteJournal\ScheduledReports::SCHEDULES, [] );
+        $job_after = get_option( ChangeVigilSiteJournal\ScheduledReports::JOB, [] );
         $job_file_removed = ! file_exists( $job_path );
         $archive_file_removed = ! file_exists( $archive_path );
-        $history_after = (array) get_option( ActivityLogForAdmins\ScheduledReports::HISTORY, [] );
+        $history_after = (array) get_option( ChangeVigilSiteJournal\ScheduledReports::HISTORY, [] );
         $archive_references_removed = ! array_filter( $history_after, static fn( $entry ): bool => is_array( $entry ) && isset( $entry['file'] ) );
-        $alert_rules_after = ActivityLogForAdmins\Alerts::rules();
+        $alert_rules_after = ChangeVigilSiteJournal\Alerts::rules();
         $privacy_alert_rule = array_values( array_filter( $alert_rules_after, static fn( array $rule ): bool => 'Privacy alert recipient fixture' === $rule['name'] ) )[0] ?? [];
         $alert_recipient_removed = [ 'privacy-alert-keep@example.test' ] === ( $privacy_alert_rule['recipients'] ?? [] );
-        $pending_custom_alerts_cleared = [] === (array) get_option( 'alfa_alert_rule_queue', [] );
-        $personal_actor_count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE actor_id = %d', ActivityLogForAdmins\Store::table(), $user_id ) );
-        $personal_item_count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE item_kind = %s AND item_key = %s', ActivityLogForAdmins\Store::table(), 'user', (string) $user_id ) );
-        $notes_by_user = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', ActivityLogForAdmins\Store::notes_table(), $user_id ) );
-        $linked_notes = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE event_id = %d', ActivityLogForAdmins\Store::notes_table(), $affected_event_id ) );
-        $email_linked_notes = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE event_id = %d', ActivityLogForAdmins\Store::notes_table(), $email_event_id ) );
-        $actor_rows = $wpdb->get_results( $wpdb->prepare( 'SELECT actor_id, actor_name, summary, details FROM %i WHERE item_key = %s', ActivityLogForAdmins\Store::table(), $marker ), ARRAY_A );
-        $affected = $wpdb->get_row( $wpdb->prepare( 'SELECT actor_id, actor_name, item_key, item_name, summary, details FROM %i WHERE id = %d', ActivityLogForAdmins\Store::table(), $affected_event_id ), ARRAY_A );
-        $email_event = $wpdb->get_row( $wpdb->prepare( 'SELECT actor_id, actor_name, summary, details FROM %i WHERE id = %d', ActivityLogForAdmins\Store::table(), $email_event_id ), ARRAY_A );
+        $pending_custom_alerts_cleared = [] === (array) get_option( 'cvsj_alert_rule_queue', [] );
+        $personal_actor_count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE actor_id = %d', ChangeVigilSiteJournal\Store::table(), $user_id ) );
+        $personal_item_count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE item_kind = %s AND item_key = %s', ChangeVigilSiteJournal\Store::table(), 'user', (string) $user_id ) );
+        $notes_by_user = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', ChangeVigilSiteJournal\Store::notes_table(), $user_id ) );
+        $linked_notes = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE event_id = %d', ChangeVigilSiteJournal\Store::notes_table(), $affected_event_id ) );
+        $email_linked_notes = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE event_id = %d', ChangeVigilSiteJournal\Store::notes_table(), $email_event_id ) );
+        $actor_rows = $wpdb->get_results( $wpdb->prepare( 'SELECT actor_id, actor_name, summary, details FROM %i WHERE item_key = %s', ChangeVigilSiteJournal\Store::table(), $marker ), ARRAY_A );
+        $affected = $wpdb->get_row( $wpdb->prepare( 'SELECT actor_id, actor_name, item_key, item_name, summary, details FROM %i WHERE id = %d', ChangeVigilSiteJournal\Store::table(), $affected_event_id ), ARRAY_A );
+        $email_event = $wpdb->get_row( $wpdb->prepare( 'SELECT actor_id, actor_name, summary, details FROM %i WHERE id = %d', ChangeVigilSiteJournal\Store::table(), $email_event_id ), ARRAY_A );
         $schedule = is_array( $schedules_after ) ? ( $schedules_after[0] ?? [] ) : [];
         $report = is_array( $reports_after ) ? ( $reports_after[0] ?? [] ) : [];
         $job_cancelled = empty( $job_after ) || ( is_array( $job_after ) && ! empty( $job_after['cancelled'] ) );
@@ -255,8 +255,8 @@ function alfa_privacy_fixture(): array {
             && 0 === $personal_actor_count && 0 === $personal_item_count && 0 === $notes_by_user && 0 === $linked_notes && 0 === $email_linked_notes
             && $actors_clean && $affected_clean && $email_event_clean;
 
-        ActivityLogForAdmins\ScheduledReports::tick();
-        $job_cleared = false === get_option( ActivityLogForAdmins\ScheduledReports::JOB, false );
+        ChangeVigilSiteJournal\ScheduledReports::tick();
+        $job_cleared = false === get_option( ChangeVigilSiteJournal\ScheduledReports::JOB, false );
         if ( ! $privacy_ok || ! $job_cleared ) {
             throw new RuntimeException( 'Privacy export or erasure verification failed: ' . wp_json_encode( [
                 'export_registered' => $export_registered, 'erase_registered' => $erase_registered,
@@ -311,19 +311,19 @@ function alfa_privacy_fixture(): array {
             wp_delete_user( $editor_id );
             add_action( 'deleted_user', $editor_deleted_callback, 10, 3 );
         }
-        if ( is_array( get_option( ActivityLogForAdmins\ScheduledReports::JOB, false ) ) ) {
-            ActivityLogForAdmins\ScheduledReports::tick();
+        if ( is_array( get_option( ChangeVigilSiteJournal\ScheduledReports::JOB, false ) ) ) {
+            ChangeVigilSiteJournal\ScheduledReports::tick();
         }
         if ( false === $settings_snapshot ) {
-            delete_option( ActivityLogForAdmins\Store::SETTINGS );
+            delete_option( ChangeVigilSiteJournal\Store::SETTINGS );
         } else {
-            update_option( ActivityLogForAdmins\Store::SETTINGS, $settings_snapshot, false );
+            update_option( ChangeVigilSiteJournal\Store::SETTINGS, $settings_snapshot, false );
         }
         foreach ( [
-            ActivityLogForAdmins\Store::SAVED_REPORTS => $reports_snapshot,
-            ActivityLogForAdmins\ScheduledReports::SCHEDULES => $schedules_snapshot,
-            ActivityLogForAdmins\ScheduledReports::JOB => $job_snapshot,
-            ActivityLogForAdmins\ScheduledReports::HISTORY => $history_snapshot,
+            ChangeVigilSiteJournal\Store::SAVED_REPORTS => $reports_snapshot,
+            ChangeVigilSiteJournal\ScheduledReports::SCHEDULES => $schedules_snapshot,
+            ChangeVigilSiteJournal\ScheduledReports::JOB => $job_snapshot,
+            ChangeVigilSiteJournal\ScheduledReports::HISTORY => $history_snapshot,
         ] as $option => $snapshot ) {
             if ( false === $snapshot ) {
                 delete_option( $option );
@@ -331,13 +331,13 @@ function alfa_privacy_fixture(): array {
                 update_option( $option, $snapshot, false );
             }
         }
-        wp_clear_scheduled_hook( ActivityLogForAdmins\Alerts::HOOK );
-        wp_clear_scheduled_hook( ActivityLogForAdmins\Alerts::RETRY_HOOK );
+        wp_clear_scheduled_hook( ChangeVigilSiteJournal\Alerts::HOOK );
+        wp_clear_scheduled_hook( ChangeVigilSiteJournal\Alerts::RETRY_HOOK );
         foreach ( [
-            ActivityLogForAdmins\Alerts::RULES => $alert_rules_snapshot,
-            'alfa_alert_rule_queue' => $alert_queue_snapshot,
-            'alfa_alert_retry_generation' => $alert_retry_generation_snapshot,
-            'alfa_alert_queue_paused' => $alert_paused_snapshot,
+            ChangeVigilSiteJournal\Alerts::RULES => $alert_rules_snapshot,
+            'cvsj_alert_rule_queue' => $alert_queue_snapshot,
+            'cvsj_alert_retry_generation' => $alert_retry_generation_snapshot,
+            'cvsj_alert_queue_paused' => $alert_paused_snapshot,
         ] as $option => $snapshot ) {
             if ( false === $snapshot ) {
                 delete_option( $option );
@@ -345,25 +345,25 @@ function alfa_privacy_fixture(): array {
                 update_option( $option, $snapshot, false );
             }
         }
-        ActivityLogForAdmins\Alerts::schedule_pending();
+        ChangeVigilSiteJournal\Alerts::schedule_pending();
         $fixture_user_ids = array_filter( [ $user_id, $editor_id ] );
         if ( $fixture_user_ids ) {
             $user_placeholders = implode( ', ', array_fill( 0, count( $fixture_user_ids ), '%s' ) );
             $user_ids_as_strings = array_map( 'strval', $fixture_user_ids );
             $user_event_ids = $wpdb->get_col( $wpdb->prepare(
                 'SELECT id FROM %i WHERE item_kind = %s AND item_key IN (' . $user_placeholders . ')',
-                ActivityLogForAdmins\Store::table(), 'user', ...$user_ids_as_strings
+                ChangeVigilSiteJournal\Store::table(), 'user', ...$user_ids_as_strings
             ) );
             $event_ids = array_merge( $event_ids, array_map( 'intval', (array) $user_event_ids ) );
         }
-        $marker_event_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM %i WHERE item_key = %s', ActivityLogForAdmins\Store::table(), $marker ) );
+        $marker_event_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM %i WHERE item_key = %s', ChangeVigilSiteJournal\Store::table(), $marker ) );
         $event_ids = array_merge( $event_ids, array_map( 'intval', (array) $marker_event_ids ) );
         $event_ids = array_values( array_unique( array_map( 'intval', $event_ids ) ) );
         if ( $event_ids ) {
             $placeholders = implode( ', ', array_fill( 0, count( $event_ids ), '%d' ) );
-            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE event_id IN (' . $placeholders . ')', ActivityLogForAdmins\Store::notes_table(), ...$event_ids ) );
-            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id IN (' . $placeholders . ')', ActivityLogForAdmins\Store::table(), ...$event_ids ) );
+            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE event_id IN (' . $placeholders . ')', ChangeVigilSiteJournal\Store::notes_table(), ...$event_ids ) );
+            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id IN (' . $placeholders . ')', ChangeVigilSiteJournal\Store::table(), ...$event_ids ) );
         }
-        $wpdb->delete( ActivityLogForAdmins\Store::table(), [ 'item_kind' => 'page', 'item_key' => $marker ], [ '%s', '%s' ] );
+        $wpdb->delete( ChangeVigilSiteJournal\Store::table(), [ 'item_kind' => 'page', 'item_key' => $marker ], [ '%s', '%s' ] );
     }
 }

@@ -19,11 +19,11 @@ const alertMarker = "ALERT_FIXTURE_" + randomBytes(4).toString("hex").toUpperCas
 
 async function api(path, data) {
   return page.evaluate(async ({ path, data }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
-    url.searchParams.set("_alfa_request", Date.now() + "-" + Math.random().toString(36).slice(2));
+    url.searchParams.set("_cvsj_request", Date.now() + "-" + Math.random().toString(36).slice(2));
     const response = await fetch(url, {
       method: data ? "POST" : "GET",
       headers: { "X-WP-Nonce": config.nonce, "Content-Type": "application/json" },
@@ -34,7 +34,7 @@ async function api(path, data) {
 }
 
 async function fixture(operation, data = {}) {
-  const response = await page.request.post(base + "/alfa-fixture.php", { form: { operation, ...data } });
+  const response = await page.request.post(base + "/cvsj-fixture.php", { form: { operation, ...data } });
   assert.equal(response.status(), 200, await response.text());
   return response.json();
 }
@@ -45,8 +45,8 @@ try {
   await page.locator("#user_pass").fill(password);
   await page.locator("#wp-submit").click();
   await page.waitForLoadState("domcontentloaded");
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
 
   const original = await api("settings");
   assert.equal(original.status, 200);
@@ -259,7 +259,7 @@ try {
 } finally {
   if (alertFixtureStarted) {
     try {
-      const cleanup = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "custom_alert_finish", marker: alertMarker } });
+      const cleanup = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "custom_alert_finish", marker: alertMarker } });
       assert.equal(cleanup.status(), 200, await cleanup.text());
       assert.equal((await cleanup.json()).restored, true);
     } catch (error) {
@@ -274,7 +274,7 @@ try {
       for (const key of ["email_alerts", "email_alert_recipients", "email_alert_include_events", "email_alert_event_limit", "email_alert_categories"]) {
         assert.deepEqual(current.data.settings[key], originalSettings[key], "The original " + key + " setting should be restored");
       }
-      const cleanup = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "alert_cleanup" } });
+      const cleanup = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "alert_cleanup" } });
       assert.equal((await cleanup.json()).scheduled, false, "The focused check should leave no warning digest scheduled");
     } catch (error) {
       restoreError = error;

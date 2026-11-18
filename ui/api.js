@@ -1,4 +1,4 @@
-const config = window.alfaSettings;
+const config = window.cvsjSettings;
 export { config };
 
 const keys = ["q", "from", "to", "event_id", "actor", "actor_id", "actor_kind", "actor_role", "source", "action", "category", "item", "item_kind", "item_id", "severity", "site_id", ...(config.networkMode ? ["network_site_id"] : [])];
@@ -61,7 +61,7 @@ export function apiUrl(path, query = {}) {
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value) url.searchParams.set(key, value);
   }
-  url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  url.searchParams.set("_cvsj_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
   return url;
 }
 

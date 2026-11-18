@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.2.2
+
+* Introduce Change Vigil Site Journal as a separate plugin identity with isolated history and settings.
+* Refresh the WordPress listing and assets to demonstrate the investigation workflow.
+
 ## 1.2.1
 
 * Correct WordPress review findings for output escaping, translation context, prepared database queries, and scheduled report file handling.

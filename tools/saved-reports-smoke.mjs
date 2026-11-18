@@ -15,11 +15,11 @@ let savedId = null;
 
 async function api(path, data) {
   return page.evaluate(async ({ path, data }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
-    url.searchParams.set("_alfa_request", Date.now() + "-" + Math.random().toString(36).slice(2));
+    url.searchParams.set("_cvsj_request", Date.now() + "-" + Math.random().toString(36).slice(2));
     const response = await fetch(url, {
       method: data ? "POST" : "GET",
       headers: { "X-WP-Nonce": config.nonce, "Content-Type": "application/json" },
@@ -35,8 +35,8 @@ try {
   await page.locator("#user_pass").fill(password);
   await page.locator("#wp-submit").click();
   await page.waitForLoadState("domcontentloaded");
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
 
   const settings = await api("settings");
   assert.equal(settings.status, 200);

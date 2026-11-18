@@ -8,7 +8,7 @@ const password = process.env.PILOT_PASSWORD ?? (process.env.PILOT_PASSWORD_FILE
   : passwordArgument);
 if (!base || !password || new URL(base).hostname !== "127.0.0.1") throw new Error("Pass a disposable loopback URL and its pilot password.");
 
-const activityPlugin = "activity-log-for-admins/activity-log-for-admins.php";
+const activityPlugin = "change-vigil-site-journal/change-vigil-site-journal.php";
 const infinitewpPlugin = "iwp-client/init.php";
 const browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome" });
 const page = await browser.newPage({ viewport: { width: 1440, height: 950 } });
@@ -18,12 +18,12 @@ const pluginStates = new Map();
 
 async function api(path, options = {}) {
   return page.evaluate(async ({ path, options }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
     for (const [key, value] of Object.entries(options.query ?? {})) url.searchParams.set(key, value);
-    url.searchParams.set("_alfa_request", Date.now() + "-" + Math.random().toString(36).slice(2));
+    url.searchParams.set("_cvsj_request", Date.now() + "-" + Math.random().toString(36).slice(2));
     const response = await fetch(url, {
       method: options.data ? "POST" : "GET",
       headers: { "X-WP-Nonce": config.nonce, "Content-Type": "application/json" },
@@ -35,7 +35,7 @@ async function api(path, options = {}) {
 }
 
 async function fixture(operation) {
-  const response = await page.request.post(base + "/alfa-fixture.php", { form: { operation } });
+  const response = await page.request.post(base + "/cvsj-fixture.php", { form: { operation } });
   assert.equal(response.status(), 200, await response.text());
   return response.json();
 }
@@ -76,8 +76,8 @@ try {
   await setPluginActive(activityPlugin, true);
   await setPluginActive(infinitewpPlugin, true);
 
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
   const original = await api("settings");
   assert.equal(original.status, 200);
   originalSettings = original.data.settings;
@@ -97,7 +97,7 @@ try {
 
   const result = await fixture("infinitewp");
   assert.equal(result.supported, true);
-  assert.equal(result.backupCount, 1, "One completed backup should create one Activity Log event");
+  assert.equal(result.backupCount, 1, "One completed backup should create one Change Vigil event");
   assert.equal(result.eventCount, 1, "Non backup InfiniteWP details must not be copied as duplicate events");
   assert.equal(result.backupAction, "infinitewp_backup_completed");
   assert.equal(result.backupSource, "infinitewp");

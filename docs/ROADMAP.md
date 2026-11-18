@@ -1,14 +1,14 @@
-# Activity Log for Admins, feature roadmap
+# Change Vigil Site Journal, feature roadmap
 
 Updated 17 November 2026.
 
 ## Goal
 
-Offer the complete practical feature set documented by WP Activity Log, with every plugin feature available free. Keep the modern investigation workflow, local first storage, and privacy controls that distinguish Activity Log for Admins.
+Offer the complete practical feature set documented by WP Activity Log, with every plugin feature available free. Keep the modern investigation workflow, local first storage, and privacy controls that distinguish Change Vigil Site Journal.
 
 The supported minimum remains WordPress 6.9 and PHP 8.3. We will not spend product effort supporting older releases.
 
-This roadmap compares the Activity Log for Admins 1.2.0 pilot with WP Activity Log 5.7.0 and the vendor documentation reviewed on 16 November 2026. Recheck the comparison before each milestone because the vendor feature set can change.
+This roadmap compares the Change Vigil Site Journal 1.2.0 pilot with WP Activity Log 5.7.0 and the vendor documentation reviewed on 16 November 2026. Recheck the comparison before each milestone because the vendor feature set can change.
 
 ## Product guardrails
 

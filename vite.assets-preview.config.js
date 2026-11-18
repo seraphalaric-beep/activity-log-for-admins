@@ -11,7 +11,7 @@ export default defineConfig({
     emptyOutDir: true,
     lib: {
       entry: "ui/main.jsx",
-      name: "ActivityLogForAdminsPreview",
+      name: "ChangeVigilSiteJournalPreview",
       formats: ["iife"],
       fileName: () => "admin.js",
       cssFileName: "admin",

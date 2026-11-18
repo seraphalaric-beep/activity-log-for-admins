@@ -14,12 +14,12 @@ page.setDefaultTimeout(12000);
 
 async function api(path, options = {}) {
   return page.evaluate(async ({ path, options }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
     for (const [key, value] of Object.entries(options.query ?? {})) url.searchParams.set(key, value);
-    url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    url.searchParams.set("_cvsj_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const response = await fetch(url, {
       method: options.data ? "POST" : "GET",
       headers: { "X-WP-Nonce": config.nonce, "Content-Type": "application/json" },
@@ -31,7 +31,7 @@ async function api(path, options = {}) {
 }
 
 async function fixture(operation) {
-  const response = await page.request.post(base + "/alfa-fixture.php", { form: { operation } });
+  const response = await page.request.post(base + "/cvsj-fixture.php", { form: { operation } });
   assert.equal(response.status(), 200, await response.text());
   return response.json();
 }
@@ -62,8 +62,8 @@ try {
     await page.waitForLoadState("domcontentloaded");
   }
 
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
   await fixture("reset");
   const defaults = await api("settings");
   assert.equal(defaults.status, 200);
@@ -100,7 +100,7 @@ try {
   assert.ok(csv.data.includes("acf_fields_changed"));
   assert.doesNotMatch(csv.data, /before-[a-z0-9]+@example\.invalid|after-[a-z0-9]+@example\.invalid|Before marker|After marker/i);
 
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins&category=acf");
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal&category=acf");
   await page.getByRole("table", { name: "Activity events" }).waitFor();
   await page.getByRole("button", { name: /Changed 2 custom fields/ }).first().click();
   const dialog = page.getByRole("dialog");
@@ -112,7 +112,7 @@ try {
   await page.keyboard.press("Escape");
   await dialog.waitFor({ state: "hidden" });
 
-  await page.getByRole("navigation", { name: "Activity Log" }).getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("navigation", { name: "Change Vigil" }).getByRole("link", { name: "Settings", exact: true }).click();
   const acfCheckbox = page.getByRole("checkbox", { name: /Advanced Custom Fields/ });
   await acfCheckbox.waitFor();
   assert.equal(await acfCheckbox.isChecked(), true);
@@ -121,7 +121,7 @@ try {
   await page.screenshot({ path: ".tmp/acf-settings.png", fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins&category=acf");
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal&category=acf");
   await page.getByRole("table", { name: "Activity events" }).waitFor();
   const dimensions = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
   assert.ok(dimensions.document <= dimensions.viewport + 1, `Horizontal overflow at narrow width: ${JSON.stringify(dimensions)}`);

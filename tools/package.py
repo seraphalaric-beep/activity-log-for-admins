@@ -7,7 +7,7 @@ from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 ROOT = Path(__file__).resolve().parents[1]
-SLUG = "activity-log-for-admins"
+SLUG = "change-vigil-site-journal"
 PLUGIN = ROOT / SLUG
 version = re.search(r"^ \* Version: (\S+)$", (PLUGIN / f"{SLUG}.php").read_text(), re.M)[1]
 manifest = json.loads((ROOT / "package.json").read_text())
@@ -27,7 +27,7 @@ entries = {f"{SLUG}/{p.relative_to(PLUGIN).as_posix()}": p for p in PLUGIN.rglob
 for p in (ROOT / "ui").rglob("*"):
     if p.is_file():
         entries[f"{SLUG}/source/{p.relative_to(ROOT).as_posix()}"] = p
-for name in ("package.json", "package-lock.json", "vite.config.js"):
+for name in ("package.json", "package-lock.json", "vite.config.js", "vite.toolbar.config.js"):
     entries[f"{SLUG}/source/{name}"] = ROOT / name
 
 lock = json.loads((ROOT / "package-lock.json").read_text())["packages"]
@@ -44,7 +44,7 @@ while pending:
             entries[f"{SLUG}/licenses/{name}/{p.name}"] = p
     pending.extend(lock[f"node_modules/{name}"].get("dependencies", {}))
 for asset in (
-    "admin.js", "admin.css", "dashboard.css", "theme.css",
+    "admin.js", "admin.css", "dashboard.css", "theme.css", "toolbar.js", "toolbar.css",
     "fonts/manrope-latin.woff2", "fonts/manrope-latin-ext.woff2", "fonts/Manrope-OFL.txt",
 ):
     assert f"{SLUG}/build/{asset}" in entries, f"Run the frontend build to create {asset}."

@@ -1,6 +1,6 @@
 # WordPress.org listing assets
 
-This folder records the listing copy and graphics prepared for Activity Log for Admins 1.2.0.
+This folder records the listing copy and graphics prepared for Change Vigil Site Journal 1.2.2.
 
 ## Files
 
@@ -9,7 +9,7 @@ This folder records the listing copy and graphics prepared for Activity Log for 
 * `assets/banner-772x250.png` and `assets/banner-1544x500.png`, standard and high density directory banners.
 * `assets/screenshot-1.png` through `assets/screenshot-4.png`, activity, event details, Dashboard summary, and Settings views.
 * `assets/lucide-license.txt`, license notice for the Lucide Activity glyph used in the icon and banner.
-* `activity-log-for-admins/readme.txt`, directory description, supported events, privacy details, installation steps, FAQ, captions, and current changelog.
+* `change-vigil-site-journal/readme.txt`, directory description, supported events, privacy details, installation steps, FAQ, captions, and current changelog.
 
 The top level `assets` folder follows the WordPress.org SVN layout. Copy these files to the directory level alongside `trunk`, not into the plugin folder. The plugin ZIP does not include this folder.
 
@@ -27,12 +27,12 @@ The asset command builds a temporary preview bundle from the current interface a
 
 ## Screenshot provenance
 
-The activity, event detail, Dashboard, and Settings images use the 1.2.0 React bundle and shared styles, with illustrative event records. The Settings footer takes its version from `package.json`. Fixture dates are fixed for reproducible screenshots. These are interface previews, not captures from a live or staging WordPress site. No site data is included. Saved pilot captures are kept as test evidence, since they contain repeated seed events or failure notices.
+The activity, event detail, Dashboard, and Settings images use the 1.2.2 React bundle and shared styles, with illustrative event records. The Settings footer takes its version from `package.json`. Fixture dates are fixed for reproducible screenshots. These are interface previews, not captures from a live or staging WordPress site. No site data is included. Saved pilot captures are kept as test evidence, since they contain repeated seed events or failure notices.
 
 ## Confirm before a directory release
 
-* The official validator reports only a missing `Contributors` field. Add the field after confirming the WordPress.org username, then run the validator again. A GitHub account name is not a substitute.
-* The current `Tested up to: 7.1` value matches the 1.2.0 pilot run on WordPress 7.1.4 and PHP 8.5. The minimum supported versions were not validated in this run.
+* The readme lists the WordPress.org submission account, `raaikage`, as contributor. Validate the final readme before submission.
+* The current `Tested up to: 7.1` value matches the 1.2.2 pilot run on WordPress 7.1.4 and PHP 8.5. Check the release compatibility results in PILOT.md.
 * Banner and icon files must use the documented names and dimensions. Screenshot files use numbered names, each matched to a readme caption. The directory gallery supports screenshots with different proportions.
 
 See the official [plugin asset guidance](https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/) and [readme guidance](https://developer.wordpress.org/plugins/wordpress-org/how-your-readme-txt-works/).

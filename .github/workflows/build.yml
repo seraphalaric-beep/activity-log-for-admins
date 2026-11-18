@@ -17,7 +17,7 @@ jobs:
         image: mariadb:11.4.9
         env:
           MARIADB_ROOT_PASSWORD: root
-          MARIADB_DATABASE: alfa_pilot
+          MARIADB_DATABASE: cvsj_pilot
         ports:
           - 3306:3306
         options: >-
@@ -59,7 +59,7 @@ jobs:
         run: npm audit --omit=dev
 
       - name: Check PHP syntax
-        run: find activity-log-for-admins -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find change-vigil-site-journal -type f -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Build installable archive
         run: npm run package
@@ -74,11 +74,11 @@ jobs:
           curl -fsSL "https://wordpress.org/wordpress-${WORDPRESS_VERSION}.zip" -o "$RUNNER_TEMP/wordpress.zip"
           unzip -q "$RUNNER_TEMP/wordpress.zip" -d "$RUNNER_TEMP"
           cp "$WP_ROOT/wp-config-sample.php" "$WP_ROOT/wp-config.php"
-          sed -i 's/database_name_here/alfa_pilot/; s/username_here/root/; s/password_here/root/; s/localhost/127.0.0.1:3306/' "$WP_ROOT/wp-config.php"
+          sed -i 's/database_name_here/cvsj_pilot/; s/username_here/root/; s/password_here/root/; s/localhost/127.0.0.1:3306/' "$WP_ROOT/wp-config.php"
           PILOT_PASSWORD="$(node -e "process.stdout.write(require('node:crypto').randomBytes(24).toString('base64url'))")"
           PLUGIN_VERSION="$(node -p "require('./package.json').version")"
-          php tools/site.php "$WP_ROOT" "release/activity-log-for-admins.${PLUGIN_VERSION}.zip" "http://127.0.0.1:8080" "$PILOT_PASSWORD"
-          cp tools/alfa-fixture.php "$WP_ROOT/alfa-fixture.php"
+          php tools/site.php "$WP_ROOT" "release/change-vigil-site-journal.${PLUGIN_VERSION}.zip" "http://127.0.0.1:8080" "$PILOT_PASSWORD"
+          cp tools/cvsj-fixture.php "$WP_ROOT/cvsj-fixture.php"
           echo "::add-mask::$PILOT_PASSWORD"
           echo "PILOT_PASSWORD=$PILOT_PASSWORD" >> "$GITHUB_ENV"
           php -S 127.0.0.1:8080 -t "$WP_ROOT" > "$RUNNER_TEMP/wordpress-server.log" 2>&1 &
@@ -98,23 +98,33 @@ jobs:
 
       - name: Run full activity pilot
         env:
-          ALFA_SKIP_REGRESSION: "1"
+          CVSJ_SKIP_REGRESSION: "1"
           PLAYWRIGHT_CHANNEL: chromium
         run: npm run test:pilot -- http://127.0.0.1:8080 "$PILOT_PASSWORD" full "$RUNNER_TEMP/test-results"
+
+      - name: Verify coexistence and isolated uninstall
+        run: |
+          LEGACY_ZIP="$RUNNER_TEMP/activity-log-for-admins.1.2.1.zip"
+          curl -fsSL https://github.com/${{ github.repository }}/releases/download/v1.2.1/activity-log-for-admins.1.2.1.zip -o "$LEGACY_ZIP"
+          echo "762b74e0b15064e5c21767a1304cde058f955e20f4ab81cf883d8cbf29d681bf  $LEGACY_ZIP" | sha256sum --check
+          for target in cvsj alfa; do
+            php tools/coexistence-smoke.php "$RUNNER_TEMP/wordpress" "$LEGACY_ZIP" setup "$target"
+            php tools/coexistence-smoke.php "$RUNNER_TEMP/wordpress" "$LEGACY_ZIP" verify "$target"
+          done
 
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: activity-log-for-admins-test-evidence
+          name: change-vigil-site-journal-test-evidence
           path: ${{ runner.temp }}/test-results
           if-no-files-found: warn
 
       - name: Upload installable archive
         uses: actions/upload-artifact@v4
         with:
-          name: activity-log-for-admins-${{ steps.plugin_version.outputs.version }}
-          path: release/activity-log-for-admins.${{ steps.plugin_version.outputs.version }}.zip
+          name: change-vigil-site-journal-${{ steps.plugin_version.outputs.version }}
+          path: release/change-vigil-site-journal.${{ steps.plugin_version.outputs.version }}.zip
           if-no-files-found: error
 
   compatibility:
@@ -136,7 +146,7 @@ jobs:
         image: mariadb:11.4.9
         env:
           MARIADB_ROOT_PASSWORD: root
-          MARIADB_DATABASE: alfa_pilot
+          MARIADB_DATABASE: cvsj_pilot
         ports:
           - 3306:3306
         options: >-
@@ -172,7 +182,7 @@ jobs:
       - name: Download installable archive
         uses: actions/download-artifact@v4
         with:
-          name: activity-log-for-admins-${{ steps.plugin_version.outputs.version }}
+          name: change-vigil-site-journal-${{ steps.plugin_version.outputs.version }}
           path: release
 
       - name: Install Playwright Chromium
@@ -186,11 +196,11 @@ jobs:
           curl -fsSL "https://wordpress.org/wordpress-${WORDPRESS_VERSION}.zip" -o "$RUNNER_TEMP/wordpress.zip"
           unzip -q "$RUNNER_TEMP/wordpress.zip" -d "$RUNNER_TEMP"
           cp "$WP_ROOT/wp-config-sample.php" "$WP_ROOT/wp-config.php"
-          sed -i 's/database_name_here/alfa_pilot/; s/username_here/root/; s/password_here/root/; s/localhost/127.0.0.1:3306/' "$WP_ROOT/wp-config.php"
+          sed -i 's/database_name_here/cvsj_pilot/; s/username_here/root/; s/password_here/root/; s/localhost/127.0.0.1:3306/' "$WP_ROOT/wp-config.php"
           PILOT_PASSWORD="$(node -e "process.stdout.write(require('node:crypto').randomBytes(24).toString('base64url'))")"
           PLUGIN_VERSION="${{ steps.plugin_version.outputs.version }}"
-          php tools/site.php "$WP_ROOT" "release/activity-log-for-admins.${PLUGIN_VERSION}.zip" "http://127.0.0.1:8080" "$PILOT_PASSWORD"
-          cp tools/alfa-fixture.php "$WP_ROOT/alfa-fixture.php"
+          php tools/site.php "$WP_ROOT" "release/change-vigil-site-journal.${PLUGIN_VERSION}.zip" "http://127.0.0.1:8080" "$PILOT_PASSWORD"
+          cp tools/cvsj-fixture.php "$WP_ROOT/cvsj-fixture.php"
           echo "::add-mask::$PILOT_PASSWORD"
           echo "PILOT_PASSWORD=$PILOT_PASSWORD" >> "$GITHUB_ENV"
           php -S 127.0.0.1:8080 -t "$WP_ROOT" > "$RUNNER_TEMP/wordpress-server.log" 2>&1 &

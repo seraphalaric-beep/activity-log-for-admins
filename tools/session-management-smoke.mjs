@@ -26,12 +26,12 @@ async function signIn(tab, login, secret) {
 
 async function api(path, query = {}, data = undefined) {
   return page.evaluate(async ({ path, query, data }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
     for (const [key, value] of Object.entries(query)) if (value !== "") url.searchParams.set(key, value);
-    url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    url.searchParams.set("_cvsj_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const response = await fetch(url, {
       method: data ? "POST" : "GET",
       credentials: "same-origin",
@@ -48,7 +48,7 @@ async function api(path, query = {}, data = undefined) {
 }
 
 async function fixtureCall(operation, fields = {}) {
-  const response = await context.request.post(base + "/alfa-fixture.php", { form: { operation, ...fields } });
+  const response = await context.request.post(base + "/cvsj-fixture.php", { form: { operation, ...fields } });
   assert.equal(response.status(), 200, await response.text());
   return response.json();
 }
@@ -58,20 +58,20 @@ try {
   await signIn(page, "pilotadmin", password);
   fixture = await fixtureCall("session_seed");
   await fixtureCall("toolbar_seed");
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
-  const toolbarMenu = page.locator("#wp-admin-bar-alfa-live-activity");
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
+  const toolbarMenu = page.locator("#wp-admin-bar-cvsj-live-activity");
   assert.equal(await toolbarMenu.count(), 1, "Permitted activity viewers see the WordPress toolbar entry.");
   await toolbarMenu.hover();
-  const toolbarEvents = page.locator("#wp-admin-bar-alfa-live-activity-feed .alfa-toolbar-event");
+  const toolbarEvents = page.locator("#wp-admin-bar-cvsj-live-activity-feed .cvsj-toolbar-event");
   await toolbarEvents.first().waitFor();
   assert.ok((await toolbarEvents.count()) <= 5, "The toolbar request returns no more than five events.");
-  assert.equal(await toolbarEvents.first().locator(".alfa-toolbar-event-summary").textContent(), "Toolbar event summary");
+  assert.equal(await toolbarEvents.first().locator(".cvsj-toolbar-event-summary").textContent(), "Toolbar event summary");
   await page.screenshot({ path: ".tmp/network-parity-wp/activity-toolbar-desktop.png", animations: "disabled" });
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await toolbarMenu.isVisible(), true, "The toolbar activity entry stays available on a narrow admin screen.");
   await toolbarMenu.hover();
-  const toolbarPanel = page.locator("#wp-admin-bar-alfa-live-activity > .ab-sub-wrapper");
+  const toolbarPanel = page.locator("#wp-admin-bar-cvsj-live-activity > .ab-sub-wrapper");
   const toolbarPanelBounds = await toolbarPanel.boundingBox();
   assert.ok(toolbarPanelBounds && toolbarPanelBounds.x >= 0 && toolbarPanelBounds.x + toolbarPanelBounds.width <= 390, `The toolbar feed fits the narrow viewport, ${JSON.stringify(toolbarPanelBounds)}`);
   await page.screenshot({ path: ".tmp/network-parity-wp/activity-toolbar-mobile.png", animations: "disabled" });
@@ -79,15 +79,15 @@ try {
   const toolbarEventUrl = new URL(await toolbarEvents.first().getAttribute("href"));
   assert.match(toolbarEventUrl.searchParams.get("event"), /^\d+$/);
   await toolbarEvents.first().click();
-  await page.locator(".alfa-sheet").waitFor();
+  await page.locator(".cvsj-sheet").waitFor();
   await page.getByText(`Event ${toolbarEventUrl.searchParams.get("event")}`, { exact: false }).waitFor();
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
-  const nav = page.getByRole("navigation", { name: "Activity Log", exact: true });
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
+  const nav = page.getByRole("navigation", { name: "Change Vigil", exact: true });
   await nav.getByRole("link", { name: "Sessions", exact: true }).click();
   await page.getByRole("heading", { name: "User sessions", exact: true }).waitFor();
   assert.match(page.url(), /[?&]view=sessions/);
-  await page.getByText(`Activity Log for Admins, Version ${version}`, { exact: true }).waitFor();
+  await page.getByText(`Change Vigil Site Journal, Version ${version}`, { exact: true }).waitFor();
 
   const defaultSettings = await api("sessions/settings");
   assert.equal(defaultSettings.status, 200);
@@ -133,16 +133,16 @@ try {
   assert.ok(!JSON.stringify(expanded.data).includes("session_tokens"));
   assert.ok(!JSON.stringify(expanded.data).includes(fixture.editorPassword));
 
-  const accountRows = () => page.locator(".alfa-session-table-wrap tbody tr").filter({ hasText: fixture.editorLogin });
+  const accountRows = () => page.locator(".cvsj-session-table-wrap tbody tr").filter({ hasText: fixture.editorLogin });
   await page.getByLabel("Search accounts", { exact: true }).fill(fixture.editorLogin);
   await page.getByRole("button", { name: "Search accounts" }).click();
-  await page.waitForFunction(login => [...document.querySelectorAll(".alfa-session-table-wrap tbody tr")].filter(row => row.textContent.includes(login)).length === 2, fixture.editorLogin);
+  await page.waitForFunction(login => [...document.querySelectorAll(".cvsj-session-table-wrap tbody tr")].filter(row => row.textContent.includes(login)).length === 2, fixture.editorLogin);
   assert.equal(await accountRows().count(), 2);
   await page.setViewportSize({ width: 390, height: 844 });
   const mobileLayout = await page.evaluate(() => ({
     viewport: innerWidth,
     document: document.documentElement.scrollWidth,
-    offenders: [...document.querySelectorAll("#alfa-root *")].map(element => {
+    offenders: [...document.querySelectorAll("#cvsj-root *")].map(element => {
       const rect = element.getBoundingClientRect();
       return { tag: element.tagName, className: typeof element.className === "string" ? element.className : "", width: Math.round(rect.width), right: Math.round(rect.right), scrollWidth: element.scrollWidth, clientWidth: element.clientWidth };
     }).filter(element => element.right > innerWidth + 1 || element.width > innerWidth + 1).slice(0, 12),
@@ -153,7 +153,7 @@ try {
 
   page.once("dialog", dialog => dialog.accept());
   await accountRows().first().getByRole("button", { name: "End session", exact: true }).click();
-  await page.waitForFunction(login => [...document.querySelectorAll(".alfa-session-table-wrap tbody tr")].filter(row => row.textContent.includes(login)).length === 1, fixture.editorLogin);
+  await page.waitForFunction(login => [...document.querySelectorAll(".cvsj-session-table-wrap tbody tr")].filter(row => row.textContent.includes(login)).length === 1, fixture.editorLogin);
   assert.equal((await api("sessions", { search: fixture.editorLogin })).data.users[0].sessions.length, 1);
 
   page.once("dialog", dialog => dialog.accept());
@@ -177,8 +177,8 @@ try {
   const editorPage = await editorContext.newPage();
   await signIn(editorPage, fixture.editorLogin, fixture.editorPassword);
   await editorPage.goto(base + "/wp-admin/");
-  assert.equal(await editorPage.locator("#wp-admin-bar-alfa-live-activity").count(), 0, "Non viewers do not receive the toolbar entry or its polling script.");
-  const editorNonceResponse = await editorContext.request.post(base + "/alfa-fixture.php", { form: { operation: "nonce" } });
+  assert.equal(await editorPage.locator("#wp-admin-bar-cvsj-live-activity").count(), 0, "Non viewers do not receive the toolbar entry or its polling script.");
+  const editorNonceResponse = await editorContext.request.post(base + "/cvsj-fixture.php", { form: { operation: "nonce" } });
   assert.equal(editorNonceResponse.status(), 200);
   const editorNonce = await editorNonceResponse.json();
   const deniedToolbar = await editorContext.request.get(editorNonce.restBase + "toolbar/events", { headers: { "X-WP-Nonce": editorNonce.nonce } });
@@ -202,13 +202,13 @@ try {
   assert.equal(markedIdle.marked, 2);
   const markedRows = await api("sessions", { search: fixture.editorLogin });
   assert.ok(markedRows.data.users[0].sessions.every(session => session.last_activity), "The manager view sees the stale markers for each test session.");
-  const idleProbeResponse = await editorContext.request.post(base + "/alfa-fixture.php", { form: { operation: "session_probe" } });
+  const idleProbeResponse = await editorContext.request.post(base + "/cvsj-fixture.php", { form: { operation: "session_probe" } });
   assert.equal(idleProbeResponse.status(), 200, await idleProbeResponse.text());
   const idleProbe = await idleProbeResponse.json();
   assert.equal(idleProbe.user_id, fixture.editorId, "Existing sessions receive a grace period when idle expiry is first enabled.");
   const expiredMarkers = await fixtureCall("session_prepare_idle_expiry", { user_id: fixture.editorId, age: 600, policy_age: 600 });
   assert.ok(expiredMarkers.policy_age >= 600, `The policy start remains aged after fixture setup, ${JSON.stringify(expiredMarkers)}`);
-  const expiredIdleProbeResponse = await editorContext.request.post(base + "/alfa-fixture.php", { form: { operation: "session_probe" } });
+  const expiredIdleProbeResponse = await editorContext.request.post(base + "/cvsj-fixture.php", { form: { operation: "session_probe" } });
   assert.equal(expiredIdleProbeResponse.status(), 200, await expiredIdleProbeResponse.text());
   const expiredIdleProbe = await expiredIdleProbeResponse.json();
   assert.equal(expiredIdleProbe.user_id, 0, `The idle policy signs out a stale session, ${JSON.stringify(expiredIdleProbe)}`);
@@ -229,7 +229,7 @@ try {
   const siteAdminPage = await siteAdminContext.newPage();
   await signIn(siteAdminPage, fixture.siteAdminLogin, fixture.siteAdminPassword);
   assert.equal((await api("sessions", { search: fixture.siteAdminLogin })).data.users[0].sessions.length, 3, "Site administrators are exempt from automatic session limits.");
-  const nonceResponse = await siteAdminContext.request.post(base + "/alfa-fixture.php", { form: { operation: "nonce" } });
+  const nonceResponse = await siteAdminContext.request.post(base + "/cvsj-fixture.php", { form: { operation: "nonce" } });
   assert.equal(nonceResponse.status(), 200);
   const nonceData = await nonceResponse.json();
   const deniedRead = await siteAdminContext.request.get(nonceData.restBase + "sessions", { headers: { "X-WP-Nonce": nonceData.nonce } });

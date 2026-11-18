@@ -30,14 +30,14 @@ async function signIn(tab, user, secret) {
 }
 
 async function fixture(operation) {
-  const response = await context.request.post(base + "/alfa-fixture.php", { form: { operation } });
+  const response = await context.request.post(base + "/cvsj-fixture.php", { form: { operation } });
   assert.equal(response.status(), 200, await response.text());
   return response.json();
 }
 
 async function audit(label) {
   const result = await page.evaluate(async () => {
-    const report = await axe.run(document.getElementById("alfa-root"), {
+    const report = await axe.run(document.getElementById("cvsj-root"), {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"] },
     });
     return report.violations.map(issue => ({
@@ -59,7 +59,7 @@ function endpoint(apiBase, path) {
   const url = new URL(apiBase);
   if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
   else url.pathname += path;
-  url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  url.searchParams.set("_cvsj_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
   return url;
 }
 
@@ -74,20 +74,20 @@ try {
   await mkdir(output, { recursive: true });
   await context.addInitScript({ path: "node_modules/axe-core/axe.min.js" });
   await signIn(page, "pilotadmin", password);
-  const adminScreen = base + "/wp-admin/admin.php?page=activity-log-for-admins";
+  const adminScreen = base + "/wp-admin/admin.php?page=change-vigil-site-journal";
   await page.goto(base + "/wp-admin/plugins.php");
-  const pluginRow = page.locator('tr[data-plugin="activity-log-for-admins/activity-log-for-admins.php"]');
+  const pluginRow = page.locator('tr[data-plugin="change-vigil-site-journal/change-vigil-site-journal.php"]');
   const activate = pluginRow.locator(".activate a");
   if (await activate.count()) await activate.click();
   await page.goto(adminScreen);
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
 
   await fixture("reset");
   const seeded = await fixture("events");
   await fixture("seed");
   await fixture("xss");
-  const apiBase = await page.evaluate(() => window.alfaSettings.base);
-  const nonce = await page.evaluate(() => window.alfaSettings.nonce);
+  const apiBase = await page.evaluate(() => window.cvsjSettings.base);
+  const nonce = await page.evaluate(() => window.cvsjSettings.nonce);
   const anonymous = await browser.newContext();
   const anonymousEvents = await anonymous.request.get(endpoint(apiBase, "events").href);
   assert.equal(anonymousEvents.status(), 401, "Anonymous users must not read activity.");
@@ -127,7 +127,7 @@ try {
   const settingsExport = await context.request.get(endpoint(apiBase, "settings/export").href, { headers: { "X-WP-Nonce": nonce } });
   assert.equal(settingsExport.status(), 200);
   assertPrivateNoStore(settingsExport.headers(), "Settings export");
-  assert.equal((await settingsExport.json()).format, "activity-log-for-admins-settings");
+  assert.equal((await settingsExport.json()).format, "change-vigil-site-journal-settings");
 
   const exportUrl = endpoint(apiBase, "export");
   exportUrl.searchParams.set("_wpnonce", nonce);
@@ -153,7 +153,7 @@ try {
   const editor = await browser.newContext();
   const editorPage = await editor.newPage();
   await signIn(editorPage, "piloteditor", seeded.editorPassword);
-  const editorNonceResponse = await editor.request.post(base + "/alfa-fixture.php", { form: { operation: "nonce" } });
+  const editorNonceResponse = await editor.request.post(base + "/cvsj-fixture.php", { form: { operation: "nonce" } });
   assert.equal(editorNonceResponse.status(), 200);
   const editorNonce = (await editorNonceResponse.json()).nonce;
   const editorRead = await editor.request.get(endpoint(apiBase, "events").href, { headers: { "X-WP-Nonce": editorNonce } });
@@ -178,7 +178,7 @@ try {
     await page.setViewportSize({ width, height: 950 });
     await page.goto(adminScreen);
     await page.getByRole("table", { name: "Activity events" }).waitFor();
-    await page.waitForFunction(() => document.querySelector(".alfa-results p")?.textContent !== "Activity events");
+    await page.waitForFunction(() => document.querySelector(".cvsj-results p")?.textContent !== "Activity events");
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Activity view overflows at ${width}px.`);
     await audit(`Activity at ${width}px`);
     if (width === 320 || width === 1440) {
@@ -191,13 +191,13 @@ try {
   await page.setViewportSize({ width: 320, height: 844 });
   await page.goto(adminScreen);
   await page.getByRole("button", { name: /XSS test probe/ }).waitFor();
-  assert.equal(await page.locator("#alfa-root img, #alfa-root script, #alfa-root svg[onload]").count(), 0);
+  assert.equal(await page.locator("#cvsj-root img, #cvsj-root script, #cvsj-root svg[onload]").count(), 0);
   const xssEvent = page.getByRole("button", { name: /XSS test probe/ });
   await xssEvent.click();
   const dialog = page.getByRole("dialog");
   await dialog.getByText("<script>alert(1)</script>", { exact: true }).waitFor();
   await page.waitForTimeout(250);
-  assert.equal(await page.locator("#alfa-root script, #alfa-root img, #alfa-root svg[onload]").count(), 0);
+  assert.equal(await page.locator("#cvsj-root script, #cvsj-root img, #cvsj-root svg[onload]").count(), 0);
   assert.deepEqual(dialogs, [], "Stored text must not execute as markup.");
   await audit("Event details at 320px");
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Event details overflow at 320px.");
@@ -207,7 +207,7 @@ try {
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 950 });
     await page.goto(adminScreen + "&view=settings");
-    await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
+    await page.getByText(`Change Vigil Site Journal · Version ${version}`).waitFor();
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Settings view overflows at ${width}px.`);
     await audit(`Settings at ${width}px`);
   }

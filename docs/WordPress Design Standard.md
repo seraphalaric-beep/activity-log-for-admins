@@ -1,6 +1,6 @@
 # WordPress Design Standard
 
-Use this as the default for new WordPress plugin interfaces. Activity Log for Admins is the reference implementation. Apply the same design language to plugin pages, Settings, dialogs, and widgets. Respect the native WordPress shell, and use the site's brand when the user specifies one.
+Use this as the default for new WordPress plugin interfaces. Change Vigil Site Journal is the reference implementation. Apply the same design language to plugin pages, Settings, dialogs, and widgets. Respect the native WordPress shell, and use the site's brand when the user specifies one.
 
 ## Colour and surfaces
 

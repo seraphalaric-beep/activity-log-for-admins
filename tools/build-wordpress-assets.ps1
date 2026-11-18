@@ -7,7 +7,7 @@ New-Item -ItemType Directory -Path $assetsPath -Force | Out-Null
 
 $activityPath = 'M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2'
 $iconSvg = @"
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Activity Log for Admins">
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Change Vigil Site Journal">
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#1d3d73" />
@@ -181,10 +181,10 @@ function New-BannerPng {
     Draw-ActivityGlyph $graphics 61 79 26 ([System.Drawing.Color]::White)
 
     Draw-BannerText $graphics 'WORDPRESS ACTIVITY HISTORY' 52 39 8.2 ([System.Drawing.FontStyle]::Bold) ([System.Drawing.ColorTranslator]::FromHtml('#b9cef1'))
-    Draw-BannerText $graphics 'Activity Log' 112 67 28 ([System.Drawing.FontStyle]::Bold) ([System.Drawing.Color]::White)
+    Draw-BannerText $graphics 'Change Vigil' 112 67 28 ([System.Drawing.FontStyle]::Bold) ([System.Drawing.Color]::White)
     Draw-BannerText $graphics 'for WordPress Admins' 114 101 12.4 ([System.Drawing.FontStyle]::Regular) ([System.Drawing.ColorTranslator]::FromHtml('#d8e5f8'))
     Draw-BannerText $graphics 'See what changed, who changed it, and when.' 52 143 12.5 ([System.Drawing.FontStyle]::Regular) ([System.Drawing.ColorTranslator]::FromHtml('#f4f7fd'))
-    Draw-BannerText $graphics 'SEARCH  ·  REVIEW  ·  EXPORT' 52 186 8.5 ([System.Drawing.FontStyle]::Bold) ([System.Drawing.ColorTranslator]::FromHtml('#b9cef1'))
+    Draw-BannerText $graphics 'SEARCH, REVIEW, EXPORT' 52 186 8.5 ([System.Drawing.FontStyle]::Bold) ([System.Drawing.ColorTranslator]::FromHtml('#b9cef1'))
 
     $shadow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(58, 4, 17, 39))
     Fill-RoundedRectangle $graphics 436 39 300 181 14 $shadow
@@ -202,11 +202,11 @@ function New-BannerPng {
 
     $divider = [System.Drawing.Pen]::new([System.Drawing.ColorTranslator]::FromHtml('#e5ebf2'), 1)
     $graphics.DrawLine($divider, 449, 82, 711, 82)
-    Draw-ActivityRow $graphics 88 'Updated a page' 'Page  ·  Content edited' '#dceaff'
+    Draw-ActivityRow $graphics 88 'Updated a page' 'Page, Content edited' '#dceaff'
     $graphics.DrawLine($divider, 449, 121, 711, 121)
-    Draw-ActivityRow $graphics 127 'Changed an account role' 'Account  ·  Role changed' '#e4f1ed'
+    Draw-ActivityRow $graphics 127 'Changed an account role' 'Account, Role changed' '#e4f1ed'
     $graphics.DrawLine($divider, 449, 160, 711, 160)
-    Draw-ActivityRow $graphics 166 'Plugin updated' 'Plugin  ·  Version recorded' '#eeeafb'
+    Draw-ActivityRow $graphics 166 'Plugin updated' 'Plugin, Version recorded' '#eeeafb'
     $divider.Dispose()
 
     $bitmap.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)

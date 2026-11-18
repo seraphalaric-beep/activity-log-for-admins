@@ -1,18 +1,18 @@
 import "./toolbar.css";
 
-const config = window.alfaToolbar;
-const feedItem = document.querySelector("#wp-admin-bar-alfa-live-activity-feed > .ab-item");
+const config = window.cvsjToolbar;
+const feedItem = document.querySelector("#wp-admin-bar-cvsj-live-activity-feed > .ab-item");
 
 if (config && feedItem) {
   const panel = document.createElement("div");
-  panel.className = "ab-item alfa-toolbar-feed-content";
+  panel.className = "ab-item cvsj-toolbar-feed-content";
   panel.setAttribute("aria-label", "Recent activity");
   const status = document.createElement("p");
-  status.className = "alfa-toolbar-feed-status";
+  status.className = "cvsj-toolbar-feed-status";
   status.setAttribute("role", "status");
   status.textContent = "Loading recent activity";
   const list = document.createElement("ul");
-  list.className = "alfa-toolbar-event-list";
+  list.className = "cvsj-toolbar-event-list";
   feedItem.replaceWith(panel);
   panel.append(status, list);
 
@@ -34,12 +34,12 @@ if (config && feedItem) {
       const item = document.createElement("li");
       const link = document.createElement("a");
       link.href = event.url;
-      link.className = "alfa-toolbar-event";
+      link.className = "cvsj-toolbar-event";
       const summary = document.createElement("span");
-      summary.className = "alfa-toolbar-event-summary";
+      summary.className = "cvsj-toolbar-event-summary";
       summary.textContent = event.summary;
       const meta = document.createElement("span");
-      meta.className = "alfa-toolbar-event-meta";
+      meta.className = "cvsj-toolbar-event-meta";
       meta.textContent = [event.item_name, actorLabel(event), event.time].filter(Boolean).join(" · ");
       link.append(summary, meta);
       item.append(link);

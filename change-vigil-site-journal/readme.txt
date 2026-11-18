@@ -1,17 +1,18 @@
-=== Activity Log for Admins ===
+=== Change Vigil Site Journal ===
+Contributors: raaikage
 Tags: activity log, audit log, history
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Search WordPress activity, see who changed what, compare recorded values, and export filtered history as CSV or HTML.
+Investigate unexpected site changes. Find the affected item, identify who changed it, and compare recorded values.
 
 == Description ==
 
-Activity Log for Admins keeps a searchable history of supported changes on WordPress sites. On a Multisite network, each site has its own activity and retention settings.
+Find out what changed on your WordPress site, who changed it, and when. Start with the name of the affected page or post, open the relevant event, and compare the values recorded before and after the change. Share the filtered view with another authorised administrator or export matching events for review. The plugin is free and requires no account. On a Multisite network, each site has its own activity and retention settings.
 
 Start with a quick summary on the Dashboard, or open Activity to search by page or post title, user, and change. Combine filters for date, user, action, affected item, and severity.
 
@@ -79,7 +80,7 @@ Scheduled report recipients are entered by a manager and stay on the site. They 
 1. Use WordPress 6.9 or later and PHP 8.3 or later. On a Multisite network, activate the plugin on a site or network activate it.
 2. In the WordPress admin, open Plugins, then Add New Plugin, then Upload Plugin.
 3. Select the plugin ZIP, install it, and activate it.
-4. Open the Dashboard for the activity summary, or choose Activity Log from the admin menu.
+4. Open the Dashboard for the activity summary, or choose Change Vigil from the admin menu.
 
 == Frequently Asked Questions ==
 
@@ -93,13 +94,13 @@ Users with the WordPress `manage_options` capability can view, export, and chang
 
 = How does it work on Multisite networks? =
 
-Each site keeps a separate activity log and retention setting. Super Admins can also use the Network Activity Log screen to search events across sites in the current network, inspect site scoped details and notes, export matching events, and review storage health. Network Settings lists sites and lets Super Admins change retention and event categories for an individual site. Site activity and settings remain separate across networks. Session management is available to Super Admins only because WordPress sessions apply to the account across the network.
+Each site keeps a separate activity log and retention setting. Super Admins can also use the Network Change Vigil screen to search events across sites in the current network, inspect site scoped details and notes, export matching events, and review storage health. Network Settings lists sites and lets Super Admins change retention and event categories for an individual site. Site activity and settings remain separate across networks. Session management is available to Super Admins only because WordPress sessions apply to the account across the network.
 
 = Are WooCommerce, Advanced Custom Fields, Redirection, bbPress, WPForms, Yoast SEO, Rank Math, Paid Memberships Pro, Termly, MainWP, and InfiniteWP events included? =
 
-Yes, these integrations are optional and off by default. Enable the integration you use in Activity Log Settings. WooCommerce records product, coupon, selected store setting, and order lifecycle events while excluding customer details and order contents. Advanced Custom Fields records changed field labels only, never field values. Redirection records rule changes without storing the rule URLs. bbPress records forum, topic, and reply changes without storing forum or reply text, guest contact details, or IP addresses. WPForms records form changes and successful stored submissions by form, never form definitions, submitted answers, or individual submission identifiers. Yoast SEO and Rank Math record selected content field and settings changes without storing SEO values or addresses. Paid Memberships Pro records account access and membership level lifecycle events with identifiers only, not level names, contact details, subscription details, or payment data. Termly records consent banner, automatic blocker, scan schedule, scanner allow list, and connection state changes without storing API keys, account details, cookie maps, scan results, or site addresses. MainWP records child site and client changes, status, removal, and synchronization outcomes without storing site addresses, client names, contact details, connection credentials, or synchronization payloads. Child events transfer to the MainWP Dashboard only when both the Dashboard and child site opt in. Transfers use batches of at most 50 and repeated sync does not duplicate accepted events. InfiniteWP labels authenticated management requests and records completed backup events when the InfiniteWP Client activity log is enabled. It stores backup scope only, not names, paths, storage details, or file contents. Membership access can reveal personal information, so enable it only when needed and set a suitable retention period.
+Yes, these integrations are optional and off by default. Enable the integration you use in Change Vigil Settings. WooCommerce records product, coupon, selected store setting, and order lifecycle events while excluding customer details and order contents. Advanced Custom Fields records changed field labels only, never field values. Redirection records rule changes without storing the rule URLs. bbPress records forum, topic, and reply changes without storing forum or reply text, guest contact details, or IP addresses. WPForms records form changes and successful stored submissions by form, never form definitions, submitted answers, or individual submission identifiers. Yoast SEO and Rank Math record selected content field and settings changes without storing SEO values or addresses. Paid Memberships Pro records account access and membership level lifecycle events with identifiers only, not level names, contact details, subscription details, or payment data. Termly records consent banner, automatic blocker, scan schedule, scanner allow list, and connection state changes without storing API keys, account details, cookie maps, scan results, or site addresses. MainWP records child site and client changes, status, removal, and synchronization outcomes without storing site addresses, client names, contact details, connection credentials, or synchronization payloads. Child events transfer to the MainWP Dashboard only when both the Dashboard and child site opt in. Transfers use batches of at most 50 and repeated sync does not duplicate accepted events. InfiniteWP labels authenticated management requests and records completed backup events when the InfiniteWP Client activity log is enabled. It stores backup scope only, not names, paths, storage details, or file contents. Membership access can reveal personal information, so enable it only when needed and set a suitable retention period.
 
-= Can Activity Log for Admins replace a redirect plugin? =
+= Can Change Vigil Site Journal replace a redirect plugin? =
 
 No. The plugin records selected site setting changes, but does not create or apply redirects. Keep your redirect manager active, or transfer and test its rules before removing it.
 
@@ -119,6 +120,10 @@ Deactivation and deletion preserve history by default. To erase activity and set
 4. Choose a retention period, review database space and cleanup status, and note the plugin version.
 
 == Changelog ==
+
+= 1.2.2 =
+* Introduced Change Vigil Site Journal with its own installation, activity history, and settings.
+* Updated the listing and screenshots to show the site change investigation workflow.
 
 = 1.2.1 =
 * Corrected output escaping, translation context, database query preparation, and report file handling found by automated WordPress checks.
@@ -151,8 +156,8 @@ Deactivation and deletion preserve history by default. To erase activity and set
 * Improved shared filters and account matching, including numeric usernames.
 
 = 1.0.4 =
-* Prevented shared caches from storing the private Activity Log REST responses.
-* Added a unique request value to Activity Log API calls to bypass stale cached responses.
+* Prevented shared caches from storing the private Change Vigil REST responses.
+* Added a unique request value to Change Vigil API calls to bypass stale cached responses.
 * Added regression checks that compare Dashboard activity with the full event list.
 
 = 1.0.3 =
@@ -164,10 +169,13 @@ Deactivation and deletion preserve history by default. To erase activity and set
 * Improved event row spacing and aligned the user disclosure control with its label.
 
 = 1.0.1 =
-* Added an activity summary to the WordPress Dashboard and placed Activity Log near the top of the admin menu.
+* Added an activity summary to the WordPress Dashboard and placed Change Vigil near the top of the admin menu.
 * Improved spacing, button sizing, and narrow screen layouts.
 
 == Upgrade Notice ==
+
+= 1.2.2 =
+Change Vigil starts a new history. Export any records you need from the original pilot before deactivating it.
 
 = 1.2.1 =
 Corrects automated review findings and a privacy erasure label issue.
@@ -179,4 +187,4 @@ This expanded pilot includes a network center, session tools, reports and alerts
 Expands activity coverage and improves event attribution, CSV exports, and storage diagnostics.
 
 = 1.0.4 =
-Improves cache handling for private Activity Log requests.
+Improves cache handling for private Change Vigil requests.

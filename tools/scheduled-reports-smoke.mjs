@@ -20,11 +20,11 @@ const historyIds = [];
 
 async function api(path, data) {
   return page.evaluate(async ({ path, data }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
-    url.searchParams.set("_alfa_request", Date.now() + "-" + Math.random().toString(36).slice(2));
+    url.searchParams.set("_cvsj_request", Date.now() + "-" + Math.random().toString(36).slice(2));
     const response = await fetch(url, {
       method: data ? "POST" : "GET",
       headers: { "X-WP-Nonce": config.nonce, "Content-Type": "application/json" },
@@ -40,10 +40,10 @@ try {
   await page.locator("#user_pass").fill(password);
   await page.locator("#wp-submit").click();
   await page.waitForLoadState("domcontentloaded");
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
 
-  const seeded = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "scheduled_report_seed" } });
+  const seeded = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "scheduled_report_seed" } });
   assert.equal(seeded.status(), 200, await seeded.text());
   fixture = await seeded.json();
   assert.equal(fixture.count, 1001);
@@ -93,7 +93,7 @@ try {
 
   const noEditorAccess = await api("settings", { ...originalSettings, viewer_roles: [], manager_roles: [], viewer_users: [], manager_users: [] });
   assert.equal(noEditorAccess.status, 200);
-  const editorSeed = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "access_user" } });
+  const editorSeed = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "access_user" } });
   assert.equal(editorSeed.status(), 200);
   const editorPassword = (await editorSeed.json()).editorPassword;
   editorContext = await browser.newContext();
@@ -103,9 +103,9 @@ try {
   await editorPage.locator("#user_pass").fill(editorPassword);
   await editorPage.locator("#wp-submit").click();
   await editorPage.waitForLoadState("domcontentloaded");
-  const editorNonceResponse = await editorContext.request.post(base + "/alfa-fixture.php", { form: { operation: "nonce" } });
+  const editorNonceResponse = await editorContext.request.post(base + "/cvsj-fixture.php", { form: { operation: "nonce" } });
   assert.equal(editorNonceResponse.status(), 200);
-  const editorBase = await page.evaluate(() => window.alfaSettings.base);
+  const editorBase = await page.evaluate(() => window.cvsjSettings.base);
   const editorNonce = (await editorNonceResponse.json()).nonce;
   const schedulesUrl = new URL(editorBase);
   if (schedulesUrl.searchParams.has("rest_route")) schedulesUrl.searchParams.set("rest_route", schedulesUrl.searchParams.get("rest_route") + "reports/schedules");
@@ -126,9 +126,9 @@ try {
   assert.equal("report_schedules" in exported.body.settings, false);
   assert.equal("email_alert_recipients" in exported.body.settings, false);
 
-  const due = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "scheduled_report_due", id: scheduleId } });
+  const due = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "scheduled_report_due", id: scheduleId } });
   assert.equal(due.status(), 200, await due.text());
-  const run = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "scheduled_report_run" } });
+  const run = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "scheduled_report_run" } });
   assert.equal(run.status(), 200, await run.text());
   const result = await run.json();
   assert.equal(result.job_remaining, false);
@@ -168,9 +168,9 @@ try {
   scheduleId = htmlCreated.body.id;
   assert.equal(htmlCreated.body.format, "html");
 
-  const htmlDue = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "scheduled_report_due", id: scheduleId } });
+  const htmlDue = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "scheduled_report_due", id: scheduleId } });
   assert.equal(htmlDue.status(), 200, await htmlDue.text());
-  const htmlRun = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "scheduled_report_run" } });
+  const htmlRun = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "scheduled_report_run" } });
   assert.equal(htmlRun.status(), 200, await htmlRun.text());
   const htmlResult = await htmlRun.json();
   assert.equal(htmlResult.job_remaining, false);
@@ -214,7 +214,7 @@ try {
 
   const editorHistoryDownload = await editorContext.request.get(csvHistory.download_url);
   assert.equal(editorHistoryDownload.status(), 403, "Editors must not download private report history");
-  const editorHistoryNonceResponse = await editorContext.request.post(base + "/alfa-fixture.php", { form: { operation: "nonce" } });
+  const editorHistoryNonceResponse = await editorContext.request.post(base + "/cvsj-fixture.php", { form: { operation: "nonce" } });
   assert.equal(editorHistoryNonceResponse.status(), 200);
   const editorHistoryNonce = (await editorHistoryNonceResponse.json()).nonce;
   const editorDeleteUrl = new URL(editorBase);
@@ -224,7 +224,7 @@ try {
     headers: { "X-WP-Nonce": editorHistoryNonce }, data: {},
   })).status(), 403, "Editors must not delete private report history");
 
-  const expiredCopy = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "scheduled_report_expire_history", id: csvHistory.id } });
+  const expiredCopy = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "scheduled_report_expire_history", id: csvHistory.id } });
   assert.equal(expiredCopy.status(), 200, await expiredCopy.text());
   assert.equal((await expiredCopy.json()).expired, true, "Report copies must be removed when site retention expires");
   historyIds.splice(historyIds.indexOf(csvHistory.id), 1);
@@ -248,9 +248,9 @@ try {
   });
   assert.equal(retryCreated.status, 200);
   scheduleId = retryCreated.body.id;
-  const retryDue = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "scheduled_report_due", id: scheduleId } });
+  const retryDue = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "scheduled_report_due", id: scheduleId } });
   assert.equal(retryDue.status(), 200, await retryDue.text());
-  const retryRun = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "scheduled_report_run", fail_attempts: "2" } });
+  const retryRun = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "scheduled_report_run", fail_attempts: "2" } });
   assert.equal(retryRun.status(), 200, await retryRun.text());
   const retryResult = await retryRun.json();
   assert.equal(retryResult.job_remaining, false);
@@ -295,7 +295,7 @@ try {
   }
   if (fixture) {
     try {
-      const cleanup = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "scheduled_report_cleanup", item_key: fixture.item_key } });
+      const cleanup = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "scheduled_report_cleanup", item_key: fixture.item_key } });
       assert.equal(cleanup.status(), 200);
       assert.equal((await cleanup.json()).deleted, 1001);
     } catch {}

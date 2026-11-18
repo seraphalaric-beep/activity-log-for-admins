@@ -1,16 +1,16 @@
 <?php
 /**
- * Plugin Name: Activity Log for Admins
+ * Plugin Name: Change Vigil Site Journal
  * Description: Investigate WordPress changes, with searchable history and CSV export.
  * Author: Bryan Mc Namara
- * Version: 1.2.1
+ * Version: 1.2.2
  * Requires at least: 6.9
  * Requires PHP: 8.3
  * License: GPL-2.0-or-later
- * Text Domain: activity-log-for-admins
+ * Text Domain: change-vigil-site-journal
  */
 
-namespace ActivityLogForAdmins;
+namespace ChangeVigilSiteJournal;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -38,7 +38,7 @@ function activate( bool $network_wide = false ): void {
                 }
                 try {
                     if ( ! activate_site() ) {
-                        wp_die( esc_html__( 'The activity log table could not be installed or verified for every site. Check database permissions and try again.', 'activity-log-for-admins' ), '', [ 'back_link' => true ] );
+                        wp_die( esc_html__( 'The activity log table could not be installed or verified for every site. Check database permissions and try again.', 'change-vigil-site-journal' ), '', [ 'back_link' => true ] );
                     }
                 } finally {
                     restore_current_blog();
@@ -50,7 +50,7 @@ function activate( bool $network_wide = false ): void {
     }
 
     if ( ! activate_site() ) {
-        wp_die( esc_html__( 'The activity log table could not be installed or verified. Check the database permissions and try again.', 'activity-log-for-admins' ), '', [ 'back_link' => true ] );
+        wp_die( esc_html__( 'The activity log table could not be installed or verified. Check the database permissions and try again.', 'change-vigil-site-journal' ), '', [ 'back_link' => true ] );
     }
 }
 
@@ -113,7 +113,7 @@ add_action( Alerts::HOOK, [ Alerts::class, 'process_queue' ] );
 add_action( Alerts::RETRY_HOOK, [ Alerts::class, 'retry_event' ], 10, 3 );
 add_action( ScheduledReports::TICK, [ ScheduledReports::class, 'tick' ] );
 add_action( ScheduledReports::CONTINUE, [ ScheduledReports::class, 'tick' ] );
-add_action( 'admin_post_alfa_report_download', [ ScheduledReports::class, 'download_report' ] );
+add_action( 'admin_post_cvsj_report_download', [ ScheduledReports::class, 'download_report' ] );
 add_action( 'init', [ ScheduledReports::class, 'ensure_schedule' ], 20 );
 add_action( 'init', [ Alerts::class, 'schedule_pending' ], 21 );
 add_filter( 'cron_schedules', [ ScheduledReports::class, 'cron_schedules' ] );

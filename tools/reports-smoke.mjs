@@ -16,7 +16,7 @@ let statisticsReportId = null;
 
 async function api(path, data, query = {}) {
   return page.evaluate(async ({ path, data, query }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
@@ -33,7 +33,7 @@ async function api(path, data, query = {}) {
 
 async function statisticsDownload(id, format) {
   return page.evaluate(async ({ id, format }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     const path = `reports/saved/${id}/statistics/download`;
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
@@ -57,20 +57,20 @@ try {
   await page.locator("#user_pass").fill(password);
   await page.locator("#wp-submit").click();
   await page.waitForLoadState("domcontentloaded");
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
 
-  const oldFixtureCleanup = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "report_html_cleanup_all" } });
+  const oldFixtureCleanup = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "report_html_cleanup_all" } });
   assert.equal(oldFixtureCleanup.status(), 200, await oldFixtureCleanup.text());
 
-  const fixtureResponse = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "report_html" } });
+  const fixtureResponse = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "report_html" } });
   assert.equal(fixtureResponse.status(), 200, await fixtureResponse.text());
   const fixture = await fixtureResponse.json();
   reportFixture = fixture;
   assert.equal(fixture.count, 251);
 
   const endpoint = await page.evaluate(({ item }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + "report");
     else url.pathname += "report";
@@ -127,7 +127,7 @@ try {
   assert.equal(invalidColumns.status(), 400, "HTML reports must reject fields outside the allowlist");
 
   const statistics = await page.evaluate(async ({ item }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const parts = new Intl.DateTimeFormat("en-GB", { timeZone: config.timezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
     const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
     const today = `${values.year}-${values.month}-${values.day}`;
@@ -143,7 +143,7 @@ try {
   assert.deepEqual(statistics.body.rows, [{ label: "settings", total: 251 }]);
 
   const groups = await page.evaluate(async ({ item, today }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const results = {};
     for (const [group, interval] of [["action", "daily"], ["severity", "daily"], ["actor_role", "daily"], ["source", "daily"], ["day", "weekly"], ["day", "monthly"]]) {
       const url = new URL(config.base);
@@ -198,18 +198,18 @@ try {
   assert.match(htmlStatistics.body, /Site settings/);
   assert.doesNotMatch(htmlStatistics.body, /<img|onerror=|<script/i);
 
-  const reportsNav = page.getByRole("navigation", { name: "Activity Log", exact: true });
+  const reportsNav = page.getByRole("navigation", { name: "Change Vigil", exact: true });
   await reportsNav.getByRole("link", { name: "Reports", exact: true }).click();
   await page.getByRole("heading", { name: "Activity statistics", exact: true }).waitFor();
   await page.getByRole("button", { name: "View saved result", exact: true }).click();
   const snapshotTable = page.getByRole("table", { name: /Saved statistics for/ });
   await snapshotTable.getByText("Site settings", { exact: true }).waitFor();
   assert.equal(await snapshotTable.getByText("251", { exact: true }).count(), 1);
-  await page.locator(".alfa-statistics-snapshot").scrollIntoViewIfNeeded();
+  await page.locator(".cvsj-statistics-snapshot").scrollIntoViewIfNeeded();
   await page.screenshot({ path: ".tmp/network-parity-wp/saved-statistics-desktop.png", animations: "disabled" });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator(".alfa-statistics-snapshot").scrollIntoViewIfNeeded();
-  const snapshotBounds = await page.locator(".alfa-statistics-snapshot").boundingBox();
+  await page.locator(".cvsj-statistics-snapshot").scrollIntoViewIfNeeded();
+  const snapshotBounds = await page.locator(".cvsj-statistics-snapshot").boundingBox();
   await page.screenshot({ path: ".tmp/network-parity-wp/saved-statistics-mobile.png", animations: "disabled" });
   assert.ok(snapshotBounds && snapshotBounds.x >= 0 && snapshotBounds.x + snapshotBounds.width <= 390, `The saved statistics view fits a narrow admin viewport, ${JSON.stringify(snapshotBounds)}.`);
   await page.setViewportSize({ width: 1440, height: 950 });
@@ -218,7 +218,7 @@ try {
   statisticsReportId = null;
 
   const longRange = await page.evaluate(async ({ item, today }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + "reports/statistics");
     else url.pathname += "reports/statistics";
@@ -232,7 +232,7 @@ try {
 } finally {
   if (reportFixture) {
     try {
-      const cleanup = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "report_html_cleanup", item: reportFixture.item } });
+      const cleanup = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "report_html_cleanup", item: reportFixture.item } });
       assert.equal(cleanup.status(), 200);
       assert.equal((await cleanup.json()).deleted, 251);
     } catch {}

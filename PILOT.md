@@ -1,9 +1,9 @@
-# Activity Log for Admins pilot guide
+# Change Vigil Site Journal pilot guide
 
 ## Install and investigate
 
 1. On a disposable or staging site running WordPress 6.9 or later and PHP 8.3 or later, open **Plugins**, then **Add New Plugin**, then **Upload Plugin**.
-2. Upload the installable ZIP from the [GitHub 1.2.1 release](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/tag/v1.2.1), install it, and activate it. Confirm Settings shows version 1.2.1. The main Dashboard shows activity counts and recent changes. Open **Activity Log** near the top of the admin menu to investigate.
+2. Upload the installable ZIP from the [GitHub 1.2.2 release](https://github.com/seraphalaric-beep/change-vigil-site-journal/releases/tag/v1.2.2), install it, and activate it. Confirm Settings shows version 1.2.2. The main Dashboard shows activity counts and recent changes. Open **Change Vigil** near the top of the admin menu to investigate.
 3. Create a test page named **Housing Guide**, publish it, and move it back to Draft. Add a few unrelated edits to make the list realistic.
 4. Ask another administrator to start on the Activity screen with only the page name, without a date, user, or event hint. Record the elapsed time and whether they correctly find the unexpected change, identify the user, and verify the previous status without help. Pass if all are correct in under 30 seconds.
 5. Open an event, check the previous and new values, and try the actor and affected item links. Combine search with the Action and Severity filters, reload the URL, and verify that CSV export contains every matching row and any captured previous and new values.
@@ -39,9 +39,9 @@ Deactivation and deletion preserve history by default. To remove the stored hist
 
 From the workspace, run `npm ci` and `npm run package`. This builds the admin interface and writes the installable ZIP under `release`. The archive contains the frontend source, dependency lock, and third party license notices.
 
-To build a candidate without replacing a checked in release ZIP, run `npm run build` and `python tools/package.py --output-dir .tmp/pilot-release`, then pass `-Archive .tmp/pilot-release/activity-log-for-admins.<version>.zip` to `tools/start-pilot.ps1`.
+To build a candidate without replacing a checked in release ZIP, run `npm run build` and `python tools/package.py --output-dir .tmp/pilot-release`, then pass `-Archive .tmp/pilot-release/change-vigil-site-journal.<version>.zip` to `tools/start-pilot.ps1`.
 
-The automated pilot uses a disposable WordPress installation, MariaDB, PHP, and Chrome. The setup script needs an extracted copy of WordPress, a native PHP executable, and an empty database whose name starts with `alfa_`. Start the disposable site with `tools/start-pilot.ps1`, then run `npm run test:pilot -- <loopback URL> <test password> full`. The fixture is used only in the disposable test environment. Screenshots are written to `test-results`.
+The automated pilot uses a disposable WordPress installation, MariaDB, PHP, and Chrome. The setup script needs an extracted copy of WordPress, a native PHP executable, and an empty database whose name starts with `cvsj_`. Start the disposable site with `tools/start-pilot.ps1`, then run `npm run test:pilot -- <loopback URL> <test password> full`. The fixture is used only in the disposable test environment. Screenshots are written to `test-results`.
 
 Set `ALFA_SKIP_REGRESSION=1` before the full pilot to skip only the Dashboard against Activity list comparison. Capture, investigation, CSV, access, cleanup, uninstall, and the 100,000 event performance checks still run.
 
@@ -73,7 +73,7 @@ GitHub Actions is configured to run the full pilot on WordPress 7.1.4 with PHP 8
 
 ## 1.0.4 verification results
 
-The [GitHub Actions run](https://github.com/seraphalaric-beep/activity-log-for-admins/actions/runs/43610394795) passed on WordPress 7.1.4, PHP 8.3, and MariaDB 11.4.9. It built and installed the 1.0.4 ZIP, then passed the dependency audit, PHP syntax checks, security and interface checks, and full browser and database pilot.
+The [GitHub Actions run](https://github.com/seraphalaric-beep/change-vigil-site-journal/actions/runs/43610394795) passed on WordPress 7.1.4, PHP 8.3, and MariaDB 11.4.9. It built and installed the 1.0.4 ZIP, then passed the dependency audit, PHP syntax checks, security and interface checks, and full browser and database pilot.
 
 The regression check confirmed that the newest Dashboard event also appeared in the full event response and the visible Activity table. Activity list, event details, Settings, and CSV responses used private cache headers and could not be stored. The full pilot covered event capture, filters, event details, permissions, export, cleanup failures, retention, uninstall, and a database seeded with 100,000 events.
 
@@ -81,9 +81,9 @@ Anonymous reads and exports returned 401. Editor reads, exports, and settings ch
 
 ## 1.0.5 verification results
 
-The [GitHub Actions run](https://github.com/seraphalaric-beep/activity-log-for-admins/actions/runs/43899600662) passed on source commit `eb56a5d`. The build job passed its dependency audit, PHP syntax checks, security and interface checks, and full activity pilot. The compatibility jobs passed on WordPress 6.9.11 with PHP 8.3, WordPress 7.0.8 with PHP 8.4, and WordPress 7.1.4 with PHP 8.5. The Dashboard comparison remained skipped as requested.
+The [GitHub Actions run](https://github.com/seraphalaric-beep/change-vigil-site-journal/actions/runs/43899600662) passed on source commit `eb56a5d`. The build job passed its dependency audit, PHP syntax checks, security and interface checks, and full activity pilot. The compatibility jobs passed on WordPress 6.9.11 with PHP 8.3, WordPress 7.0.8 with PHP 8.4, and WordPress 7.1.4 with PHP 8.5. The Dashboard comparison remained skipped as requested.
 
-The installable ZIP from that run is attached to the [GitHub 1.0.5 release](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/tag/v1.0.5). Its SHA256 is `032FAAC4CC7131A585326D8BB5CE14C49950434A66D159D4FDB9803792F74A77`. A copy downloaded from the release matched the CI artifact hash. The Settings preview shows version 1.0.5.
+The installable ZIP from that run is attached to the [GitHub 1.0.5 release](https://github.com/seraphalaric-beep/change-vigil-site-journal/releases/tag/v1.0.5). Its SHA256 is `032FAAC4CC7131A585326D8BB5CE14C49950434A66D159D4FDB9803792F74A77`. A copy downloaded from the release matched the CI artifact hash. The Settings preview shows version 1.0.5.
 
 The human 30 second investigation check remains pending. Install the GitHub release on a disposable or staging site, follow steps 3 and 4 above, and record the elapsed time, actor, previous status, and whether the administrator received any hints.
 

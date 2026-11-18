@@ -18,18 +18,18 @@ try {
   await page.locator("#user_pass").fill(password);
   await page.locator("#wp-submit").click();
   await page.waitForLoadState("domcontentloaded");
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  const response = await page.request.post(base + "/alfa-fixture.php", { form: { operation: "component_lifecycle" } });
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  const response = await page.request.post(base + "/cvsj-fixture.php", { form: { operation: "component_lifecycle" } });
   assert.equal(response.status(), 200, await response.text());
   const result = await response.json();
   const restResult = await page.evaluate(async themeSlug => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + "events");
     else url.pathname += "events";
     url.searchParams.set("action", "theme_installed");
     url.searchParams.set("item", `theme:${themeSlug}`);
-    url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    url.searchParams.set("_cvsj_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const response = await fetch(url, { headers: { "X-WP-Nonce": config.nonce } });
     return { status: response.status, events: (await response.json()).events ?? [] };
   }, result.themeSlug);

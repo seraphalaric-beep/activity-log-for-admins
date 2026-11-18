@@ -25,12 +25,12 @@ async function signIn() {
 
 async function api(path, data, query = {}) {
   return page.evaluate(async ({ path, data, query }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
     for (const [key, value] of Object.entries(query)) if (value !== "") url.searchParams.set(key, value);
-    url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    url.searchParams.set("_cvsj_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const response = await fetch(url, {
       method: data ? "POST" : "GET",
       credentials: "same-origin",
@@ -43,29 +43,29 @@ async function api(path, data, query = {}) {
 }
 
 async function fixtureCall(operation, fields = {}) {
-  const response = await context.request.post(base + "/alfa-fixture.php", { form: { operation, ...fields } });
+  const response = await context.request.post(base + "/cvsj-fixture.php", { form: { operation, ...fields } });
   assert.equal(response.status(), 200, await response.text());
   return response.json();
 }
 
 try {
   await signIn();
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
   const settingsResponse = await api("settings");
   assert.equal(settingsResponse.status, 200);
   originalSettings = settingsResponse.data.settings;
   fixture = await fixtureCall("bulk_seed");
-  await page.goto(base + "/wp-admin/admin.php?page=activity-log-for-admins");
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.goto(base + "/wp-admin/admin.php?page=change-vigil-site-journal");
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
 
   async function applyToEvent(id, action) {
     await page.getByLabel(`Select event ${id}`).check();
     if ("exclude_accounts" === action) {
-      await page.locator(".alfa-bulk-actions").waitFor();
+      await page.locator(".cvsj-bulk-actions").waitFor();
       await page.screenshot({ path: ".tmp/network-parity-wp/bulk-actions-desktop.png", animations: "disabled" });
       await page.setViewportSize({ width: 390, height: 844 });
-      const bulkBounds = await page.locator(".alfa-bulk-actions").boundingBox();
+      const bulkBounds = await page.locator(".cvsj-bulk-actions").boundingBox();
       assert.ok(bulkBounds && bulkBounds.x >= 0 && bulkBounds.x + bulkBounds.width <= 390, `The bulk controls fit a narrow admin viewport, ${JSON.stringify(bulkBounds)}`);
       await page.screenshot({ path: ".tmp/network-parity-wp/bulk-actions-mobile.png", animations: "disabled" });
       await page.setViewportSize({ width: 1440, height: 950 });
@@ -110,10 +110,10 @@ try {
   assert.equal(exportedSettings.status, 200);
   assert.ok(!Object.hasOwn(exportedSettings.data.settings, "excluded_items"), "Exact item exclusions stay local to this site during settings export.");
 
-  const nav = page.getByRole("navigation", { name: "Activity Log", exact: true });
+  const nav = page.getByRole("navigation", { name: "Change Vigil", exact: true });
   await nav.getByRole("link", { name: "Settings", exact: true }).click();
   await page.getByText("Recording exclusions", { exact: true }).waitFor();
-  const excludedItems = page.locator(".alfa-selected-exclusions").filter({ hasText: "Excluded items" });
+  const excludedItems = page.locator(".cvsj-selected-exclusions").filter({ hasText: "Excluded items" });
   const excludedRow = excludedItems.locator("li").filter({ hasText: "identifier 8802" });
   await excludedRow.getByRole("button", { name: "Remove", exact: true }).click();
   await page.getByRole("button", { name: "Save settings", exact: true }).click();

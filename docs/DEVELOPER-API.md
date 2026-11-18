@@ -1,13 +1,13 @@
-# Activity Log for Admins developer API
+# Change Vigil Site Journal developer API
 
-API version 1 lets another WordPress plugin add safe, filterable event types without calling internal database code. The API is available after `plugins_loaded` when Activity Log for Admins is active.
+API version 1 lets another WordPress plugin add safe, filterable event types without calling internal database code. The API is available after `plugins_loaded` when Change Vigil Site Journal is active.
 
 ## Register an event type
 
 Add the registration filter from the integrating plugin. Use a unique event key with lowercase letters, numbers, and underscores. Choose one of the existing event categories so site owners can use the standard category and individual event controls.
 
 ```php
-add_filter( 'alfa_activity_log_external_event_types', static function ( array $types ): array {
+add_filter( 'cvsj_activity_log_external_event_types', static function ( array $types ): array {
     $types['acme_plan_changed'] = [
         'category' => 'components',
         'label' => __( 'Acme plan changed', 'acme-plugin' ),
@@ -23,8 +23,8 @@ Supported categories are `content`, `accounts`, `comments`, `taxonomies`, `appea
 Call the public method after the observed action succeeds. The event type must be registered. Attribution, request source, and time come from WordPress and cannot be supplied by the integration.
 
 ```php
-if ( class_exists( '\ActivityLogForAdmins\DeveloperAPI' ) ) {
-    \ActivityLogForAdmins\DeveloperAPI::record_event( [
+if ( class_exists( '\ChangeVigilSiteJournal\DeveloperAPI' ) ) {
+    \ChangeVigilSiteJournal\DeveloperAPI::record_event( [
         'event_type' => 'acme_plan_changed',
         'item_kind' => 'setting',
         'item_id' => 'plan',
@@ -47,7 +47,7 @@ The method returns true when the event row was stored. It returns false for an u
 Most integrations can use an existing item kind or a public custom content type. Register another item kind only when neither describes the object clearly.
 
 ```php
-add_filter( 'alfa_activity_log_item_kinds', static function ( array $kinds ): array {
+add_filter( 'cvsj_activity_log_item_kinds', static function ( array $kinds ): array {
     $kinds[] = 'acme_record';
     return $kinds;
 } );

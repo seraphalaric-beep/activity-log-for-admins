@@ -15,10 +15,10 @@ $manifest = Get-Content -Raw -LiteralPath (Join-Path $project 'package.json') | 
 if ($Archive) {
     $archive = (Resolve-Path -LiteralPath $Archive).Path
 } else {
-    $archive = Join-Path $project ("release/activity-log-for-admins.{0}.zip" -f $manifest.version)
+    $archive = Join-Path $project ("release/change-vigil-site-journal.{0}.zip" -f $manifest.version)
 }
 if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) { throw "Build the installable archive first: $archive" }
-if ($Database -notmatch '^alfa_[a-z0-9_]+$') { throw 'Use a disposable alfa_ database.' }
+if ($Database -notmatch '^cvsj_[a-z0-9_]+$') { throw 'Use a disposable cvsj_ database.' }
 $config = Join-Path $site 'wp-config.php'
 if (Test-Path $config) { throw 'Use a clean copy of WordPress with no existing wp-config.php.' }
 $url = "http://127.0.0.1:$Port"
@@ -49,5 +49,5 @@ $phpDirectory = Split-Path (Resolve-Path -LiteralPath $Php).Path -Parent
 $options = @('-n', '-d', 'opcache.enable=0', '-d', 'opcache.enable_cli=0', '-d', "extension_dir=$phpDirectory/ext", '-d', 'extension=mysqli', '-d', 'extension=mbstring', '-d', 'extension=zip', '-d', 'extension=openssl', '-d', 'extension=curl', '-d', 'extension=fileinfo')
 & $Php @options (Join-Path $PSScriptRoot 'site.php') $site $archive $url $Password
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'alfa-fixture.php') -Destination $site
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'cvsj-fixture.php') -Destination $site
 & $Php @options -S "127.0.0.1:$Port" -t $site

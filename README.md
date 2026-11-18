@@ -1,12 +1,12 @@
-# Activity Log for Admins
+# Change Vigil Site Journal
 
 A free activity history plugin for WordPress site administrators. Search changes, identify who or what made them, compare captured values, and download matching events as CSV or a formatted HTML report. On Multisite networks, each site keeps a separate log and retention setting, while Super Admins can review activity and manage settings across sites in the current network. It does not manage redirects.
 
-The Activity Log menu sits near the top of the WordPress admin menu. The main Dashboard includes recent changes and activity counts. Authorized viewers can also open the five newest changes from the WordPress admin toolbar, with polling only on visible admin pages.
+The Change Vigil menu sits near the top of the WordPress admin menu. The main Dashboard includes recent changes and activity counts. Authorized viewers can also open the five newest changes from the WordPress admin toolbar, with polling only on visible admin pages.
 
-The 1.2.1 release is an expanded pilot for disposable and staging sites while the project gathers feedback. It is licensed under GPL 2.0 or later.
+The 1.2.2 release is an expanded pilot for disposable and staging sites while the project gathers feedback. It is licensed under GPL 2.0 or later.
 
-Version 1.2.1 includes the expanded pilot features from 1.2.0 and fixes findings from the WordPress automated review. These include a Super Admin network activity center, session inventory and revocation, optional concurrent session limits and idle expiry, the live admin toolbar feed, expanded WooCommerce capture, optional Advanced Custom Fields field label events, optional bbPress activity, optional WPForms form and submission events, optional Yoast SEO and Rank Math change records, optional Paid Memberships Pro membership events, optional Termly setting events, optional MainWP Dashboard tracking with child event transfer, optional InfiniteWP source and backup tracking, configurable warning email digests, immediate email, Slack, and Twilio SMS alert rules with all or any condition matching, private HTML reports, activity statistics, saved report templates, and scheduled report delivery. External storage and archives, WordPress core checksum comparison, and several real connector checks remain on the roadmap.
+Version 1.2.2 carries forward the expanded pilot features from 1.2.0 and fixes findings from the WordPress automated review. These include a Super Admin network activity center, session inventory and revocation, optional concurrent session limits and idle expiry, the live admin toolbar feed, expanded WooCommerce capture, optional Advanced Custom Fields field label events, optional bbPress activity, optional WPForms form and submission events, optional Yoast SEO and Rank Math change records, optional Paid Memberships Pro membership events, optional Termly setting events, optional MainWP Dashboard tracking with child event transfer, optional InfiniteWP source and backup tracking, configurable warning email digests, immediate email, Slack, and Twilio SMS alert rules with all or any condition matching, private HTML reports, activity statistics, saved report templates, and scheduled report delivery. External storage and archives, WordPress core checksum comparison, and several real connector checks remain on the roadmap.
 
 Extension developers can register custom event types and record sanitized events through the versioned [developer API](docs/DEVELOPER-API.md), without writing to the plugin's tables.
 
@@ -16,7 +16,7 @@ The working branch records public content, taxonomy, comment, profile, role, sig
 
 Administrators choose a retention period from 1 to 3650 days. The default is 90 days. Keep it as short as the site's purpose allows. Optional warning email digests are off by default. Administrators can choose recipients, event categories, whether summaries are included, and the maximum number of summaries. Recipient addresses remain on the site and are not included in settings downloads.
 
-Activity Log adds an exporter and eraser to the WordPress privacy tools. Exports include matching events, notes, saved reports, access settings, and configured email recipients. Erasure removes matching notes, recipient addresses, account references, and saved filters, then removes personal details from related events while keeping anonymized audit context. The site administrator decides whether that retained context remains appropriate for the site's purpose.
+Change Vigil adds an exporter and eraser to the WordPress privacy tools. Exports include matching events, notes, saved reports, access settings, and configured email recipients. Erasure removes matching notes, recipient addresses, account references, and saved filters, then removes personal details from related events while keeping anonymized audit context. The site administrator decides whether that retained context remains appropriate for the site's purpose.
 
 The HTML report uses the current filters, lets you choose which event fields appear, set a title, and optionally include the site name. It streams to the authorized viewer, is not stored by the plugin, and escapes event values before displaying them.
 
@@ -26,16 +26,18 @@ Save up to 20 report templates with filter criteria, grouping, selected event fi
 
 Managers can schedule saved reports daily, weekly, monthly, or quarterly as CSV or formatted HTML attachments. The plugin prepares reports in background batches and sends them to addresses entered by the manager. Failed email delivery is retried after about five minutes and fifteen minutes. Up to ten private report copies can be downloaded from report history, each attachment is limited to 10 MB, and copies follow the site's retention setting. Privacy erasure removes active and stored report copies because they can contain activity details. Email addresses stay on the site and are excluded from settings downloads. Delivery history stores format, status, event count, time, and report name. WordPress scheduled tasks depend on site traffic, so delivery can be delayed on quiet sites.
 
-See [the plugin readme](activity-log-for-admins/readme.txt) for the complete event list and privacy details.
+See [the plugin readme](change-vigil-site-journal/readme.txt) for the complete event list and privacy details.
 
 ## Install the pilot
 
 1. Use a disposable or staging WordPress site running WordPress 6.9 or later and PHP 8.3 or later.
 2. In the WordPress admin, open **Plugins**, then **Add New Plugin**, then **Upload Plugin**.
-3. Choose the [installable 1.2.1 ZIP](https://github.com/seraphalaric-beep/activity-log-for-admins/releases/download/v1.2.1/activity-log-for-admins.1.2.1.zip), install it, and activate it.
-4. Find the activity summary on the main Dashboard, or open **Activity Log** near the top of the admin menu.
+3. Choose the [installable 1.2.2 ZIP](https://github.com/seraphalaric-beep/change-vigil-site-journal/releases/download/v1.2.2/change-vigil-site-journal.1.2.2.zip), install it, and activate it.
+4. Find the activity summary on the main Dashboard, or open **Change Vigil** near the top of the admin menu.
 
 The plugin has not completed WordPress.org review. Do not use the pilot as the only record keeping system for a production site.
+
+Change Vigil installs separately from Activity Log for Admins 1.2.1. The original pilot retains its own data and exports. Both can record the same WordPress action in their own histories while active. Enable automatic session policies in only one plugin to avoid competing rules for shared WordPress accounts.
 
 ## Build the installable archive
 
@@ -46,7 +48,7 @@ npm ci
 npm run package
 ```
 
-The build updates the bundled admin files and creates `release/activity-log-for-admins.1.2.1.zip`. The archive includes the plugin, frontend source, package lock, and third party license notices.
+The build updates the bundled admin files and creates `release/change-vigil-site-journal.1.2.2.zip`. The archive includes the plugin, frontend source, package lock, and third party license notices.
 
 ## Run the local pilot
 

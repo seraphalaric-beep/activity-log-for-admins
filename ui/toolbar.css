@@ -1,4 +1,4 @@
-#wpadminbar li#wp-admin-bar-alfa-live-activity > .ab-sub-wrapper {
+#wpadminbar li#wp-admin-bar-cvsj-live-activity > .ab-sub-wrapper {
   overflow: hidden;
   border: 1px solid #d9dfea;
   border-radius: 0 0 8px 8px;
@@ -6,11 +6,11 @@
   box-shadow: 0 12px 28px rgb(23 32 51 / 16%);
 }
 
-#wpadminbar #wp-admin-bar-alfa-live-activity .ab-sub-wrapper .ab-item {
+#wpadminbar #wp-admin-bar-cvsj-live-activity .ab-sub-wrapper .ab-item {
   color: #172033;
 }
 
-#wpadminbar #wp-admin-bar-alfa-live-activity-feed > .alfa-toolbar-feed-content {
+#wpadminbar #wp-admin-bar-cvsj-live-activity-feed > .cvsj-toolbar-feed-content {
   box-sizing: border-box;
   width: 360px;
   max-width: calc(100vw - 24px);
@@ -22,25 +22,25 @@
   white-space: normal;
 }
 
-#wpadminbar .alfa-toolbar-feed-status {
+#wpadminbar .cvsj-toolbar-feed-status {
   margin: 0 0 8px;
   color: #526078;
   font-size: 12px;
   font-weight: 600;
 }
 
-#wpadminbar .alfa-toolbar-event-list {
+#wpadminbar .cvsj-toolbar-event-list {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-#wpadminbar .alfa-toolbar-event-list li {
+#wpadminbar .cvsj-toolbar-event-list li {
   margin: 0;
   padding: 0;
 }
 
-#wpadminbar #wp-admin-bar-alfa-live-activity .alfa-toolbar-event-list .alfa-toolbar-event {
+#wpadminbar #wp-admin-bar-cvsj-live-activity .cvsj-toolbar-event-list .cvsj-toolbar-event {
   display: grid;
   gap: 3px;
   height: auto;
@@ -53,15 +53,15 @@
   overflow-wrap: anywhere;
 }
 
-#wpadminbar #wp-admin-bar-alfa-live-activity .alfa-toolbar-event-list .alfa-toolbar-event:hover,
-#wpadminbar #wp-admin-bar-alfa-live-activity .alfa-toolbar-event-list .alfa-toolbar-event:focus-visible {
+#wpadminbar #wp-admin-bar-cvsj-live-activity .cvsj-toolbar-event-list .cvsj-toolbar-event:hover,
+#wpadminbar #wp-admin-bar-cvsj-live-activity .cvsj-toolbar-event-list .cvsj-toolbar-event:focus-visible {
   background: #eef2ff;
   color: #3730a3;
   outline: 2px solid #4f46e5;
   outline-offset: -2px;
 }
 
-#wpadminbar #wp-admin-bar-alfa-live-activity-view-all > .ab-item {
+#wpadminbar #wp-admin-bar-cvsj-live-activity-view-all > .ab-item {
   height: auto;
   padding: 10px 12px;
   border-top: 1px solid #e3e7ef;
@@ -70,19 +70,19 @@
   font-weight: 600;
 }
 
-#wpadminbar #wp-admin-bar-alfa-live-activity-view-all > .ab-item:hover,
-#wpadminbar #wp-admin-bar-alfa-live-activity-view-all > .ab-item:focus-visible {
+#wpadminbar #wp-admin-bar-cvsj-live-activity-view-all > .ab-item:hover,
+#wpadminbar #wp-admin-bar-cvsj-live-activity-view-all > .ab-item:focus-visible {
   background: #eef2ff;
   color: #3730a3;
 }
 
-#wpadminbar #wp-admin-bar-alfa-live-activity .alfa-toolbar-event-summary {
+#wpadminbar #wp-admin-bar-cvsj-live-activity .cvsj-toolbar-event-summary {
   color: #172033;
   font-size: 13px;
   font-weight: 600;
 }
 
-#wpadminbar #wp-admin-bar-alfa-live-activity .alfa-toolbar-event-meta {
+#wpadminbar #wp-admin-bar-cvsj-live-activity .cvsj-toolbar-event-meta {
   color: #526078;
   overflow: hidden;
   color: #526078;
@@ -91,18 +91,18 @@
 }
 
 @media screen and (max-width: 782px) {
-  #wpadminbar #wp-admin-bar-root-default #wp-admin-bar-alfa-live-activity {
+  #wpadminbar #wp-admin-bar-root-default #wp-admin-bar-cvsj-live-activity {
     display: block;
   }
 
-  #wpadminbar #wp-admin-bar-alfa-live-activity-feed > .alfa-toolbar-feed-content {
+  #wpadminbar #wp-admin-bar-cvsj-live-activity-feed > .cvsj-toolbar-feed-content {
     width: min(360px, calc(100vw - 20px));
     max-width: calc(100vw - 20px);
   }
 }
 
 @media screen and (max-width: 600px) {
-  #wpadminbar #wp-admin-bar-alfa-live-activity > .ab-sub-wrapper {
+  #wpadminbar #wp-admin-bar-cvsj-live-activity > .ab-sub-wrapper {
     position: fixed;
     top: 46px;
     left: 0;
@@ -114,7 +114,7 @@
     border-radius: 0 0 8px 8px;
   }
 
-  #wpadminbar #wp-admin-bar-alfa-live-activity-feed > .alfa-toolbar-feed-content {
+  #wpadminbar #wp-admin-bar-cvsj-live-activity-feed > .cvsj-toolbar-feed-content {
     width: 100%;
     max-width: 100%;
   }

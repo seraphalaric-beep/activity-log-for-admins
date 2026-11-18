@@ -1,18 +1,18 @@
 <?php
 
-namespace ActivityLogForAdmins;
+namespace ChangeVigilSiteJournal;
 
 defined( 'ABSPATH' ) || exit;
 
 final class Alerts {
-    public const HOOK = 'alfa_alert_rule_dispatch';
-    public const RETRY_HOOK = 'alfa_alert_event_retry';
-    public const RULES = 'alfa_alert_rules';
-    public const CHANNELS = 'alfa_alert_channels';
-    private const QUEUE = 'alfa_alert_rule_queue';
-    private const LOCK = 'alfa_alert_rule_queue_lock';
-    private const RETRY_GENERATION = 'alfa_alert_retry_generation';
-    private const PAUSED = 'alfa_alert_queue_paused';
+    public const HOOK = 'cvsj_alert_rule_dispatch';
+    public const RETRY_HOOK = 'cvsj_alert_event_retry';
+    public const RULES = 'cvsj_alert_rules';
+    public const CHANNELS = 'cvsj_alert_channels';
+    private const QUEUE = 'cvsj_alert_rule_queue';
+    private const LOCK = 'cvsj_alert_rule_queue_lock';
+    private const RETRY_GENERATION = 'cvsj_alert_retry_generation';
+    private const PAUSED = 'cvsj_alert_queue_paused';
     private const MAX_RULES = 20;
     private const MAX_QUEUE = 500;
     private const BATCH_SIZE = 20;
@@ -35,11 +35,11 @@ final class Alerts {
 
     public static function presets(): array {
         return [
-            [ 'id' => 'failed_sign_in', 'name' => __( 'Failed sign in', 'activity-log-for-admins' ), 'logic' => 'all', 'conditions' => [ [ 'field' => 'action_key', 'operator' => 'equals', 'value' => 'sign_in_failed' ] ] ],
-            [ 'id' => 'account_role_change', 'name' => __( 'Account role change', 'activity-log-for-admins' ), 'logic' => 'all', 'conditions' => [ [ 'field' => 'action_key', 'operator' => 'equals', 'value' => 'role_changed' ] ] ],
-            [ 'id' => 'session_policy_action', 'name' => __( 'Automatic session policy action', 'activity-log-for-admins' ), 'logic' => 'all', 'conditions' => [ [ 'field' => 'action_key', 'operator' => 'equals', 'value' => 'session_policy_ended' ] ] ],
-            [ 'id' => 'plugin_install', 'name' => __( 'Plugin installed', 'activity-log-for-admins' ), 'logic' => 'all', 'conditions' => [ [ 'field' => 'action_key', 'operator' => 'equals', 'value' => 'plugin_installed' ] ] ],
-            [ 'id' => 'warning_activity', 'name' => __( 'Warning activity', 'activity-log-for-admins' ), 'logic' => 'all', 'conditions' => [ [ 'field' => 'severity', 'operator' => 'equals', 'value' => 'warning' ] ] ],
+            [ 'id' => 'failed_sign_in', 'name' => __( 'Failed sign in', 'change-vigil-site-journal' ), 'logic' => 'all', 'conditions' => [ [ 'field' => 'action_key', 'operator' => 'equals', 'value' => 'sign_in_failed' ] ] ],
+            [ 'id' => 'account_role_change', 'name' => __( 'Account role change', 'change-vigil-site-journal' ), 'logic' => 'all', 'conditions' => [ [ 'field' => 'action_key', 'operator' => 'equals', 'value' => 'role_changed' ] ] ],
+            [ 'id' => 'session_policy_action', 'name' => __( 'Automatic session policy action', 'change-vigil-site-journal' ), 'logic' => 'all', 'conditions' => [ [ 'field' => 'action_key', 'operator' => 'equals', 'value' => 'session_policy_ended' ] ] ],
+            [ 'id' => 'plugin_install', 'name' => __( 'Plugin installed', 'change-vigil-site-journal' ), 'logic' => 'all', 'conditions' => [ [ 'field' => 'action_key', 'operator' => 'equals', 'value' => 'plugin_installed' ] ] ],
+            [ 'id' => 'warning_activity', 'name' => __( 'Warning activity', 'change-vigil-site-journal' ), 'logic' => 'all', 'conditions' => [ [ 'field' => 'severity', 'operator' => 'equals', 'value' => 'warning' ] ] ],
         ];
     }
 
@@ -66,7 +66,7 @@ final class Alerts {
     public static function save_channels( array $input ): array|\WP_Error {
         $lock = self::acquire_lock();
         if ( '' === $lock ) {
-            return new \WP_Error( 'alfa_alert_channel_busy', __( 'Alert messages are being processed. Try saving again shortly.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+            return new \WP_Error( 'cvsj_alert_channel_busy', __( 'Alert messages are being processed. Try saving again shortly.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
         }
         try {
             $current = self::channel_config();
@@ -76,18 +76,18 @@ final class Alerts {
             $next = $current;
             foreach ( [ 'clear_slack', 'clear_sms' ] as $boolean_key ) {
                 if ( array_key_exists( $boolean_key, $input ) && ! is_bool( $input[ $boolean_key ] ) ) {
-                    return new \WP_Error( 'alfa_alert_channel_invalid', __( 'The channel settings are invalid.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                    return new \WP_Error( 'cvsj_alert_channel_invalid', __( 'The channel settings are invalid.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
                 }
             }
             if ( ! empty( $input['clear_slack'] ) ) {
                 $next['slack_webhook'] = '';
             } elseif ( isset( $input['slack_webhook'] ) ) {
                 if ( ! is_string( $input['slack_webhook'] ) ) {
-                    return new \WP_Error( 'alfa_alert_slack_url', __( 'Enter a valid Slack incoming webhook URL.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                    return new \WP_Error( 'cvsj_alert_slack_url', __( 'Enter a valid Slack incoming webhook URL.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
                 }
                 $webhook = trim( $input['slack_webhook'] );
                 if ( '' !== $webhook && ! self::valid_slack_webhook( $webhook ) ) {
-                    return new \WP_Error( 'alfa_alert_slack_url', __( 'Enter a valid HTTPS Slack incoming webhook URL.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                    return new \WP_Error( 'cvsj_alert_slack_url', __( 'Enter a valid HTTPS Slack incoming webhook URL.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
                 }
                 if ( '' !== $webhook ) {
                     $next['slack_webhook'] = $webhook;
@@ -102,33 +102,33 @@ final class Alerts {
                 if ( isset( $input['twilio_account_sid'] ) && '' !== trim( (string) $input['twilio_account_sid'] ) ) {
                     $sid = strtoupper( sanitize_text_field( (string) $input['twilio_account_sid'] ) );
                     if ( ! preg_match( '/\\AAC[0-9A-F]{32}\\z/', $sid ) ) {
-                        return new \WP_Error( 'alfa_alert_twilio_sid', __( 'Enter a valid Twilio account SID.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                        return new \WP_Error( 'cvsj_alert_twilio_sid', __( 'Enter a valid Twilio account SID.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
                     }
                     $next['twilio_account_sid'] = $sid;
                 }
                 if ( isset( $input['twilio_auth_token'] ) && '' !== trim( (string) $input['twilio_auth_token'] ) ) {
                     $token = trim( (string) $input['twilio_auth_token'] );
                     if ( strlen( $token ) < 16 || strlen( $token ) > 256 || preg_match( '/[\\r\\n]/', $token ) ) {
-                        return new \WP_Error( 'alfa_alert_twilio_token', __( 'Enter a valid Twilio authentication token.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                        return new \WP_Error( 'cvsj_alert_twilio_token', __( 'Enter a valid Twilio authentication token.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
                     }
                     $next['twilio_auth_token'] = $token;
                 }
                 if ( isset( $input['sms_from'] ) && '' !== trim( (string) $input['sms_from'] ) ) {
                     $sender = strtoupper( sanitize_text_field( trim( (string) $input['sms_from'] ) ) );
                     if ( ! preg_match( '/\\A(?:\\+[1-9][0-9]{6,14}|MG[0-9A-F]{32})\\z/', $sender ) ) {
-                        return new \WP_Error( 'alfa_alert_sms_sender', __( 'Enter an E.164 phone number or a Twilio Messaging Service SID.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                        return new \WP_Error( 'cvsj_alert_sms_sender', __( 'Enter an E.164 phone number or a Twilio Messaging Service SID.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
                     }
                     $next['sms_from'] = $sender;
                 }
                 if ( array_key_exists( 'sms_recipients', $input ) ) {
                     if ( ! is_array( $input['sms_recipients'] ) || ! array_is_list( $input['sms_recipients'] ) || count( $input['sms_recipients'] ) > 10 ) {
-                        return new \WP_Error( 'alfa_alert_sms_recipients', __( 'Enter up to ten E.164 phone numbers.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                        return new \WP_Error( 'cvsj_alert_sms_recipients', __( 'Enter up to ten E.164 phone numbers.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
                     }
                     $recipients = [];
                     foreach ( $input['sms_recipients'] as $recipient ) {
                         $phone = is_string( $recipient ) ? trim( $recipient ) : '';
                         if ( ! preg_match( '/\\A\\+[1-9][0-9]{6,14}\\z/', $phone ) ) {
-                            return new \WP_Error( 'alfa_alert_sms_recipients', __( 'Each SMS recipient must use E.164 format, for example +353123456789.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                            return new \WP_Error( 'cvsj_alert_sms_recipients', __( 'Each SMS recipient must use E.164 format, for example +353123456789.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
                         }
                         $recipients[] = $phone;
                     }
@@ -137,10 +137,10 @@ final class Alerts {
             }
             $encrypted = self::encrypt_channels( $next );
             if ( false === $encrypted ) {
-                return new \WP_Error( 'alfa_alert_channel_crypto', __( 'Channel credentials could not be protected on this server. Check that OpenSSL is available.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+                return new \WP_Error( 'cvsj_alert_channel_crypto', __( 'Channel credentials could not be protected on this server. Check that OpenSSL is available.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
             }
             if ( ! update_option( self::CHANNELS, $encrypted, false ) && $encrypted !== get_option( self::CHANNELS, '' ) ) {
-                return new \WP_Error( 'alfa_alert_channel_storage', __( 'Channel settings could not be saved.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+                return new \WP_Error( 'cvsj_alert_channel_storage', __( 'Channel settings could not be saved.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
             }
             return self::channel_summary();
         } finally {
@@ -152,23 +152,23 @@ final class Alerts {
         $config = self::channel_config();
         if ( 'slack' === $channel ) {
             if ( '' === $config['slack_webhook'] ) {
-                return new \WP_Error( 'alfa_alert_channel_missing', __( 'Configure a Slack webhook before sending a test.', 'activity-log-for-admins' ), [ 'status' => 409 ] );
+                return new \WP_Error( 'cvsj_alert_channel_missing', __( 'Configure a Slack webhook before sending a test.', 'change-vigil-site-journal' ), [ 'status' => 409 ] );
             }
-            $sent = self::send_slack( $config['slack_webhook'], __( 'Test message from Activity Log for Admins.', 'activity-log-for-admins' ) );
+            $sent = self::send_slack( $config['slack_webhook'], __( 'Test message from Change Vigil Site Journal.', 'change-vigil-site-journal' ) );
             return $sent
                 ? [ 'sent' => true, 'channel' => 'slack' ]
-                : new \WP_Error( 'alfa_alert_channel_delivery', __( 'Slack did not accept the test message. Check the webhook and try again.', 'activity-log-for-admins' ), [ 'status' => 502 ] );
+                : new \WP_Error( 'cvsj_alert_channel_delivery', __( 'Slack did not accept the test message. Check the webhook and try again.', 'change-vigil-site-journal' ), [ 'status' => 502 ] );
         }
         if ( 'sms' === $channel ) {
             if ( ! self::sms_configured( $config ) ) {
-                return new \WP_Error( 'alfa_alert_channel_missing', __( 'Complete the Twilio account, sender, and recipient settings before sending a test.', 'activity-log-for-admins' ), [ 'status' => 409 ] );
+                return new \WP_Error( 'cvsj_alert_channel_missing', __( 'Complete the Twilio account, sender, and recipient settings before sending a test.', 'change-vigil-site-journal' ), [ 'status' => 409 ] );
             }
-            $sent = self::send_sms( $config, $config['sms_recipients'][0], __( 'Test message from Activity Log for Admins.', 'activity-log-for-admins' ) );
+            $sent = self::send_sms( $config, $config['sms_recipients'][0], __( 'Test message from Change Vigil Site Journal.', 'change-vigil-site-journal' ) );
             return $sent
                 ? [ 'sent' => true, 'channel' => 'sms' ]
-                : new \WP_Error( 'alfa_alert_channel_delivery', __( 'Twilio did not accept the test message. Check the account settings and try again.', 'activity-log-for-admins' ), [ 'status' => 502 ] );
+                : new \WP_Error( 'cvsj_alert_channel_delivery', __( 'Twilio did not accept the test message. Check the account settings and try again.', 'change-vigil-site-journal' ), [ 'status' => 502 ] );
         }
-        return new \WP_Error( 'alfa_alert_channel_invalid', __( 'Choose a supported notification channel.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+        return new \WP_Error( 'cvsj_alert_channel_invalid', __( 'Choose a supported notification channel.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
     }
 
     public static function rules(): array {
@@ -203,14 +203,14 @@ final class Alerts {
             || ! is_array( $recipients ) || ! array_is_list( $recipients ) || count( $recipients ) > 10
             || ( in_array( 'email', $channels, true ) && ! $recipients )
             || ! is_bool( $enabled ) ) {
-            return new \WP_Error( 'alfa_alert_rule_invalid', __( 'Check the alert name, match logic, conditions, channels, and recipients.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+            return new \WP_Error( 'cvsj_alert_rule_invalid', __( 'Check the alert name, match logic, conditions, channels, and recipients.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
         }
         $channel_config = self::channel_config();
         if ( in_array( 'slack', $channels, true ) && '' === $channel_config['slack_webhook'] ) {
-            return new \WP_Error( 'alfa_alert_channel_missing', __( 'Configure Slack before selecting it for an alert rule.', 'activity-log-for-admins' ), [ 'status' => 409 ] );
+            return new \WP_Error( 'cvsj_alert_channel_missing', __( 'Configure Slack before selecting it for an alert rule.', 'change-vigil-site-journal' ), [ 'status' => 409 ] );
         }
         if ( in_array( 'sms', $channels, true ) && ! self::sms_configured( $channel_config ) ) {
-            return new \WP_Error( 'alfa_alert_channel_missing', __( 'Complete the Twilio settings before selecting SMS for an alert rule.', 'activity-log-for-admins' ), [ 'status' => 409 ] );
+            return new \WP_Error( 'cvsj_alert_channel_missing', __( 'Complete the Twilio settings before selecting SMS for an alert rule.', 'change-vigil-site-journal' ), [ 'status' => 409 ] );
         }
         $clean_conditions = [];
         foreach ( $conditions as $condition ) {
@@ -218,7 +218,7 @@ final class Alerts {
                 || ! array_key_exists( $condition['field'], self::FIELDS ) || ! is_string( $condition['operator'] ?? null )
                 || ! in_array( $condition['operator'], [ 'equals', 'contains', 'starts_with' ], true )
                 || ! is_string( $condition['value'] ?? null ) || '' === trim( $condition['value'] ) || strlen( $condition['value'] ) > 120 ) {
-                return new \WP_Error( 'alfa_alert_rule_condition', __( 'Each condition needs a supported event field, comparison, and value of up to 120 characters.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                return new \WP_Error( 'cvsj_alert_rule_condition', __( 'Each condition needs a supported event field, comparison, and value of up to 120 characters.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
             }
             $clean_conditions[] = [
                 'field' => $condition['field'],
@@ -229,22 +229,22 @@ final class Alerts {
         $clean_recipients = [];
         foreach ( $recipients as $recipient ) {
             if ( ! is_string( $recipient ) || ! is_email( $recipient ) ) {
-                return new \WP_Error( 'alfa_alert_rule_recipient', __( 'Enter valid email addresses for every alert recipient.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+                return new \WP_Error( 'cvsj_alert_rule_recipient', __( 'Enter valid email addresses for every alert recipient.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
             }
             $clean_recipients[] = sanitize_email( $recipient );
         }
         $clean_recipients = array_values( array_unique( $clean_recipients ) );
         if ( in_array( 'email', $channels, true ) && ! $clean_recipients ) {
-            return new \WP_Error( 'alfa_alert_rule_recipient', __( 'Enter at least one alert recipient.', 'activity-log-for-admins' ), [ 'status' => 400 ] );
+            return new \WP_Error( 'cvsj_alert_rule_recipient', __( 'Enter at least one alert recipient.', 'change-vigil-site-journal' ), [ 'status' => 400 ] );
         }
         $lock = self::acquire_lock();
         if ( '' === $lock ) {
-            return new \WP_Error( 'alfa_alert_rule_busy', __( 'Alert rules are being processed. Try saving again shortly.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+            return new \WP_Error( 'cvsj_alert_rule_busy', __( 'Alert rules are being processed. Try saving again shortly.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
         }
         try {
             $rules = self::rules();
             if ( '' !== $id && ! preg_match( '/\A[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\z/i', $id ) ) {
-                return new \WP_Error( 'alfa_alert_rule_missing', __( 'The alert rule was not found.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+                return new \WP_Error( 'cvsj_alert_rule_missing', __( 'The alert rule was not found.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
             }
             $existing_index = null;
             foreach ( $rules as $index => $rule ) {
@@ -254,10 +254,10 @@ final class Alerts {
                 }
             }
             if ( '' !== $id && null === $existing_index ) {
-                return new \WP_Error( 'alfa_alert_rule_missing', __( 'The alert rule was not found.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+                return new \WP_Error( 'cvsj_alert_rule_missing', __( 'The alert rule was not found.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
             }
             if ( null === $existing_index && count( $rules ) >= self::MAX_RULES ) {
-                return new \WP_Error( 'alfa_alert_rule_limit', __( 'A site can keep up to 20 custom alert rules.', 'activity-log-for-admins' ), [ 'status' => 409 ] );
+                return new \WP_Error( 'cvsj_alert_rule_limit', __( 'A site can keep up to 20 custom alert rules.', 'change-vigil-site-journal' ), [ 'status' => 409 ] );
             }
             $rule = [
                 'id' => null === $existing_index ? wp_generate_uuid4() : $rules[ $existing_index ]['id'],
@@ -274,7 +274,7 @@ final class Alerts {
                 $rules[ $existing_index ] = $rule;
             }
             if ( ! update_option( self::RULES, $rules, false ) && $rules !== get_option( self::RULES, [] ) ) {
-                return new \WP_Error( 'alfa_alert_rule_storage', __( 'The alert rule could not be saved.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+                return new \WP_Error( 'cvsj_alert_rule_storage', __( 'The alert rule could not be saved.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
             }
             return $rule;
         } finally {
@@ -286,7 +286,7 @@ final class Alerts {
         $id = strtolower( $id );
         $lock = self::acquire_lock();
         if ( '' === $lock ) {
-            return new \WP_Error( 'alfa_alert_rule_busy', __( 'Alert rules are being processed. Try saving again shortly.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+            return new \WP_Error( 'cvsj_alert_rule_busy', __( 'Alert rules are being processed. Try saving again shortly.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
         }
         try {
             $rules = self::rules();
@@ -300,10 +300,10 @@ final class Alerts {
             }
             unset( $rule );
             if ( ! $found ) {
-                return new \WP_Error( 'alfa_alert_rule_missing', __( 'The alert rule was not found.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+                return new \WP_Error( 'cvsj_alert_rule_missing', __( 'The alert rule was not found.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
             }
             if ( ! update_option( self::RULES, $rules, false ) && $rules !== get_option( self::RULES, [] ) ) {
-                return new \WP_Error( 'alfa_alert_rule_storage', __( 'The alert rule could not be updated.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+                return new \WP_Error( 'cvsj_alert_rule_storage', __( 'The alert rule could not be updated.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
             }
             return true;
         } finally {
@@ -315,16 +315,16 @@ final class Alerts {
         $id = strtolower( $id );
         $lock = self::acquire_lock();
         if ( '' === $lock ) {
-            return new \WP_Error( 'alfa_alert_rule_busy', __( 'Alert rules are being processed. Try deleting again shortly.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+            return new \WP_Error( 'cvsj_alert_rule_busy', __( 'Alert rules are being processed. Try deleting again shortly.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
         }
         try {
             $rules = self::rules();
             $remaining = array_values( array_filter( $rules, static fn( array $rule ): bool => ! hash_equals( $rule['id'], $id ) ) );
             if ( count( $remaining ) === count( $rules ) ) {
-                return new \WP_Error( 'alfa_alert_rule_missing', __( 'The alert rule was not found.', 'activity-log-for-admins' ), [ 'status' => 404 ] );
+                return new \WP_Error( 'cvsj_alert_rule_missing', __( 'The alert rule was not found.', 'change-vigil-site-journal' ), [ 'status' => 404 ] );
             }
             if ( ! update_option( self::RULES, $remaining, false ) && $remaining !== get_option( self::RULES, [] ) ) {
-                return new \WP_Error( 'alfa_alert_rule_storage', __( 'The alert rule could not be deleted.', 'activity-log-for-admins' ), [ 'status' => 503 ] );
+                return new \WP_Error( 'cvsj_alert_rule_storage', __( 'The alert rule could not be deleted.', 'change-vigil-site-journal' ), [ 'status' => 503 ] );
             }
             $queue = self::queue();
             $queue = array_values( array_filter( $queue, static fn( array $entry ): bool => ! hash_equals( (string) $entry['rule_id'], $id ) ) );
@@ -558,10 +558,10 @@ final class Alerts {
                 'item_id' => 'activity-alert-rule-' . $rule['id'],
                 'group_id' => 'activity-log-alert-rules',
                 'item_data' => [
-                    [ 'name' => __( 'Alert rule', 'activity-log-for-admins' ), 'value' => sanitize_text_field( $rule['name'] ) ],
-                    [ 'name' => __( 'Matching logic', 'activity-log-for-admins' ), 'value' => 'all' === $rule['logic'] ? __( 'Match every condition', 'activity-log-for-admins' ) : __( 'Match any condition', 'activity-log-for-admins' ) ],
-                    [ 'name' => __( 'Matching references', 'activity-log-for-admins' ), 'value' => implode( '; ', $references ) ],
-                    ...( $recipient ? [ [ 'name' => __( 'Recipient email', 'activity-log-for-admins' ), 'value' => $email ] ] : [] ),
+                    [ 'name' => __( 'Alert rule', 'change-vigil-site-journal' ), 'value' => sanitize_text_field( $rule['name'] ) ],
+                    [ 'name' => __( 'Matching logic', 'change-vigil-site-journal' ), 'value' => 'all' === $rule['logic'] ? __( 'Match every condition', 'change-vigil-site-journal' ) : __( 'Match any condition', 'change-vigil-site-journal' ) ],
+                    [ 'name' => __( 'Matching references', 'change-vigil-site-journal' ), 'value' => implode( '; ', $references ) ],
+                    ...( $recipient ? [ [ 'name' => __( 'Recipient email', 'change-vigil-site-journal' ), 'value' => $email ] ] : [] ),
                 ],
             ];
         }
@@ -572,19 +572,19 @@ final class Alerts {
         $identifiers = self::identifiers( $email, $user );
         $token = self::acquire_lock();
         if ( '' === $token ) {
-            return [ 'removed' => false, 'error' => __( 'Pending custom alerts could not be paused. Retry the privacy erasure.', 'activity-log-for-admins' ) ];
+            return [ 'removed' => false, 'error' => __( 'Pending custom alerts could not be paused. Retry the privacy erasure.', 'change-vigil-site-journal' ) ];
         }
         try {
             $generation = self::retry_generation() + 1;
             if ( ! update_option( self::RETRY_GENERATION, $generation, false ) && $generation !== self::retry_generation() ) {
-                return [ 'removed' => false, 'error' => __( 'Pending custom alert retries could not be invalidated. Retry the privacy erasure.', 'activity-log-for-admins' ) ];
+                return [ 'removed' => false, 'error' => __( 'Pending custom alert retries could not be invalidated. Retry the privacy erasure.', 'change-vigil-site-journal' ) ];
             }
             if ( ! update_option( self::PAUSED, true, false ) && ! self::is_paused() ) {
-                return [ 'removed' => false, 'error' => __( 'Pending custom alerts could not be paused. Retry the privacy erasure.', 'activity-log-for-admins' ) ];
+                return [ 'removed' => false, 'error' => __( 'Pending custom alerts could not be paused. Retry the privacy erasure.', 'change-vigil-site-journal' ) ];
             }
             $queue = self::queue();
             if ( $queue && ! update_option( self::QUEUE, [], false ) && [] !== get_option( self::QUEUE, [] ) ) {
-                return [ 'removed' => false, 'error' => __( 'Pending custom alerts could not be cleared. Retry the privacy erasure.', 'activity-log-for-admins' ) ];
+                return [ 'removed' => false, 'error' => __( 'Pending custom alerts could not be cleared. Retry the privacy erasure.', 'change-vigil-site-journal' ) ];
             }
             wp_clear_scheduled_hook( self::HOOK );
             wp_clear_scheduled_hook( self::RETRY_HOOK );
@@ -608,7 +608,7 @@ final class Alerts {
                 $remaining[] = $rule;
             }
             if ( $changed && ! update_option( self::RULES, $remaining, false ) && $remaining !== get_option( self::RULES, [] ) ) {
-                return [ 'removed' => true, 'error' => __( 'Custom alert rules could not be updated. Retry the privacy erasure.', 'activity-log-for-admins' ) ];
+                return [ 'removed' => true, 'error' => __( 'Custom alert rules could not be updated. Retry the privacy erasure.', 'change-vigil-site-journal' ) ];
             }
             return [ 'removed' => $changed, 'error' => '' ];
         } finally {
@@ -619,14 +619,14 @@ final class Alerts {
     public static function resume_after_privacy(): true|\WP_Error {
         $token = self::acquire_lock();
         if ( '' === $token ) {
-            return new \WP_Error( 'alfa_alert_privacy_busy', __( 'Custom alert delivery is still processing. Retry the privacy erasure to resume notifications safely.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_alert_privacy_busy', __( 'Custom alert delivery is still processing. Retry the privacy erasure to resume notifications safely.', 'change-vigil-site-journal' ) );
         }
         try {
             if ( self::queue() ) {
-                return new \WP_Error( 'alfa_alert_privacy_queue', __( 'Custom alert delivery still has pending messages. Retry the privacy erasure before resuming notifications.', 'activity-log-for-admins' ) );
+                return new \WP_Error( 'cvsj_alert_privacy_queue', __( 'Custom alert delivery still has pending messages. Retry the privacy erasure before resuming notifications.', 'change-vigil-site-journal' ) );
             }
             if ( ! update_option( self::PAUSED, false, false ) && self::is_paused() ) {
-                return new \WP_Error( 'alfa_alert_privacy_resume', __( 'Custom alert delivery could not be resumed. Retry the privacy erasure.', 'activity-log-for-admins' ) );
+                return new \WP_Error( 'cvsj_alert_privacy_resume', __( 'Custom alert delivery could not be resumed. Retry the privacy erasure.', 'change-vigil-site-journal' ) );
             }
             return true;
         } finally {
@@ -702,23 +702,23 @@ final class Alerts {
         $timestamp = strtotime( (string) $event['occurred_at'] . ' UTC' );
         $site_name = sanitize_text_field( wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES ) );
         // translators: %1$s is the site name; %2$s is the alert rule name.
-        $subject = sprintf( __( '[%1$s] Activity alert: %2$s', 'activity-log-for-admins' ), $site_name, $rule['name'] );
+        $subject = sprintf( __( '[%1$s] Activity alert: %2$s', 'change-vigil-site-journal' ), $site_name, $rule['name'] );
         $lines = [
             // translators: %s is the alert rule name.
-            sprintf( __( 'Alert rule: %s', 'activity-log-for-admins' ), $rule['name'] ),
+            sprintf( __( 'Alert rule: %s', 'change-vigil-site-journal' ), $rule['name'] ),
             // translators: %s is the event time.
-            sprintf( __( 'Time: %s', 'activity-log-for-admins' ), wp_date( 'j M Y, H:i:s T', $timestamp ) ),
+            sprintf( __( 'Time: %s', 'change-vigil-site-journal' ), wp_date( 'j M Y, H:i:s T', $timestamp ) ),
             // translators: %s is the event summary.
-            sprintf( __( 'Event: %s', 'activity-log-for-admins' ), sanitize_text_field( (string) $event['summary'] ) ),
+            sprintf( __( 'Event: %s', 'change-vigil-site-journal' ), sanitize_text_field( (string) $event['summary'] ) ),
             // translators: %s is the actor name.
-            sprintf( __( 'Actor: %s', 'activity-log-for-admins' ), sanitize_text_field( (string) $event['actor_name'] ) ),
+            sprintf( __( 'Actor: %s', 'change-vigil-site-journal' ), sanitize_text_field( (string) $event['actor_name'] ) ),
             // translators: %s is the actor role.
-            sprintf( __( 'Actor role: %s', 'activity-log-for-admins' ), sanitize_text_field( (string) $event['actor_role'] ) ),
+            sprintf( __( 'Actor role: %s', 'change-vigil-site-journal' ), sanitize_text_field( (string) $event['actor_role'] ) ),
             // translators: %s is the affected item name.
-            sprintf( __( 'Affected item: %s', 'activity-log-for-admins' ), sanitize_text_field( (string) $event['item_name'] ) ),
+            sprintf( __( 'Affected item: %s', 'change-vigil-site-journal' ), sanitize_text_field( (string) $event['item_name'] ) ),
             // translators: %s is the severity label.
-            sprintf( __( 'Severity: %s', 'activity-log-for-admins' ), sanitize_text_field( (string) $event['severity'] ) ),
-            __( 'Review the full event in the Activity Log in WordPress.', 'activity-log-for-admins' ),
+            sprintf( __( 'Severity: %s', 'change-vigil-site-journal' ), sanitize_text_field( (string) $event['severity'] ) ),
+            __( 'Review the full event in the Change Vigil in WordPress.', 'change-vigil-site-journal' ),
         ];
         $delivered = array_values( array_unique( $delivered ) );
         $message = implode( "\n", $lines );
@@ -797,7 +797,7 @@ final class Alerts {
             Store::table(), $event_id
         ), ARRAY_A );
         if ( $wpdb->last_error ) {
-            return new \WP_Error( 'alfa_alert_event_unavailable', __( 'The event needed for a custom alert is temporarily unavailable.', 'activity-log-for-admins' ) );
+            return new \WP_Error( 'cvsj_alert_event_unavailable', __( 'The event needed for a custom alert is temporarily unavailable.', 'change-vigil-site-journal' ) );
         }
         return is_array( $event ) ? $event : false;
     }
@@ -870,7 +870,7 @@ final class Alerts {
     }
 
     private static function channel_key(): string {
-        return hash_hmac( 'sha256', 'activity-log-for-admins:alert-channels:v1', wp_salt( 'auth' ) . '|' . wp_salt( 'secure_auth' ), true );
+        return hash_hmac( 'sha256', 'change-vigil-site-journal:alert-channels:v1', wp_salt( 'auth' ) . '|' . wp_salt( 'secure_auth' ), true );
     }
 
     private static function encrypt_channels( array $config ): string|false {
@@ -887,7 +887,7 @@ final class Alerts {
         if ( ! is_string( $json ) ) {
             return false;
         }
-        $ciphertext = openssl_encrypt( $json, 'aes-256-gcm', self::channel_key(), OPENSSL_RAW_DATA, $iv, $tag, 'alfa-alert-channels-v1', 16 );
+        $ciphertext = openssl_encrypt( $json, 'aes-256-gcm', self::channel_key(), OPENSSL_RAW_DATA, $iv, $tag, 'cvsj-alert-channels-v1', 16 );
         return false === $ciphertext || 16 !== strlen( $tag ) ? false : 'v1:' . base64_encode( $iv . $tag . $ciphertext );
     }
 
@@ -906,7 +906,7 @@ final class Alerts {
             OPENSSL_RAW_DATA,
             substr( $raw, 0, 12 ),
             substr( $raw, 12, 16 ),
-            'alfa-alert-channels-v1'
+            'cvsj-alert-channels-v1'
         );
         if ( ! is_string( $plain ) ) {
             return false;

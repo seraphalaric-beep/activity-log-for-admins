@@ -7,7 +7,7 @@ const password = process.env.PILOT_PASSWORD ?? (process.env.PILOT_PASSWORD_FILE
   ? (await readFile(process.env.PILOT_PASSWORD_FILE, "utf8")).trim()
   : passwordArgument);
 const { version } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
-const skipRegression = process.env.ALFA_SKIP_REGRESSION === "1";
+const skipRegression = process.env.CVSJ_SKIP_REGRESSION === "1";
 if (!base || !password || new URL(base).hostname !== "127.0.0.1") throw new Error("Pass a disposable loopback URL and its pilot password.");
 const launchOptions = { headless: true };
 if (process.env.PLAYWRIGHT_CHANNEL !== "chromium") launchOptions.channel = process.env.PLAYWRIGHT_CHANNEL ?? "chrome";
@@ -20,11 +20,11 @@ page.on("pageerror", error => pageErrors.push(error.message));
 page.on("request", request => {
   const url = new URL(request.url());
   const route = url.searchParams.get("rest_route") ?? url.pathname;
-  if (route.endsWith("/activity-log-for-admins/v1/events")) activityRequests.push(url);
+  if (route.endsWith("/change-vigil-site-journal/v1/events")) activityRequests.push(url);
 });
-const plugin = "activity-log-for-admins/activity-log-for-admins.php";
-const screen = "/wp-admin/admin.php?page=activity-log-for-admins";
-const navigation = page.getByRole("navigation", { name: "Activity Log", exact: true });
+const plugin = "change-vigil-site-journal/change-vigil-site-journal.php";
+const screen = "/wp-admin/admin.php?page=change-vigil-site-journal";
+const navigation = page.getByRole("navigation", { name: "Change Vigil", exact: true });
 
 function assertPrivateNoStore(response, label) {
   assert.match(response.cacheControl ?? "", /\bprivate\b/i, `${label} response must be private`);
@@ -42,12 +42,12 @@ async function signIn(tab, user, value) {
 
 async function api(path, options = {}) {
   return page.evaluate(async ({ path, options }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
     for (const [key, value] of Object.entries(options.query ?? {})) url.searchParams.set(key, value);
-    url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    url.searchParams.set("_cvsj_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const response = await fetch(url, {
       method: options.data ? "POST" : "GET",
       headers: { "X-WP-Nonce": config.nonce, "Content-Type": "application/json" },
@@ -60,7 +60,7 @@ async function api(path, options = {}) {
 }
 
 async function fixture(operation, fields = {}) {
-  const response = await page.request.post(base + "/alfa-fixture.php", { form: { operation, ...fields } });
+  const response = await page.request.post(base + "/cvsj-fixture.php", { form: { operation, ...fields } });
   assert.equal(response.status(), 200, await response.text());
   return response.json();
 }
@@ -75,9 +75,9 @@ try {
   await fixture("reset");
   const accessUser = await fixture("access_user");
   await page.goto(base + screen);
-  await page.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
   await page.getByText(/\d+ events? on this page/).waitFor();
-  assert.ok(activityRequests.some(url => url.searchParams.has("_alfa_request")), "Activity list requests must bypass shared caches");
+  assert.ok(activityRequests.some(url => url.searchParams.has("_cvsj_request")), "Activity list requests must bypass shared caches");
   const settingsResponse = await api("settings");
   assert.equal(settingsResponse.data.settings.retention, 90);
   assert.equal(settingsResponse.data.settings.woocommerce, false);
@@ -96,8 +96,8 @@ try {
   const settingsExport = await api("settings/export");
   assert.equal(settingsExport.status, 200);
   assertPrivateNoStore(settingsExport, "Settings export");
-  assert.equal(settingsExport.data.format, "activity-log-for-admins-settings");
-  assert.equal(settingsExport.data.plugin, "activity-log-for-admins");
+  assert.equal(settingsExport.data.format, "change-vigil-site-journal-settings");
+  assert.equal(settingsExport.data.plugin, "change-vigil-site-journal");
   assert.deepEqual(settingsExport.data.settings.disabled_actions, []);
   assert.deepEqual(settingsExport.data.settings.viewer_roles, []);
   assert.deepEqual(settingsExport.data.settings.manager_roles, []);
@@ -121,15 +121,15 @@ try {
   eraseOnUninstall.settings.erase = true;
   assert.equal((await api("settings/import", { data: eraseOnUninstall })).status, 409);
   await navigation.getByRole("link", { name: "Settings", exact: true }).click();
-  await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
-  const fileCategory = page.locator(".alfa-settings-group .alfa-check").filter({ hasText: "New, changed, removed, and permission changes found during scans" }).getByRole("checkbox");
+  await page.getByText(`Change Vigil Site Journal · Version ${version}`).waitFor();
+  const fileCategory = page.locator(".cvsj-settings-group .cvsj-check").filter({ hasText: "New, changed, removed, and permission changes found during scans" }).getByRole("checkbox");
   await fileCategory.waitFor();
   assert.equal(await fileCategory.isChecked(), false);
   const uploadsCheckbox = page.getByRole("checkbox", { name: /Include uploads/ });
   await uploadsCheckbox.waitFor();
   assert.equal(await uploadsCheckbox.isChecked(), false);
   assert.equal(await page.getByLabel("Additional excluded paths").isDisabled(), true);
-  await page.locator(".alfa-event-controls > summary").click();
+  await page.locator(".cvsj-event-controls > summary").click();
   const importFile = async payload => page.locator('input[type="file"]').setInputFiles({
     name: "activitylog-settings.json",
     mimeType: "application/json",
@@ -144,8 +144,8 @@ try {
   assert.equal((await api("settings")).data.settings.retention, 1);
   await api("settings", { data: settingsExport.data.settings });
   await page.reload();
-  await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
-  await page.locator(".alfa-event-controls > summary").click();
+  await page.getByText(`Change Vigil Site Journal · Version ${version}`).waitFor();
+  await page.locator(".cvsj-event-controls > summary").click();
   await importFile(eraseOnUninstall);
   assert.equal(await page.getByRole("button", { name: "Apply imported settings" }).isDisabled(), true);
   await page.getByRole("checkbox", { name: /Confirm erase on uninstall/ }).check();
@@ -154,8 +154,8 @@ try {
   assert.equal((await api("settings")).data.settings.erase, true);
   await api("settings", { data: settingsExport.data.settings });
   await page.reload();
-  await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
-  await page.locator(".alfa-event-controls > summary").click();
+  await page.getByText(`Change Vigil Site Journal · Version ${version}`).waitFor();
+  await page.locator(".cvsj-event-controls > summary").click();
   const individualEventSettings = structuredClone(settingsExport.data);
   individualEventSettings.settings.disabled_actions = ["content_edited"];
   await importFile(individualEventSettings);
@@ -198,7 +198,7 @@ try {
   const noteText = "Reviewed the page change with the editor.\nThe recorded edit event stayed disabled.";
   await page.getByRole("textbox", { name: "Add a note" }).fill(noteText);
   await page.getByRole("button", { name: "Add note", exact: true }).click();
-  await page.locator(".alfa-notes ol").getByText(noteText, { exact: true }).waitFor();
+  await page.locator(".cvsj-notes ol").getByText(noteText, { exact: true }).waitFor();
   const notedEvent = await api(`events/${probeEvent.id}`);
   assert.equal(notedEvent.data.notes.length, 1);
   assert.equal(notedEvent.data.notes[0].note, noteText);
@@ -242,7 +242,7 @@ try {
   await page.getByText("Settings saved.", { exact: true }).waitFor();
   assert.deepEqual((await api("settings")).data.settings.viewer_roles, ["editor"]);
   await page.getByRole("textbox", { name: "Find users to grant access" }).fill("pilot");
-  const editorAccessRow = page.locator(".alfa-access-user").filter({ hasText: "@piloteditor" });
+  const editorAccessRow = page.locator(".cvsj-access-user").filter({ hasText: "@piloteditor" });
   const editorViewAccess = editorAccessRow.getByRole("checkbox", { name: /can view and export activity$/ });
   await editorViewAccess.waitFor();
   await editorViewAccess.check();
@@ -259,11 +259,11 @@ try {
   const editorContext = await browser.newContext();
   const editorPage = await editorContext.newPage();
   await signIn(editorPage, "piloteditor", accessUser.editorPassword);
-  const adminScreen = base + "/wp-admin/admin.php?page=activity-log-for-admins";
+  const adminScreen = base + "/wp-admin/admin.php?page=change-vigil-site-journal";
   await editorPage.goto(adminScreen);
-  await editorPage.getByRole("heading", { name: "Activity Log", exact: true }).waitFor();
+  await editorPage.getByRole("heading", { name: "Change Vigil", exact: true }).waitFor();
   assert.equal(await editorPage.getByRole("link", { name: "Settings", exact: true }).count(), 0);
-  const editorConfig = await editorPage.evaluate(() => window.alfaSettings);
+  const editorConfig = await editorPage.evaluate(() => window.cvsjSettings);
   const editorNonce = editorConfig.nonce;
   const editorUrl = path => {
     const url = new URL(editorConfig.base);
@@ -291,7 +291,7 @@ try {
 
   await page.reload();
   await page.getByRole("textbox", { name: "Find users to grant access" }).fill("pilot");
-  const editorManageAccess = page.locator(".alfa-access-user").filter({ hasText: "@piloteditor" }).getByRole("checkbox", { name: /can add notes and manage settings$/ });
+  const editorManageAccess = page.locator(".cvsj-access-user").filter({ hasText: "@piloteditor" }).getByRole("checkbox", { name: /can add notes and manage settings$/ });
   await editorManageAccess.waitFor();
   await editorManageAccess.check();
   await page.getByRole("button", { name: "Save settings" }).click();
@@ -304,7 +304,7 @@ try {
   await editorContext.close();
   await api("settings", { data: { ...settingsExport.data.settings, viewer_users: [], manager_users: [], excluded_users: [], excluded_roles: [], excluded_item_kinds: [], excluded_post_statuses: [], exclude_system_activity: false } });
   await page.reload();
-  await page.getByText(`Activity Log for Admins · Version ${version}`).waitFor();
+  await page.getByText(`Change Vigil Site Journal · Version ${version}`).waitFor();
   assert.deepEqual(pageErrors, []);
   await navigation.getByRole("link", { name: "Settings", exact: true }).click();
   const databaseCategory = page.getByRole("checkbox", { name: /Database tables/ });
@@ -447,7 +447,7 @@ try {
     await page.reload();
     const allResponse = await api("events");
     assertPrivateNoStore(allResponse, "Activity list");
-    assert.ok(new URL(allResponse.url).searchParams.has("_alfa_request"));
+    assert.ok(new URL(allResponse.url).searchParams.has("_cvsj_request"));
     const all = allResponse.data;
     const rowsFor = async (action, query = {}) => (await api("events", { query: { action, ...query } })).data.events;
     assert.ok((await rowsFor("sign_in_failed")).some(event => event.actor_kind === "anonymous"));
@@ -481,10 +481,10 @@ try {
     assert.equal(coverage.passwordCaptured, true);
     assert.equal(coverage.signedOutCaptured, true);
     assert.equal(coverage.privacyOk, true);
-    assert.ok((await rowsFor("content_created", { item: `alfa_book:${coverage.book}` })).length);
-    assert.ok((await rowsFor("content_edited", { item: `alfa_book:${coverage.book}` })).length);
-    assert.ok((await rowsFor("term_created", { item: `term:alfa_genre:${coverage.genre}` })).length);
-    assert.ok((await rowsFor("term_edited", { item: `term:alfa_genre:${coverage.genre}` })).length);
+    assert.ok((await rowsFor("content_created", { item: `cvsj_book:${coverage.book}` })).length);
+    assert.ok((await rowsFor("content_edited", { item: `cvsj_book:${coverage.book}` })).length);
+    assert.ok((await rowsFor("term_created", { item: `term:cvsj_genre:${coverage.genre}` })).length);
+    assert.ok((await rowsFor("term_edited", { item: `term:cvsj_genre:${coverage.genre}` })).length);
     assert.ok((await rowsFor("terms_changed", { q: coverage.suffix })).length >= 3);
     for (const action of ["comment_created", "comment_edited", "comment_status", "comment_deleted"]) {
       assert.ok((await rowsFor(action, { q: coverage.suffix })).length, `${action} should be captured`);
@@ -492,7 +492,7 @@ try {
     for (const action of ["menu_created", "menu_item_added", "menu_item_updated", "menu_item_deleted", "menu_deleted"]) {
       assert.ok((await rowsFor(action, { q: coverage.suffix })).length, `${action} should be captured`);
     }
-    const widgetKey = `widget_alfa_pilot_${coverage.suffix.replaceAll("-", "_")}`;
+    const widgetKey = `widget_cvsj_pilot_${coverage.suffix.replaceAll("-", "_")}`;
     assert.ok((await rowsFor("widget_changed", { item: `widget:${widgetKey}` })).length);
     const commentSettings = (await api("settings")).data.settings;
     assert.equal((await api("settings", { data: { ...commentSettings, capture_comments: false } })).status, 200);
@@ -516,7 +516,7 @@ try {
       await page.goto(base + screen);
     } else {
       await page.goto(base + "/wp-admin/index.php");
-      const dashboardSummary = page.locator(".alfa-dashboard-event-summary").first();
+      const dashboardSummary = page.locator(".cvsj-dashboard-event-summary").first();
       await dashboardSummary.waitFor();
       dashboardEvent = await dashboardSummary.innerText();
       assert.ok(all.events.some(event => event.summary === dashboardEvent), "Dashboard event must exist in the full list response");
@@ -530,7 +530,7 @@ try {
     assert.equal((await api("events", { query: { q: "Housing Guide", action: "content_edited" } })).data.events.length, 1);
 
     await page.evaluate(async id => {
-      const config = window.alfaSettings;
+      const config = window.cvsjSettings;
       const url = new URL(config.base);
       if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", "/wp/v2/pages/" + id);
       else url.pathname = "/wp-json/wp/v2/pages/" + id;
@@ -540,7 +540,7 @@ try {
     const renamed = await api("events", { query: { q: "REST editor fixture", action: "content_edited" } });
     assert.equal(renamed.data.events.length, 1);
     assert.ok(renamed.data.events[0].summary.includes("REST editor change"));
-    await page.goto(base + screen + `&item=${encodeURIComponent(`alfa_book:${coverage.book}`)}`);
+    await page.goto(base + screen + `&item=${encodeURIComponent(`cvsj_book:${coverage.book}`)}`);
     const filteredActivity = page.getByRole("table", { name: "Activity events" });
     await filteredActivity.waitFor();
     await filteredActivity.getByText(/Pilot book/).first().waitFor();
@@ -564,7 +564,7 @@ try {
     await page.screenshot({ path: output + "/activity-details.png", animations: "disabled" });
     await page.keyboard.press("Escape");
     await details.waitFor({ state: "hidden" });
-    await page.waitForFunction(() => document.activeElement?.matches(".alfa-event-link"));
+    await page.waitForFunction(() => document.activeElement?.matches(".cvsj-event-link"));
     assert.equal(await event.evaluate(node => document.activeElement === node), true);
     await page.reload();
     await event.waitFor();

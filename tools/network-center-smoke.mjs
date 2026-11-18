@@ -18,12 +18,12 @@ page.on("pageerror", error => pageErrors.push(error.message));
 
 async function api(path, query = {}, data = undefined) {
   return page.evaluate(async ({ path, query, data }) => {
-    const config = window.alfaSettings;
+    const config = window.cvsjSettings;
     const url = new URL(config.base);
     if (url.searchParams.has("rest_route")) url.searchParams.set("rest_route", url.searchParams.get("rest_route") + path);
     else url.pathname += path;
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
-    url.searchParams.set("_alfa_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    url.searchParams.set("_cvsj_request", `${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const response = await fetch(url, {
       method: data ? "POST" : "GET",
       credentials: "same-origin",
@@ -37,7 +37,7 @@ async function api(path, query = {}, data = undefined) {
 }
 
 async function fixtureCall(operation, fields = {}) {
-  const response = await context.request.post(base + "/alfa-fixture.php", { form: { operation, ...fields } });
+  const response = await context.request.post(base + "/cvsj-fixture.php", { form: { operation, ...fields } });
   assert.equal(response.status(), 200, await response.text());
   return response.json();
 }
@@ -48,24 +48,24 @@ try {
   await page.locator("#user_pass").fill(password);
   await page.locator("#wp-submit").click();
   await page.waitForLoadState("domcontentloaded");
-  await page.goto(base + "/wp-admin/network/admin.php?page=activity-log-for-admins-network");
-  if (await page.getByRole("heading", { name: "Network Activity Log", exact: true }).count() === 0) {
+  await page.goto(base + "/wp-admin/network/admin.php?page=change-vigil-site-journal-network");
+  if (await page.getByRole("heading", { name: "Network Change Vigil", exact: true }).count() === 0) {
     console.error(JSON.stringify({
       url: page.url(),
       title: await page.title(),
       body: (await page.locator("body").innerText()).slice(0, 1200),
-      config: await page.evaluate(() => typeof window.alfaSettings === "undefined" ? null : window.alfaSettings),
-      links: await page.locator("#adminmenu a").evaluateAll(links => links.filter(link => link.textContent.includes("Activity Log")).map(link => ({ text: link.textContent.trim(), href: link.href }))),
-      root: await page.locator("#alfa-root").count(),
+      config: await page.evaluate(() => typeof window.cvsjSettings === "undefined" ? null : window.cvsjSettings),
+      links: await page.locator("#adminmenu a").evaluateAll(links => links.filter(link => link.textContent.includes("Change Vigil")).map(link => ({ text: link.textContent.trim(), href: link.href }))),
+      root: await page.locator("#cvsj-root").count(),
     }));
   }
-  await page.getByRole("heading", { name: "Network Activity Log", exact: true }).waitFor();
-  const config = await page.evaluate(() => window.alfaSettings);
+  await page.getByRole("heading", { name: "Network Change Vigil", exact: true }).waitFor();
+  const config = await page.evaluate(() => window.cvsjSettings);
   assert.equal(config.networkMode, true);
   assert.equal(config.canManage, true);
-  assert.match(config.base, /activity-log-for-admins\/v1\/network\/$/);
+  assert.match(config.base, /change-vigil-site-journal\/v1\/network\/$/);
   assert.equal(await page.getByRole("link", { name: "Reports", exact: true }).count(), 0);
-  assert.equal(await page.getByRole("navigation", { name: "Activity Log", exact: true }).getByRole("link", { name: "Settings", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("navigation", { name: "Change Vigil", exact: true }).getByRole("link", { name: "Settings", exact: true }).count(), 0);
 
   const initial = await api("events");
   assert.equal(initial.status, 200);
@@ -119,7 +119,7 @@ try {
   assert.equal(new URL(page.url()).searchParams.get("network_site_id"), String(fixture.siteId));
   await page.getByRole("button", { name: /Network center probe .* child event 51/ }).waitFor();
   await page.reload();
-  await page.getByRole("heading", { name: "Network Activity Log", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Network Change Vigil", exact: true }).waitFor();
   await page.getByRole("button", { name: /Filters/ }).click();
   assert.equal(await page.getByLabel("Network site ID", { exact: true }).inputValue(), String(fixture.siteId));
   await page.getByRole("button", { name: /Network center probe .* child event 51/ }).click();
@@ -133,13 +133,13 @@ try {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "The network view fits a narrow screen.");
   await page.screenshot({ path: ".tmp/network-parity-wp/network-center-mobile.png", animations: "disabled" });
 
-  await page.getByRole("navigation", { name: "Activity Log", exact: true }).getByRole("link", { name: "Sites", exact: true }).click();
+  await page.getByRole("navigation", { name: "Change Vigil", exact: true }).getByRole("link", { name: "Sites", exact: true }).click();
   await page.getByRole("heading", { name: "Network sites", exact: true }).waitFor();
   await page.getByLabel("Search network sites", { exact: true }).fill(String(fixture.siteId));
   await page.getByRole("button", { name: "Search sites" }).click();
   const siteRow = page.getByRole("row").filter({ hasText: `Site #${fixture.siteId}` });
   await siteRow.getByText("Network center test site", { exact: true }).waitFor();
-  assert.equal(await page.getByText(`Activity Log for Admins, Version ${config.version}`, { exact: true }).count(), 1);
+  assert.equal(await page.getByText(`Change Vigil Site Journal, Version ${config.version}`, { exact: true }).count(), 1);
   await siteRow.getByText(/Manage .* categories/).click();
   const contentCategory = siteRow.getByRole("checkbox", { name: "Posts and pages", exact: true });
   assert.equal(await contentCategory.isChecked(), true);
@@ -173,10 +173,10 @@ try {
   await editorPage.locator("#user_pass").fill(editor.editorPassword);
   await editorPage.locator("#wp-submit").click();
   await editorPage.waitForLoadState("domcontentloaded");
-  const nonceResponse = await editorContext.request.post(base + "/alfa-fixture.php", { form: { operation: "nonce" } });
+  const nonceResponse = await editorContext.request.post(base + "/cvsj-fixture.php", { form: { operation: "nonce" } });
   assert.equal(nonceResponse.status(), 200);
   const { nonce } = await nonceResponse.json();
-  const denied = await editorContext.request.get(base + "/wp-json/activity-log-for-admins/v1/network/events", { headers: { "X-WP-Nonce": nonce } });
+  const denied = await editorContext.request.get(base + "/wp-json/change-vigil-site-journal/v1/network/events", { headers: { "X-WP-Nonce": nonce } });
   assert.equal(denied.status(), 403, "Site editors cannot read the network activity route.");
   await editorContext.close();
 
@@ -184,7 +184,7 @@ try {
   console.log("Network activity, site settings, composite pagination, event details, notes, complete CSV export, access control, and narrow layout passed.");
 } finally {
   if (fixture) {
-    const cleanup = await context.request.post(base + "/alfa-fixture.php", { form: { operation: "network_center_cleanup", marker: fixture.marker, site_id: fixture.siteId } });
+    const cleanup = await context.request.post(base + "/cvsj-fixture.php", { form: { operation: "network_center_cleanup", marker: fixture.marker, site_id: fixture.siteId } });
     assert.equal(cleanup.status(), 200, await cleanup.text());
   }
   await browser.close();
